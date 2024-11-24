@@ -2,9 +2,9 @@
 #define HAL_ETHERNET_TIVA_HPP
 
 #include DEVICE_HEADER
-#include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal/interfaces/Ethernet.hpp"
 #include "hal/interfaces/MacAddress.hpp"
+#include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Optional.hpp"
 
@@ -32,7 +32,6 @@ namespace hal::tiva
         Ethernet(Leds leds, PhySelection phySelection, hal::LinkSpeed linkSpeed, hal::MacAddress macAddress);
         ~Ethernet();
 
-        void Initialize() override;
         void SendBuffer(infra::ConstByteRange data, bool last) override;
         void RetryAllocation() override;
         void AddMacAddressFilter(hal::MacAddress address) override;
@@ -45,16 +44,16 @@ namespace hal::tiva
 
         union EMACLink
         {
-            EMACDescriptor *link; /* When DMA descriptors are used in chained mode, this field is used to provide a link to the next descriptor */
-            void *buffer; /* When the DMA descriptors are unchained, this field may be used to point to a second buffer containing data for transmission or providing storage for a received frame */
+            EMACDescriptor* link; /* When DMA descriptors are used in chained mode, this field is used to provide a link to the next descriptor */
+            void* buffer;         /* When the DMA descriptors are unchained, this field may be used to point to a second buffer containing data for transmission or providing storage for a received frame */
         };
 
         struct EMACDescriptor
         {
             volatile uint32_t Desc0; /* contains various control and status bits depending upon whether the descriptor is in the transmit or receive queue */
             volatile uint32_t Desc1; /* contains information on the size of the buffer or buffers attached to the descriptor and various additional control bits */
-            void *Desc2; /* The third descriptor word contains a pointer to the buffer containing data to transmit or into which received data should be written */
-            EMACLink Desc3; /* contains either a pointer to the next descriptor in the ring or a pointer to a second data buffer */
+            void* Desc2;             /* The third descriptor word contains a pointer to the buffer containing data to transmit or into which received data should be written */
+            EMACLink Desc3;          /* contains either a pointer to the next descriptor in the ring or a pointer to a second data buffer */
             volatile uint32_t Desc4; /* transmit descriptors but used to report extended status in a receive descriptor */
             uint32_t reserved;
             volatile uint32_t Desc6; /* the low 32 bits of the 64-bit timestamp captured for transmitted or received data */
@@ -101,6 +100,7 @@ namespace hal::tiva
             bool sendFirst = true;
         };
 
+        void Initialize();
         void EnableEMACClock() const;
         void ResetEMACClock() const;
         bool IsEMACReady() const;

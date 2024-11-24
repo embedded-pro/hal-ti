@@ -43,7 +43,7 @@ namespace hal::tiva
         constexpr const uint32_t UART_ECR_DATA_M = 0x000000FF; // Error Clear
         constexpr const uint32_t UART_ECR_DATA_S = 0;
 
-        constexpr const uint32_t UART_FR_RI = 0x00000100; // Ring Indicator
+        constexpr const uint32_t UART_FR_RI = 0x00000100;   // Ring Indicator
         constexpr const uint32_t UART_FR_TXFE = 0x00000080; // UART Transmit FIFO Empty
         constexpr const uint32_t UART_FR_RXFF = 0x00000040; // UART Receive FIFO Full
         constexpr const uint32_t UART_FR_TXFF = 0x00000020; // UART Transmit FIFO Full
@@ -62,39 +62,39 @@ namespace hal::tiva
         constexpr const uint32_t UART_FBRD_DIVFRAC_M = 0x0000003F; // Fractional Baud-Rate Divisor
         constexpr const uint32_t UART_FBRD_DIVFRAC_S = 0;
 
-        constexpr const uint32_t UART_LCRH_SPS = 0x00000080; // UART Stick Parity Select
+        constexpr const uint32_t UART_LCRH_SPS = 0x00000080;    // UART Stick Parity Select
         constexpr const uint32_t UART_LCRH_WLEN_M = 0x00000060; // UART Word Length
         constexpr const uint32_t UART_LCRH_WLEN_5 = 0x00000000; // 5 bits (default)
         constexpr const uint32_t UART_LCRH_WLEN_6 = 0x00000020; // 6 bits
         constexpr const uint32_t UART_LCRH_WLEN_7 = 0x00000040; // 7 bits
         constexpr const uint32_t UART_LCRH_WLEN_8 = 0x00000060; // 8 bits
-        constexpr const uint32_t UART_LCRH_FEN = 0x00000010; // UART Enable FIFOs
-        constexpr const uint32_t UART_LCRH_STP2 = 0x00000008; // UART Two Stop Bits Select
-        constexpr const uint32_t UART_LCRH_EPS = 0x00000004; // UART Even Parity Select
-        constexpr const uint32_t UART_LCRH_PEN = 0x00000002; // UART Parity Enable
-        constexpr const uint32_t UART_LCRH_BRK = 0x00000001; // UART Send Break
+        constexpr const uint32_t UART_LCRH_FEN = 0x00000010;    // UART Enable FIFOs
+        constexpr const uint32_t UART_LCRH_STP2 = 0x00000008;   // UART Two Stop Bits Select
+        constexpr const uint32_t UART_LCRH_EPS = 0x00000004;    // UART Even Parity Select
+        constexpr const uint32_t UART_LCRH_PEN = 0x00000002;    // UART Parity Enable
+        constexpr const uint32_t UART_LCRH_BRK = 0x00000001;    // UART Send Break
 
-        constexpr const uint32_t UART_CTL_CTSEN = 0x00008000; // Enable Clear To Send
-        constexpr const uint32_t UART_CTL_RTSEN = 0x00004000; // Enable Request to Send
-        constexpr const uint32_t UART_CTL_RTS = 0x00000800; // Request to Send
-        constexpr const uint32_t UART_CTL_DTR = 0x00000400; // Data Terminal Ready
-        constexpr const uint32_t UART_CTL_RXE = 0x00000200; // UART Receive Enable
-        constexpr const uint32_t UART_CTL_TXE = 0x00000100; // UART Transmit Enable
-        constexpr const uint32_t UART_CTL_LBE = 0x00000080; // UART Loop Back Enable
-        constexpr const uint32_t UART_CTL_HSE = 0x00000020; // High-Speed Enable
-        constexpr const uint32_t UART_CTL_EOT = 0x00000010; // End of Transmission
-        constexpr const uint32_t UART_CTL_SMART = 0x00000008; // ISO 7816 Smart Card Support
-        constexpr const uint32_t UART_CTL_SIRLP = 0x00000004; // UART SIR Low-Power Mode
-        constexpr const uint32_t UART_CTL_SIREN = 0x00000002; // UART SIR Enable
+        constexpr const uint32_t UART_CTL_CTSEN = 0x00008000;  // Enable Clear To Send
+        constexpr const uint32_t UART_CTL_RTSEN = 0x00004000;  // Enable Request to Send
+        constexpr const uint32_t UART_CTL_RTS = 0x00000800;    // Request to Send
+        constexpr const uint32_t UART_CTL_DTR = 0x00000400;    // Data Terminal Ready
+        constexpr const uint32_t UART_CTL_RXE = 0x00000200;    // UART Receive Enable
+        constexpr const uint32_t UART_CTL_TXE = 0x00000100;    // UART Transmit Enable
+        constexpr const uint32_t UART_CTL_LBE = 0x00000080;    // UART Loop Back Enable
+        constexpr const uint32_t UART_CTL_HSE = 0x00000020;    // High-Speed Enable
+        constexpr const uint32_t UART_CTL_EOT = 0x00000010;    // End of Transmission
+        constexpr const uint32_t UART_CTL_SMART = 0x00000008;  // ISO 7816 Smart Card Support
+        constexpr const uint32_t UART_CTL_SIRLP = 0x00000004;  // UART SIR Low-Power Mode
+        constexpr const uint32_t UART_CTL_SIREN = 0x00000002;  // UART SIR Enable
         constexpr const uint32_t UART_CTL_UARTEN = 0x00000001; // UART Enable
 
-        constexpr const uint32_t UART_IFLS_RX_M = 0x00000038; // UART Receive Interrupt FIFO Level Select
+        constexpr const uint32_t UART_IFLS_RX_M = 0x00000038;  // UART Receive Interrupt FIFO Level Select
         constexpr const uint32_t UART_IFLS_RX1_8 = 0x00000000; // RX FIFO >= 1/8 full
         constexpr const uint32_t UART_IFLS_RX2_8 = 0x00000008; // RX FIFO >= 1/4 full
         constexpr const uint32_t UART_IFLS_RX4_8 = 0x00000010; // RX FIFO >= 1/2 full (default)
         constexpr const uint32_t UART_IFLS_RX6_8 = 0x00000018; // RX FIFO >= 3/4 full
         constexpr const uint32_t UART_IFLS_RX7_8 = 0x00000020; // RX FIFO >= 7/8 full
-        constexpr const uint32_t UART_IFLS_TX_M = 0x00000007; // UART Transmit Interrupt FIFO Level Select
+        constexpr const uint32_t UART_IFLS_TX_M = 0x00000007;  // UART Transmit Interrupt FIFO Level Select
         constexpr const uint32_t UART_IFLS_TX1_8 = 0x00000000; // TX FIFO <= 1/8 full
         constexpr const uint32_t UART_IFLS_TX2_8 = 0x00000001; // TX FIFO <= 1/4 full
         constexpr const uint32_t UART_IFLS_TX4_8 = 0x00000002; // TX FIFO <= 1/2 full (default)
@@ -103,19 +103,19 @@ namespace hal::tiva
 
         constexpr const uint32_t UART_IM_DMATXIM = 0x00020000; // Transmit DMA Interrupt Mask
         constexpr const uint32_t UART_IM_DMARXIM = 0x00010000; // Receive DMA Interrupt Mask
-        constexpr const uint32_t UART_IM_9BITIM = 0x00001000; // 9-Bit Mode Interrupt Mask
-        constexpr const uint32_t UART_IM_EOTIM = 0x00000800; // End of Transmission Interrupt Mask
-        constexpr const uint32_t UART_IM_OEIM = 0x00000400; // UART Overrun Error Interrupt Mask
-        constexpr const uint32_t UART_IM_BEIM = 0x00000200; // UART Break Error Interrupt Mask
-        constexpr const uint32_t UART_IM_PEIM = 0x00000100; // UART Parity Error Interrupt Mask
-        constexpr const uint32_t UART_IM_FEIM = 0x00000080; // UART Framing Error Interrupt Mask
-        constexpr const uint32_t UART_IM_RTIM = 0x00000040; // UART Receive Time-Out Interrupt Mask
-        constexpr const uint32_t UART_IM_TXIM = 0x00000020; // UART Transmit Interrupt Mask
-        constexpr const uint32_t UART_IM_RXIM = 0x00000010; // UART Receive Interrupt Mask
-        constexpr const uint32_t UART_IM_DSRMIM = 0x00000008; // UART Data Set Ready Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_DCDMIM = 0x00000004; // UART Data Carrier Detect Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_CTSMIM = 0x00000002; // UART Clear to Send Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_RIMIM = 0x00000001; // UART Ring Indicator Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_9BITIM = 0x00001000;  // 9-Bit Mode Interrupt Mask
+        constexpr const uint32_t UART_IM_EOTIM = 0x00000800;   // End of Transmission Interrupt Mask
+        constexpr const uint32_t UART_IM_OEIM = 0x00000400;    // UART Overrun Error Interrupt Mask
+        constexpr const uint32_t UART_IM_BEIM = 0x00000200;    // UART Break Error Interrupt Mask
+        constexpr const uint32_t UART_IM_PEIM = 0x00000100;    // UART Parity Error Interrupt Mask
+        constexpr const uint32_t UART_IM_FEIM = 0x00000080;    // UART Framing Error Interrupt Mask
+        constexpr const uint32_t UART_IM_RTIM = 0x00000040;    // UART Receive Time-Out Interrupt Mask
+        constexpr const uint32_t UART_IM_TXIM = 0x00000020;    // UART Transmit Interrupt Mask
+        constexpr const uint32_t UART_IM_RXIM = 0x00000010;    // UART Receive Interrupt Mask
+        constexpr const uint32_t UART_IM_DSRMIM = 0x00000008;  // UART Data Set Ready Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_DCDMIM = 0x00000004;  // UART Data Carrier Detect Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_CTSMIM = 0x00000002;  // UART Clear to Send Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_RIMIM = 0x00000001;   // UART Ring Indicator Modem Interrupt Mask
 
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMARXRIS = 0x00010000; // Receive DMA Raw Interrupt Status
@@ -181,7 +181,7 @@ namespace hal::tiva
         constexpr const uint32_t UART_PP_NB = 0x00000002; // 9-Bit Support
         constexpr const uint32_t UART_PP_SC = 0x00000001; // Smart Card Support
 
-        constexpr const uint32_t UART_CC_CS_M = 0x0000000F; // UART Baud Clock Source
+        constexpr const uint32_t UART_CC_CS_M = 0x0000000F;      // UART Baud Clock Source
         constexpr const uint32_t UART_CC_CS_SYSCLK = 0x00000000; // System clock (based on clock source and divisor factor)
         constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005; // PIOSC
         // NOLINTEND
@@ -217,17 +217,14 @@ namespace hal::tiva
             UART7_BASE,
         }};
 
-        constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray =
-        {{
-            UART0_IRQn,
+        constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray = { { UART0_IRQn,
             UART1_IRQn,
             UART2_IRQn,
             UART3_IRQn,
             UART4_IRQn,
             UART5_IRQn,
             UART6_IRQn,
-            UART7_IRQn
-        }};
+            UART7_IRQn } };
 
         const infra::MemoryRange<UART0_Type* const> peripheralUart = infra::ReinterpretCastMemoryRange<UART0_Type* const>(infra::MakeRange(peripheralUartArray));
 
@@ -283,7 +280,7 @@ namespace hal::tiva
         uartArray[uartIndex]->LCRH = lcrh;
         uartArray[uartIndex]->FR = 0;
         uartArray[uartIndex]->IFLS = UART_IFLS_RX7_8 | UART_IFLS_TX7_8; /* Set fifo level */
-        uartArray[uartIndex]->IM |= UART_IM_OEIM; /* Enable overrun error interrupt */
+        uartArray[uartIndex]->IM |= UART_IM_OEIM;                       /* Enable overrun error interrupt */
         EnableUart();
 
         if (config.priority)
@@ -292,9 +289,11 @@ namespace hal::tiva
 
     void Uart::DisableUart() const
     {
-        while (uartArray[uartIndex]->FR & UART_FR_BUSY) { } /* Wait for end of TX. */
-        uartArray[uartIndex]->LCRH &=~ UART_LCRH_FEN; /* Disable FIFO. */
-        uartArray[uartIndex]->CTL &=~ ( UART_CTL_UARTEN | enableTx | enableRx);
+        while (uartArray[uartIndex]->FR & UART_FR_BUSY)
+        {
+        }                                             /* Wait for end of TX. */
+        uartArray[uartIndex]->LCRH &= ~UART_LCRH_FEN; /* Disable FIFO. */
+        uartArray[uartIndex]->CTL &= ~(UART_CTL_UARTEN | enableTx | enableRx);
     }
 
     void Uart::EnableUart() const
@@ -322,7 +321,7 @@ namespace hal::tiva
             sendData = data;
             sending = true;
 
-            uartArray[uartIndex]->IM |= UART_IM_TXIM;  /* Enable TX interrupt */
+            uartArray[uartIndex]->IM |= UART_IM_TXIM; /* Enable TX interrupt */
         }
     }
 
@@ -381,7 +380,7 @@ namespace hal::tiva
             if (sendData.empty())
             {
                 TransferComplete();
-                uartArray[uartIndex]->IM &=~ UART_IM_TXIM;  /* Disable TX interrupt */
+                uartArray[uartIndex]->IM &= ~UART_IM_TXIM; /* Disable TX interrupt */
             }
         }
     }
