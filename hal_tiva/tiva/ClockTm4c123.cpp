@@ -110,20 +110,20 @@ namespace
     constexpr const uint32_t HIB_CTL_VBATSEL_2_1V_V = 0x00002000; // 2.1 Volts (default)
     constexpr const uint32_t HIB_CTL_VBATSEL_2_3V_V = 0x00004000; // 2.3 Volts
     constexpr const uint32_t HIB_CTL_VBATSEL_2_5V_V = 0x00006000; // 2.5 Volts
-    constexpr const uint32_t HIB_CTL_BATCHK_B = 0x00000400; // Check Battery Status
-    constexpr const uint32_t HIB_CTL_BATWKEN_B = 0x00000200; // Wake on Low Battery
-    constexpr const uint32_t HIB_CTL_VDD3ON_B = 0x00000100; // VDD Powered
-    constexpr const uint32_t HIB_CTL_VABORT_B = 0x00000080; // Power Cut Abort Enable
-    constexpr const uint32_t HIB_CTL_CLK32EN_B = 0x00000040; // Clocking Enable
-    constexpr const uint32_t HIB_CTL_PINWEN_B = 0x00000010; // External Wake Pin Enable
-    constexpr const uint32_t HIB_CTL_RTCWEN_B = 0x00000008; // RTC Wake-up Enable
-    constexpr const uint32_t HIB_CTL_HIBREQ_B = 0x00000002; // Hibernation Request
-    constexpr const uint32_t HIB_CTL_RTCEN_B = 0x00000001; // RTC Timer Enable
+    constexpr const uint32_t HIB_CTL_BATCHK_B = 0x00000400;       // Check Battery Status
+    constexpr const uint32_t HIB_CTL_BATWKEN_B = 0x00000200;      // Wake on Low Battery
+    constexpr const uint32_t HIB_CTL_VDD3ON_B = 0x00000100;       // VDD Powered
+    constexpr const uint32_t HIB_CTL_VABORT_B = 0x00000080;       // Power Cut Abort Enable
+    constexpr const uint32_t HIB_CTL_CLK32EN_B = 0x00000040;      // Clocking Enable
+    constexpr const uint32_t HIB_CTL_PINWEN_B = 0x00000010;       // External Wake Pin Enable
+    constexpr const uint32_t HIB_CTL_RTCWEN_B = 0x00000008;       // RTC Wake-up Enable
+    constexpr const uint32_t HIB_CTL_HIBREQ_B = 0x00000002;       // Hibernation Request
+    constexpr const uint32_t HIB_CTL_RTCEN_B = 0x00000001;        // RTC Timer Enable
 
     /* Bit/Fields in Register IM of Module HIB                                    */
-    constexpr const uint32_t HIB_IM_WC_B = 0x00000010; // External Write Complete/Capable
-    constexpr const uint32_t HIB_IM_EXTW_B = 0x00000008; // External Wake-Up Interrupt Mask
-    constexpr const uint32_t HIB_IM_LOWBAT_B = 0x00000004; // Low Battery Voltage Interrupt
+    constexpr const uint32_t HIB_IM_WC_B = 0x00000010;      // External Write Complete/Capable
+    constexpr const uint32_t HIB_IM_EXTW_B = 0x00000008;    // External Wake-Up Interrupt Mask
+    constexpr const uint32_t HIB_IM_LOWBAT_B = 0x00000004;  // Low Battery Voltage Interrupt
     constexpr const uint32_t HIB_IM_RTCALT0_B = 0x00000001; // RTC Alert = 0 Interrupt Mask
 
     /* Bit/Fields in Register PLLSTAT of Module SYSCTL                            */
@@ -274,36 +274,6 @@ namespace
     constexpr const uint32_t SYSCTL_USE_PLL = 0x00000000;      // System clock is the PLL clock
     constexpr const uint32_t SYSCTL_USE_OSC = 0x00003800;      // System clock is the osc clock
     constexpr const uint32_t SYSCTL_XTAL_1MHZ = 0x00000000;    // External crystal is 1MHz
-    constexpr const uint32_t SYSCTL_SYSDIV_39_5 = 0xD3800000; // Processor clock is pll / 39.5
-    constexpr const uint32_t SYSCTL_SYSDIV_40_5 = 0xD4000000; // Processor clock is pll / 40.5
-    constexpr const uint32_t SYSCTL_SYSDIV_41_5 = 0xD4800000; // Processor clock is pll / 41.5
-    constexpr const uint32_t SYSCTL_SYSDIV_42_5 = 0xD5000000; // Processor clock is pll / 42.5
-    constexpr const uint32_t SYSCTL_SYSDIV_43_5 = 0xD5800000; // Processor clock is pll / 43.5
-    constexpr const uint32_t SYSCTL_SYSDIV_44_5 = 0xD6000000; // Processor clock is pll / 44.5
-    constexpr const uint32_t SYSCTL_SYSDIV_45_5 = 0xD6800000; // Processor clock is pll / 45.5
-    constexpr const uint32_t SYSCTL_SYSDIV_46_5 = 0xD7000000; // Processor clock is pll / 46.5
-    constexpr const uint32_t SYSCTL_SYSDIV_47_5 = 0xD7800000; // Processor clock is pll / 47.5
-    constexpr const uint32_t SYSCTL_SYSDIV_48_5 = 0xD8000000; // Processor clock is pll / 48.5
-    constexpr const uint32_t SYSCTL_SYSDIV_49_5 = 0xD8800000; // Processor clock is pll / 49.5
-    constexpr const uint32_t SYSCTL_SYSDIV_50_5 = 0xD9000000; // Processor clock is pll / 50.5
-    constexpr const uint32_t SYSCTL_SYSDIV_51_5 = 0xD9800000; // Processor clock is pll / 51.5
-    constexpr const uint32_t SYSCTL_SYSDIV_52_5 = 0xDA000000; // Processor clock is pll / 52.5
-    constexpr const uint32_t SYSCTL_SYSDIV_53_5 = 0xDA800000; // Processor clock is pll / 53.5
-    constexpr const uint32_t SYSCTL_SYSDIV_54_5 = 0xDB000000; // Processor clock is pll / 54.5
-    constexpr const uint32_t SYSCTL_SYSDIV_55_5 = 0xDB800000; // Processor clock is pll / 55.5
-    constexpr const uint32_t SYSCTL_SYSDIV_56_5 = 0xDC000000; // Processor clock is pll / 56.5
-    constexpr const uint32_t SYSCTL_SYSDIV_57_5 = 0xDC800000; // Processor clock is pll / 57.5
-    constexpr const uint32_t SYSCTL_SYSDIV_58_5 = 0xDD000000; // Processor clock is pll / 58.5
-    constexpr const uint32_t SYSCTL_SYSDIV_59_5 = 0xDD800000; // Processor clock is pll / 59.5
-    constexpr const uint32_t SYSCTL_SYSDIV_60_5 = 0xDE000000; // Processor clock is pll / 60.5
-    constexpr const uint32_t SYSCTL_SYSDIV_61_5 = 0xDE800000; // Processor clock is pll / 61.5
-    constexpr const uint32_t SYSCTL_SYSDIV_62_5 = 0xDF000000; // Processor clock is pll / 62.5
-    constexpr const uint32_t SYSCTL_SYSDIV_63_5 = 0xDF800000; // Processor clock is pll / 63.5
-    constexpr const uint32_t SYSCTL_CFG_VCO_480 = 0xF1000000; // VCO is 480 MHz
-    constexpr const uint32_t SYSCTL_CFG_VCO_320 = 0xF0000000; // VCO is 320 MHz
-    constexpr const uint32_t SYSCTL_USE_PLL = 0x00000000; // System clock is the PLL clock
-    constexpr const uint32_t SYSCTL_USE_OSC = 0x00003800; // System clock is the osc clock
-    constexpr const uint32_t SYSCTL_XTAL_1MHZ = 0x00000000; // External crystal is 1MHz
     constexpr const uint32_t SYSCTL_XTAL_1_84MHZ = 0x00000040; // External crystal is 1.8432MHz
     constexpr const uint32_t SYSCTL_XTAL_2MHZ = 0x00000080;    // External crystal is 2MHz
     constexpr const uint32_t SYSCTL_XTAL_2_45MHZ = 0x000000C0; // External crystal is 2.4576MHz
@@ -317,14 +287,14 @@ namespace
     constexpr const uint32_t SYSCTL_XTAL_6MHZ = 0x000002C0;    // External crystal is 6MHz
     constexpr const uint32_t SYSCTL_XTAL_6_14MHZ = 0x00000300; // External crystal is 6.144MHz
     constexpr const uint32_t SYSCTL_XTAL_7_37MHZ = 0x00000340; // External crystal is 7.3728MHz
-    constexpr const uint32_t SYSCTL_XTAL_8MHZ = 0x00000380; // External crystal is 8MHz
+    constexpr const uint32_t SYSCTL_XTAL_8MHZ = 0x00000380;    // External crystal is 8MHz
     constexpr const uint32_t SYSCTL_XTAL_8_19MHZ = 0x000003C0; // External crystal is 8.192MHz
-    constexpr const uint32_t SYSCTL_XTAL_10MHZ = 0x00000400; // External crystal is 10 MHz
-    constexpr const uint32_t SYSCTL_XTAL_12MHZ = 0x00000440; // External crystal is 12 MHz
+    constexpr const uint32_t SYSCTL_XTAL_10MHZ = 0x00000400;   // External crystal is 10 MHz
+    constexpr const uint32_t SYSCTL_XTAL_12MHZ = 0x00000440;   // External crystal is 12 MHz
     constexpr const uint32_t SYSCTL_XTAL_12_2MHZ = 0x00000480; // External crystal is 12.288 MHz
     constexpr const uint32_t SYSCTL_XTAL_13_5MHZ = 0x000004C0; // External crystal is 13.56 MHz
     constexpr const uint32_t SYSCTL_XTAL_14_3MHZ = 0x00000500; // External crystal is 14.31818 MHz
-    constexpr const uint32_t SYSCTL_XTAL_16MHZ = 0x00000540; // External crystal is 16 MHz
+    constexpr const uint32_t SYSCTL_XTAL_16MHZ = 0x00000540;   // External crystal is 16 MHz
     constexpr const uint32_t SYSCTL_XTAL_16_3MHZ = 0x00000580; // External crystal is 16.384 MHz
     constexpr const uint32_t SYSCTL_XTAL_18MHZ = 0x000005C0;   // External crystal is 18.0 MHz
     constexpr const uint32_t SYSCTL_XTAL_20MHZ = 0x00000600;   // External crystal is 20.0 MHz
@@ -338,32 +308,32 @@ namespace
     constexpr const uint32_t SYSCTL_INT_OSC_DIS = 0x00000002;  // Disable internal oscillator
     constexpr const uint32_t SYSCTL_MAIN_OSC_DIS = 0x00000001; // Disable main oscillator
 
-    constexpr const uint32_t CLOCK_FREQ_PIOSC = (16000000UL); /* Internal Oscillator Frequency: 16 MHz */
-    constexpr const uint32_t CLOCK_FREQ_PIOSC_4 = (4000000UL); /* PIOSC divided by 4 : 4 MHz */
-    constexpr const uint32_t CLOCK_FREQ_LFIOSC = (30000UL); /* Low Frequency Internal Oscillator: 30 KHz */
-    constexpr const uint32_t CLOCK_FREQ_HIBOSC = (32768UL); /* External Hibernate Module Oscillator: 32768 Hz */
-    constexpr const uint32_t CLOCK_FREQ_PLLOSC = (400000000UL); /* PLL Oscillator : 400 MHz */
+    constexpr const uint32_t CLOCK_FREQ_PIOSC = (16000000UL);     /* Internal Oscillator Frequency: 16 MHz */
+    constexpr const uint32_t CLOCK_FREQ_PIOSC_4 = (4000000UL);    /* PIOSC divided by 4 : 4 MHz */
+    constexpr const uint32_t CLOCK_FREQ_LFIOSC = (30000UL);       /* Low Frequency Internal Oscillator: 30 KHz */
+    constexpr const uint32_t CLOCK_FREQ_HIBOSC = (32768UL);       /* External Hibernate Module Oscillator: 32768 Hz */
+    constexpr const uint32_t CLOCK_FREQ_PLLOSC = (400000000UL);   /* PLL Oscillator : 400 MHz */
     constexpr const uint32_t CLOCK_FREQ_PLLOSC_2 = (200000000UL); /* PLL Oscillator divided by 2 : 200 MHz */
-    constexpr const uint32_t CLOCK_FREQ_MAX = (80000000UL); /* Maximum processo clock : 80 MHz */
+    constexpr const uint32_t CLOCK_FREQ_MAX = (80000000UL);       /* Maximum processo clock : 80 MHz */
     // NOLINTEND
 
     const std::array<uint32_t, 32> crystalLookupTable = { {
-        0, /*  0 */
-        0, /*  1 */
-        0, /*  2 */
-        0, /*  3 */
-        0, /*  4 */
-        0, /*  5 */
-        4000000, /*  6 */
-        4096000, /*  7 */
-        4915200, /*  8 */
-        5000000, /*  9 */
-        5120000, /* 10 */
-        6000000, /* 11 */
-        6144000, /* 12 */
-        7372800, /* 13 */
-        8000000, /* 14 */
-        8192000, /* 15 */
+        0,        /*  0 */
+        0,        /*  1 */
+        0,        /*  2 */
+        0,        /*  3 */
+        0,        /*  4 */
+        0,        /*  5 */
+        4000000,  /*  6 */
+        4096000,  /*  7 */
+        4915200,  /*  8 */
+        5000000,  /*  9 */
+        5120000,  /* 10 */
+        6000000,  /* 11 */
+        6144000,  /* 12 */
+        7372800,  /* 13 */
+        8000000,  /* 14 */
+        8192000,  /* 15 */
         10000000, /* 16 */
         12000000, /* 17 */
         12288000, /* 18 */
@@ -375,11 +345,11 @@ namespace
         18000000, /* 24 */
         20000000, /* 25 */
         25000000, /* 26 */
-        0, /* 27 */
-        0, /* 28 */
-        0, /* 29 */
-        0, /* 30 */
-        0, /* 31 */
+        0,        /* 27 */
+        0,        /* 28 */
+        0,        /* 29 */
+        0,        /* 30 */
+        0,        /* 31 */
     } };
 
     void BypassPllAndSystemClock(uint32_t& rcc, uint32_t& rcc2)
@@ -466,12 +436,12 @@ namespace
 
         if (enableDiv400)
         {
-            rcc  |=  (SYSCTL_RCC_USESYSDIV_B);
+            rcc |= (SYSCTL_RCC_USESYSDIV_B);
             rcc2 &= ~(SYSCTL_RCC_USESYSDIV_B);
-            rcc2 |=  SYSCTL_RCC2_DIV400_B;
+            rcc2 |= SYSCTL_RCC2_DIV400_B;
 
             if (systemClockDivisor.fractional == 5)
-                rcc2 &=~ SYSCTL_RCC2_SYSDIV2LSB_B;
+                rcc2 &= ~SYSCTL_RCC2_SYSDIV2LSB_B;
             else
                 rcc2 |= SYSCTL_RCC2_SYSDIV2LSB_B;
         }
@@ -506,12 +476,24 @@ namespace
     {
         switch ((rcc2 & SYSCTL_RCC2_USERCC2_B) != 0 ? (rcc2 & SYSCTL_RCC2_OSCSRC2_M) : (rcc & SYSCTL_RCC_OSCSRC_M))
         {
-            case SYSCTL_RCC_OSCSRC_MAIN: return crystalLookupTable.at((((rcc & SYSCTL_RCC_XTAL_M) >> SYSCTL_RCC_XTAL_S) & 0x1F) + 1); break;
-            case SYSCTL_RCC_OSCSRC_INT: return 16000000; break;
-            case SYSCTL_RCC_OSCSRC_INT4: return 4000000; break;
-            case SYSCTL_RCC_OSCSRC_30: return 30000; break;
-            case SYSCTL_RCC2_OSCSRC2_32: return 32768; break;
-            default: return 0; break;
+            case SYSCTL_RCC_OSCSRC_MAIN:
+                return crystalLookupTable.at((((rcc & SYSCTL_RCC_XTAL_M) >> SYSCTL_RCC_XTAL_S) & 0x1F) + 1);
+                break;
+            case SYSCTL_RCC_OSCSRC_INT:
+                return 16000000;
+                break;
+            case SYSCTL_RCC_OSCSRC_INT4:
+                return 4000000;
+                break;
+            case SYSCTL_RCC_OSCSRC_30:
+                return 30000;
+                break;
+            case SYSCTL_RCC2_OSCSRC2_32:
+                return 32768;
+                break;
+            default:
+                return 0;
+                break;
         }
     }
 

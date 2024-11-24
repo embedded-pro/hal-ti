@@ -2,14 +2,13 @@
 #define HAL_TI_EVENT_INFRASTRUCTURE_HPP
 
 #include "hal_tiva/cortex/SystemTickTimerService.hpp"
-#include "hal_tiva/tiva/Gpio.hpp"
-
+#include "infra/event/EventDispatcherWithWeakPtr.hpp"
 
 namespace instantiations
 {
     struct EventInfrastructure
     {
-        EventInfrastructure(infra::Duration tickDuration = std::chrono::milliseconds(1));
+        explicit EventInfrastructure(infra::Duration tickDuration = std::chrono::milliseconds(1));
 
         void Run();
 
