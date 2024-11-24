@@ -187,7 +187,7 @@ namespace hal::tiva
         really_assert(reinterpret_cast<uint32_t>(sourceAddress) >= 0x20000000);
         really_assert(reinterpret_cast<uint32_t>(destinationAddress) >= 0x20000000);
 
-        auto controlArray = reinterpret_cast<DmaChannel::Control *>(UDMA->CTLBASE);
+        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
         auto index = channel.number + static_cast<uint32_t>(type);
         auto control = &controlArray[index];
 

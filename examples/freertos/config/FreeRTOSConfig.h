@@ -93,33 +93,35 @@ void vConfigureTimerForRunTimeStats( void );    /* Prototype of function that in
 /* Set the following definitions to 1 to include the API function, or zero
  * to exclude the API function.  In most cases the linker will remove unused
  * functions anyway. */
-#define INCLUDE_vTaskPrioritySet                  1
-#define INCLUDE_uxTaskPriorityGet                 1
-#define INCLUDE_vTaskDelete                       1
-#define INCLUDE_vTaskCleanUpResources             0
-#define INCLUDE_vTaskSuspend                      1
-#define INCLUDE_vTaskDelayUntil                   1
-#define INCLUDE_vTaskDelay                        1
-#define INCLUDE_uxTaskGetStackHighWaterMark       1
-#define INCLUDE_uxTaskGetStackHighWaterMark2      1
-#define INCLUDE_xTaskGetSchedulerState            1
-#define INCLUDE_xTimerGetTimerDaemonTaskHandle    1
-#define INCLUDE_xTaskGetIdleTaskHandle            1
-#define INCLUDE_xTaskGetHandle                    1
-#define INCLUDE_eTaskGetState                     1
-#define INCLUDE_xSemaphoreGetMutexHolder          1
-#define INCLUDE_xTimerPendFunctionCall            1
-#define INCLUDE_xTaskAbortDelay                   1
+#define INCLUDE_vTaskPrioritySet 1
+#define INCLUDE_uxTaskPriorityGet 1
+#define INCLUDE_vTaskDelete 1
+#define INCLUDE_vTaskCleanUpResources 0
+#define INCLUDE_vTaskSuspend 1
+#define INCLUDE_vTaskDelayUntil 1
+#define INCLUDE_vTaskDelay 1
+#define INCLUDE_uxTaskGetStackHighWaterMark 1
+#define INCLUDE_uxTaskGetStackHighWaterMark2 1
+#define INCLUDE_xTaskGetSchedulerState 1
+#define INCLUDE_xTimerGetTimerDaemonTaskHandle 1
+#define INCLUDE_xTaskGetIdleTaskHandle 1
+#define INCLUDE_xTaskGetHandle 1
+#define INCLUDE_eTaskGetState 1
+#define INCLUDE_xSemaphoreGetMutexHolder 1
+#define INCLUDE_xTimerPendFunctionCall 1
+#define INCLUDE_xTaskAbortDelay 1
 
-extern void vAssertCalled( const char * const pcFileName,
-                           unsigned long ulLine );
+extern void vAssertCalled(const char* const pcFileName,
+    unsigned long ulLine);
 
 /* It is a good idea to define configASSERT() while developing.  configASSERT()
  * uses the same semantics as the standard C assert() macro.  Don't define
  * configASSERT() when performing code coverage tests though, as it is not
  * intended to asserts() to fail, some some code is intended not to run if no
  * errors are present. */
-#define configASSERT( x )    if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )
+#define configASSERT(x) \
+    if ((x) == 0)       \
+    vAssertCalled(__FILE__, __LINE__)
 
 #define configUSE_MALLOC_FAILED_HOOK    1
 

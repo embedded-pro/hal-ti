@@ -3,9 +3,9 @@
 #include "infra/util/BitLogic.hpp"
 
 #if defined(TM4C129)
-#define NUMBER_OF_QEI   1
+#define NUMBER_OF_QEI 1
 #else
-#define NUMBER_OF_QEI   2
+#define NUMBER_OF_QEI 2
 #endif
 
 namespace hal::tiva
@@ -13,16 +13,16 @@ namespace hal::tiva
     namespace
     {
         constexpr const uint32_t QEI_CTL_FILTCNT_M = 0x000F0000;  // Input Filter Prescale Count
-        constexpr const uint32_t QEI_CTL_FILTEN = 0x00002000;  // Enable Input Filter
-        constexpr const uint32_t QEI_CTL_STALLEN = 0x00001000;  // Stall QEI
-        constexpr const uint32_t QEI_CTL_INVI = 0x00000800;  // Invert Index Pulse
-        constexpr const uint32_t QEI_CTL_INVB = 0x00000400;  // Invert PhB
-        constexpr const uint32_t QEI_CTL_INVA = 0x00000200;  // Invert PhA
-        constexpr const uint32_t QEI_CTL_VELDIV_M = 0x000001C0;  // Predivide Velocity
-        constexpr const uint32_t QEI_CTL_VELDIV_1 = 0x00000000;  // QEI clock /1
-        constexpr const uint32_t QEI_CTL_VELDIV_2 = 0x00000040;  // QEI clock /2
-        constexpr const uint32_t QEI_CTL_VELDIV_4 = 0x00000080;  // QEI clock /4
-        constexpr const uint32_t QEI_CTL_VELDIV_8 = 0x000000C0;  // QEI clock /8
+        constexpr const uint32_t QEI_CTL_FILTEN = 0x00002000;     // Enable Input Filter
+        constexpr const uint32_t QEI_CTL_STALLEN = 0x00001000;    // Stall QEI
+        constexpr const uint32_t QEI_CTL_INVI = 0x00000800;       // Invert Index Pulse
+        constexpr const uint32_t QEI_CTL_INVB = 0x00000400;       // Invert PhB
+        constexpr const uint32_t QEI_CTL_INVA = 0x00000200;       // Invert PhA
+        constexpr const uint32_t QEI_CTL_VELDIV_M = 0x000001C0;   // Predivide Velocity
+        constexpr const uint32_t QEI_CTL_VELDIV_1 = 0x00000000;   // QEI clock /1
+        constexpr const uint32_t QEI_CTL_VELDIV_2 = 0x00000040;   // QEI clock /2
+        constexpr const uint32_t QEI_CTL_VELDIV_4 = 0x00000080;   // QEI clock /4
+        constexpr const uint32_t QEI_CTL_VELDIV_8 = 0x000000C0;   // QEI clock /8
         constexpr const uint32_t QEI_CTL_VELDIV_16 = 0x00000100;  // QEI clock /16
         constexpr const uint32_t QEI_CTL_VELDIV_32 = 0x00000140;  // QEI clock /32
         constexpr const uint32_t QEI_CTL_VELDIV_64 = 0x00000180;  // QEI clock /64

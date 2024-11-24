@@ -65,7 +65,7 @@ namespace
     constexpr const uint32_t SYSCTL_MOSCCTL_CVAL = 0x00000001;  // Clock Validation for MOSC
 
     constexpr const uint32_t SYSCTL_PLLFREQ0_PLLPWR = 0x00800000;  // PLL Power
-    constexpr const uint32_t SYSCTL_PLLFREQ0_MFRAC_M = 0x000FFC00;  // PLL M Fractional Value
+    constexpr const uint32_t SYSCTL_PLLFREQ0_MFRAC_M = 0x000FFC00; // PLL M Fractional Value
     constexpr const uint32_t SYSCTL_PLLFREQ0_MINT_M = 0x000003FF;  // PLL M Integer Value
     constexpr const uint32_t SYSCTL_PLLFREQ0_MFRAC_S = 10;
     constexpr const uint32_t SYSCTL_PLLFREQ0_MINT_S = 0;
@@ -270,7 +270,6 @@ namespace
         160000000, // VCO 320
         240000000, // VCO 480
     };
-    // NOLINTEND
 
     uint32_t CrystalToIndexArray(const hal::tiva::crystalFrequency& crystalValue)
     {

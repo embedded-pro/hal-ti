@@ -11,10 +11,10 @@ assignees: ''
 - [ ] Download STMCubeXX library from st.com, unzip
     - [ ] Apply patch if available
 - [ ] From Drivers, copy STM32xxxx_HAL_Driver
-    - [ ] Remove the user manual chm files; they are big
-    - [ ] Add a version.txt specifying the version downloaded
-    - [ ] Copy inc/stm32fxxx_hal_conf_template.h to hal_conf/stm32fxxx_hal_conf.h
-        - [ ] Add #define HSE_VALUE to an extern unsigned int hse_value
+  - [ ] Remove the user manual chm files; they are big
+  - [ ] Add a version.txt specifying the version downloaded
+  - [ ] Copy inc/stm32fxxx_hal_conf_template.h to hal_conf/stm32fxxx_hal_conf.h
+    - [ ] Add #define HSE_VALUE to an extern unsigned int hse_value
 - [ ] From Drivers/CMSIS, copy Core, Device, and top level files to CMSIS_STM32xxxx
     - [ ] In CMSIS_STM32xxxx/Source/Templates/gcc/startup_stm32xxxx.s:
         - [ ] Add declaration of Default_Handler_forwarded

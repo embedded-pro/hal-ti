@@ -5,11 +5,11 @@ namespace hal::tiva
 {
     namespace
     {
-        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;  // SSI Serial Clock Rate
-        constexpr const uint32_t SSI_CR0_SPH_SPO_M = 0x000000C0;  // SSI Serial Clock Rate
-        constexpr const uint32_t SSI_CR0_SPH = 0x00000080;  // SSI Serial Clock Phase
-        constexpr const uint32_t SSI_CR0_SPO = 0x00000040;  // SSI Serial Clock Polarity
-        constexpr const uint32_t SSI_CR0_FRF_M = 0x00000030;  // SSI Frame Format Select
+        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;     // SSI Serial Clock Rate
+        constexpr const uint32_t SSI_CR0_SPH_SPO_M = 0x000000C0; // SSI Serial Clock Rate
+        constexpr const uint32_t SSI_CR0_SPH = 0x00000080;       // SSI Serial Clock Phase
+        constexpr const uint32_t SSI_CR0_SPO = 0x00000040;       // SSI Serial Clock Polarity
+        constexpr const uint32_t SSI_CR0_FRF_M = 0x00000030;     // SSI Frame Format Select
         constexpr const uint32_t SSI_CR0_FRF_MOTO = 0x00000000;  // Freescale SPI Frame Format
         constexpr const uint32_t SSI_CR0_FRF_TI = 0x00000010;  // Synchronous Serial Frame Format
         constexpr const uint32_t SSI_CR0_DSS_M = 0x0000000F;  // SSI Data Size Select
@@ -149,8 +149,8 @@ namespace hal::tiva
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8; /* Configure number of bits */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO; /* Configure to SPI freescale format */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S); /* Sets clock rate */
-        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div & 0xff; /* Sets prescaler */
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                         /* Sets clock rate */
+        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div & 0xff;                                       /* Sets prescaler */
 
         ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
 

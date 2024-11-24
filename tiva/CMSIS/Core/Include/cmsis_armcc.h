@@ -321,7 +321,6 @@ __STATIC_INLINE uint32_t __get_FAULTMASK(void)
   return(__regFaultMask);
 }
 
-
 /**
   \brief   Set Fault Mask
   \details Assigns the given value to the Fault Mask register.
