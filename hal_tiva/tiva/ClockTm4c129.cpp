@@ -16,10 +16,10 @@ namespace
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_M = 0x00F00000; // Oscillator Source
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_PIOSC = 0x00000000; // PIOSC is oscillator source
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_LFIOSC = 0x00200000; // LFIOSC is oscillator source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_MOSC = 0x00300000; // MOSC is oscillator source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_RTC = 0x00400000; // Hibernation Module RTC Oscillator (RTCOSC)
-    constexpr const uint32_t SYSCTL_RSCLKCFG_OSYSDIV_M = 0x000FFC00; // Oscillator System Clock Divisor
-    constexpr const uint32_t SYSCTL_RSCLKCFG_PSYSDIV_M = 0x000003FF; // PLL System Clock Divisor
+    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_MOSC = 0x00300000;   // MOSC is oscillator source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_RTC = 0x00400000;    // Hibernation Module RTC Oscillator (RTCOSC)
+    constexpr const uint32_t SYSCTL_RSCLKCFG_OSYSDIV_M = 0x000FFC00;     // Oscillator System Clock Divisor
+    constexpr const uint32_t SYSCTL_RSCLKCFG_PSYSDIV_M = 0x000003FF;     // PLL System Clock Divisor
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSYSDIV_S = 10;
     constexpr const uint32_t SYSCTL_RSCLKCFG_PSYSDIV_S = 0;
 
@@ -60,9 +60,9 @@ namespace
 
     constexpr const uint32_t SYSCTL_MOSCCTL_OSCRNG = 0x00000010;  // Oscillator Range
     constexpr const uint32_t SYSCTL_MOSCCTL_PWRDN = 0x00000008;  // Power Down
-    constexpr const uint32_t SYSCTL_MOSCCTL_NOXTAL = 0x00000004;  // No Crystal Connected
-    constexpr const uint32_t SYSCTL_MOSCCTL_MOSCIM = 0x00000002;  // MOSC Failure Action
-    constexpr const uint32_t SYSCTL_MOSCCTL_CVAL = 0x00000001;  // Clock Validation for MOSC
+    constexpr const uint32_t SYSCTL_MOSCCTL_NOXTAL = 0x00000004; // No Crystal Connected
+    constexpr const uint32_t SYSCTL_MOSCCTL_MOSCIM = 0x00000002; // MOSC Failure Action
+    constexpr const uint32_t SYSCTL_MOSCCTL_CVAL = 0x00000001;   // Clock Validation for MOSC
 
     constexpr const uint32_t SYSCTL_PLLFREQ0_PLLPWR = 0x00800000;  // PLL Power
     constexpr const uint32_t SYSCTL_PLLFREQ0_MFRAC_M = 0x000FFC00; // PLL M Fractional Value
@@ -105,20 +105,20 @@ namespace
     constexpr const uint32_t SYSCTL_MEMTIM0_EWS_S = 16;
     constexpr const uint32_t SYSCTL_MEMTIM0_FWS_S = 0;
 
-    constexpr const uint32_t SYSCTL_RIS_BOR0RIS = 0x00000800;  // VDD under BOR0 Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_VDDARIS = 0x00000400;  // VDDA Power OK Event Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_MOSCPUPRIS = 0x00000100;  // MOSC Power Up Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_USBPLLLRIS = 0x00000080;  // USB PLL Lock Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_PLLLRIS = 0x00000040;  // PLL Lock Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_MOFRIS = 0x00000008;  // Main Oscillator Failure Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_BOR1RIS = 0x00000002;  // VDD under BOR1 Raw Interrupt Status
-    constexpr const uint32_t SYSCTL_RIS_BORRIS = 0x00000002;  // Brown-Out Reset Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_BOR0RIS = 0x00000800;    // VDD under BOR0 Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_VDDARIS = 0x00000400;    // VDDA Power OK Event Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_MOSCPUPRIS = 0x00000100; // MOSC Power Up Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_USBPLLLRIS = 0x00000080; // USB PLL Lock Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_PLLLRIS = 0x00000040;    // PLL Lock Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_MOFRIS = 0x00000008;     // Main Oscillator Failure Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_BOR1RIS = 0x00000002;    // VDD under BOR1 Raw Interrupt Status
+    constexpr const uint32_t SYSCTL_RIS_BORRIS = 0x00000002;     // Brown-Out Reset Raw Interrupt Status
 
     constexpr const uint32_t SYSCTL_MOSC_VALIDATE = 0x00000001;  // Enable MOSC validation
-    constexpr const uint32_t SYSCTL_MOSC_INTERRUPT = 0x00000002;  // Generate interrupt on MOSC fail
-    constexpr const uint32_t SYSCTL_MOSC_NO_XTAL = 0x00000004;  // No crystal is attached to MOSC
-    constexpr const uint32_t SYSCTL_MOSC_PWR_DIS = 0x00000008;  // Power down the MOSC.
-    constexpr const uint32_t SYSCTL_MOSC_LOWFREQ = 0x00000000;  // MOSC is less than 10MHz
+    constexpr const uint32_t SYSCTL_MOSC_INTERRUPT = 0x00000002; // Generate interrupt on MOSC fail
+    constexpr const uint32_t SYSCTL_MOSC_NO_XTAL = 0x00000004;   // No crystal is attached to MOSC
+    constexpr const uint32_t SYSCTL_MOSC_PWR_DIS = 0x00000008;   // Power down the MOSC.
+    constexpr const uint32_t SYSCTL_MOSC_LOWFREQ = 0x00000000;   // MOSC is less than 10MHz
     constexpr const uint32_t SYSCTL_MOSC_HIGHFREQ = 0x00000010;  // MOSC is greater than 10MHz
     constexpr const uint32_t SYSCTL_MOSC_SESRC = 0x00000020;  // Singled ended oscillator source.
 
@@ -364,11 +364,11 @@ namespace
         runAndSleepConfig |= SYSCTL_RSCLKCFG_MEMTIMU;
         SYSCTL->RSCLKCFG = runAndSleepConfig;
 
-        if(frequency != 0)
+        if (frequency != 0)
         {
             systemClockDivisor = oscillator / frequency;
 
-            if(systemClockDivisor != 0)
+            if (systemClockDivisor != 0)
                 systemClockDivisor -= 1;
 
             frequency = oscillator / (systemClockDivisor + 1);

@@ -282,7 +282,7 @@ namespace hal::tiva
         uartArray[uartIndex]->LCRH = lcrh;
         uartArray[uartIndex]->FR = 0;
         uartArray[uartIndex]->IFLS = UART_IFLS_RX7_8 | UART_IFLS_TX7_8; /* Set fifo level */
-        uartArray[uartIndex]->IM |= UART_IM_OEIM; /* Enable overrun error interrupt */
+        uartArray[uartIndex]->IM |= UART_IM_OEIM;                       /* Enable overrun error interrupt */
         EnableUart();
 
         if (config.priority)
@@ -323,7 +323,7 @@ namespace hal::tiva
             sendData = data;
             sending = true;
 
-            uartArray[uartIndex]->IM |= UART_IM_TXIM;  /* Enable TX interrupt */
+            uartArray[uartIndex]->IM |= UART_IM_TXIM; /* Enable TX interrupt */
         }
     }
 
@@ -382,7 +382,7 @@ namespace hal::tiva
             if (sendData.empty())
             {
                 TransferComplete();
-                uartArray[uartIndex]->IM &=~ UART_IM_TXIM;  /* Disable TX interrupt */
+                uartArray[uartIndex]->IM &= ~UART_IM_TXIM; /* Disable TX interrupt */
             }
         }
     }

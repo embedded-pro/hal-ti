@@ -43,7 +43,7 @@ namespace hal::tiva
         constexpr const uint32_t QEI_MAXPOS_M = 0xFFFFFFFF;  // Maximum Position Integrator Value
         constexpr const uint32_t QEI_MAXPOS_S = 0;
 
-        constexpr const uint32_t QEI_LOAD_M = 0xFFFFFFFF;  // Velocity Timer Load Value
+        constexpr const uint32_t QEI_LOAD_M = 0xFFFFFFFF; // Velocity Timer Load Value
         constexpr const uint32_t QEI_LOAD_S = 0;
 
         constexpr const uint32_t QEI_TIME_M = 0xFFFFFFFF; // Velocity Timer Current Value

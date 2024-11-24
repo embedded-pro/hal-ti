@@ -1,7 +1,6 @@
 #ifndef HAL_TI_EVENT_INFRASTRUCTURE_HPP
 #define HAL_TI_EVENT_INFRASTRUCTURE_HPP
 
-#include "hal_tiva/tiva/Gpio.hpp"
 #include "hal_tiva/cortex/SystemTickTimerService.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 

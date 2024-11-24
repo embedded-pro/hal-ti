@@ -314,7 +314,7 @@ namespace
     constexpr const uint32_t SYSCTL_XTAL_4_91MHZ = 0x00000200; // External crystal is 4.9152MHz
     constexpr const uint32_t SYSCTL_XTAL_5MHZ = 0x00000240;    // External crystal is 5MHz
     constexpr const uint32_t SYSCTL_XTAL_5_12MHZ = 0x00000280; // External crystal is 5.12MHz
-    constexpr const uint32_t SYSCTL_XTAL_6MHZ = 0x000002C0; // External crystal is 6MHz
+    constexpr const uint32_t SYSCTL_XTAL_6MHZ = 0x000002C0;    // External crystal is 6MHz
     constexpr const uint32_t SYSCTL_XTAL_6_14MHZ = 0x00000300; // External crystal is 6.144MHz
     constexpr const uint32_t SYSCTL_XTAL_7_37MHZ = 0x00000340; // External crystal is 7.3728MHz
     constexpr const uint32_t SYSCTL_XTAL_8MHZ = 0x00000380; // External crystal is 8MHz
@@ -326,16 +326,16 @@ namespace
     constexpr const uint32_t SYSCTL_XTAL_14_3MHZ = 0x00000500; // External crystal is 14.31818 MHz
     constexpr const uint32_t SYSCTL_XTAL_16MHZ = 0x00000540; // External crystal is 16 MHz
     constexpr const uint32_t SYSCTL_XTAL_16_3MHZ = 0x00000580; // External crystal is 16.384 MHz
-    constexpr const uint32_t SYSCTL_XTAL_18MHZ = 0x000005C0; // External crystal is 18.0 MHz
-    constexpr const uint32_t SYSCTL_XTAL_20MHZ = 0x00000600; // External crystal is 20.0 MHz
-    constexpr const uint32_t SYSCTL_XTAL_24MHZ = 0x00000640; // External crystal is 24.0 MHz
-    constexpr const uint32_t SYSCTL_XTAL_25MHZ = 0x00000680; // External crystal is 25.0 MHz
-    constexpr const uint32_t SYSCTL_OSC_MAIN = 0x00000000; // Osc source is main osc
-    constexpr const uint32_t SYSCTL_OSC_INT = 0x00000010; // Osc source is int. osc
-    constexpr const uint32_t SYSCTL_OSC_INT4 = 0x00000020; // Osc source is int. osc /4
-    constexpr const uint32_t SYSCTL_OSC_INT30 = 0x00000030; // Osc source is int. 30 KHz
-    constexpr const uint32_t SYSCTL_OSC_EXT32 = 0x80000038; // Osc source is ext. 32 KHz
-    constexpr const uint32_t SYSCTL_INT_OSC_DIS = 0x00000002; // Disable internal oscillator
+    constexpr const uint32_t SYSCTL_XTAL_18MHZ = 0x000005C0;   // External crystal is 18.0 MHz
+    constexpr const uint32_t SYSCTL_XTAL_20MHZ = 0x00000600;   // External crystal is 20.0 MHz
+    constexpr const uint32_t SYSCTL_XTAL_24MHZ = 0x00000640;   // External crystal is 24.0 MHz
+    constexpr const uint32_t SYSCTL_XTAL_25MHZ = 0x00000680;   // External crystal is 25.0 MHz
+    constexpr const uint32_t SYSCTL_OSC_MAIN = 0x00000000;     // Osc source is main osc
+    constexpr const uint32_t SYSCTL_OSC_INT = 0x00000010;      // Osc source is int. osc
+    constexpr const uint32_t SYSCTL_OSC_INT4 = 0x00000020;     // Osc source is int. osc /4
+    constexpr const uint32_t SYSCTL_OSC_INT30 = 0x00000030;    // Osc source is int. 30 KHz
+    constexpr const uint32_t SYSCTL_OSC_EXT32 = 0x80000038;    // Osc source is ext. 32 KHz
+    constexpr const uint32_t SYSCTL_INT_OSC_DIS = 0x00000002;  // Disable internal oscillator
     constexpr const uint32_t SYSCTL_MAIN_OSC_DIS = 0x00000001; // Disable main oscillator
 
     constexpr const uint32_t CLOCK_FREQ_PIOSC = (16000000UL); /* Internal Oscillator Frequency: 16 MHz */
@@ -567,7 +567,9 @@ namespace
 
     void Delay(uint32_t value)
     {
-        while (value-- != 0) { }
+        while (value-- != 0)
+        {
+        }
     }
 }
 

@@ -1,7 +1,6 @@
 #ifndef HAL_TI_ETHERNET_HPP
 #define HAL_TI_ETHERNET_HPP
 
-#include "hal_tiva/tiva/Ethernet.hpp"
 #include "hal_tiva/instantiations/lwip/EthernetSmiObserver.hpp"
 #include "hal_tiva/tiva/Ethernet.hpp"
 

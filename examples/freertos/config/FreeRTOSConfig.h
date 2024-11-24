@@ -72,13 +72,13 @@
 #define configMAX_PRIORITIES                       ( 7 )
 
 /* Run time stats gathering configuration options. */
-unsigned long ulGetRunTimeCounterValue( void ); /* Prototype of function that returns run time counter. */
-void vConfigureTimerForRunTimeStats( void );    /* Prototype of function that initialises the run time counter. */
-#define configGENERATE_RUN_TIME_STATS             0
+unsigned long ulGetRunTimeCounterValue(void); /* Prototype of function that returns run time counter. */
+void vConfigureTimerForRunTimeStats(void);    /* Prototype of function that initialises the run time counter. */
+#define configGENERATE_RUN_TIME_STATS 0
 
 /* Co-routine related configuration options. */
-#define configUSE_CO_ROUTINES                     0
-#define configMAX_CO_ROUTINE_PRIORITIES           ( 2 )
+#define configUSE_CO_ROUTINES 0
+#define configMAX_CO_ROUTINE_PRIORITIES (2)
 
 /* This demo can use of one or more example stats formatting functions.  These
  * format the raw data provided by the uxTaskGetSystemState() function in to human
@@ -88,7 +88,7 @@ void vConfigureTimerForRunTimeStats( void );    /* Prototype of function that in
 
 /* Enables the test whereby a stack larger than the total heap size is
  * requested. */
-#define configSTACK_DEPTH_TYPE                    uint32_t
+#define configSTACK_DEPTH_TYPE uint32_t
 
 /* Set the following definitions to 1 to include the API function, or zero
  * to exclude the API function.  In most cases the linker will remove unused
@@ -123,7 +123,7 @@ extern void vAssertCalled(const char* const pcFileName,
     if ((x) == 0)       \
     vAssertCalled(__FILE__, __LINE__)
 
-#define configUSE_MALLOC_FAILED_HOOK    1
+#define configUSE_MALLOC_FAILED_HOOK 1
 
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 

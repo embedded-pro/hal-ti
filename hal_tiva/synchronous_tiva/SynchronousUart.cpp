@@ -179,7 +179,7 @@ namespace hal::tiva
         constexpr const uint32_t UART_PP_NB = 0x00000002;  // 9-Bit Support
         constexpr const uint32_t UART_PP_SC = 0x00000001;  // Smart Card Support
 
-        constexpr const uint32_t UART_CC_CS_M = 0x0000000F; // UART Baud Clock Source
+        constexpr const uint32_t UART_CC_CS_M = 0x0000000F;      // UART Baud Clock Source
         constexpr const uint32_t UART_CC_CS_SYSCLK = 0x00000000; // System clock (based on clock source and divisor factor)
         constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005;  // PIOSC
         // NOLINTEND
@@ -314,7 +314,9 @@ namespace hal::tiva
 
     void SynchronousUartSendOnly::Transmit(uint8_t data) const
     {
-        while (uartArray[uartIndex]->FR & UART_FR_TXFF) { }
+        while (uartArray[uartIndex]->FR & UART_FR_TXFF)
+        {
+        }
         uartArray[uartIndex]->DR = data;
     }
 

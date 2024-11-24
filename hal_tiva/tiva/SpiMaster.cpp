@@ -53,48 +53,48 @@ namespace hal::tiva
         constexpr const uint32_t SSI_CPSR_CPSDVSR_M = 0x000000FF; // SSI Clock Prescale Divisor
         constexpr const uint32_t SSI_CPSR_CPSDVSR_S = 0;
 
-        constexpr const uint32_t SSI_IM_EOTIM = 0x00000040;  // End of Transmit Interrupt Mask
-        constexpr const uint32_t SSI_IM_DMATXIM = 0x00000020;  // SSI Transmit DMA Interrupt Mask
-        constexpr const uint32_t SSI_IM_DMARXIM = 0x00000010;  // SSI Receive DMA Interrupt Mask
-        constexpr const uint32_t SSI_IM_TXIM = 0x00000008;  // SSI Transmit FIFO Interrupt Mask
-        constexpr const uint32_t SSI_IM_RXIM = 0x00000004;  // SSI Receive FIFO Interrupt Mask
-        constexpr const uint32_t SSI_IM_RTIM = 0x00000002;  // SSI Receive Time-Out Interrupt Mask
-        constexpr const uint32_t SSI_IM_RORIM = 0x00000001;  // SSI Receive Overrun Interrupt Mask
+        constexpr const uint32_t SSI_IM_EOTIM = 0x00000040;   // End of Transmit Interrupt Mask
+        constexpr const uint32_t SSI_IM_DMATXIM = 0x00000020; // SSI Transmit DMA Interrupt Mask
+        constexpr const uint32_t SSI_IM_DMARXIM = 0x00000010; // SSI Receive DMA Interrupt Mask
+        constexpr const uint32_t SSI_IM_TXIM = 0x00000008;    // SSI Transmit FIFO Interrupt Mask
+        constexpr const uint32_t SSI_IM_RXIM = 0x00000004;    // SSI Receive FIFO Interrupt Mask
+        constexpr const uint32_t SSI_IM_RTIM = 0x00000002;    // SSI Receive Time-Out Interrupt Mask
+        constexpr const uint32_t SSI_IM_RORIM = 0x00000001;   // SSI Receive Overrun Interrupt Mask
 
-        constexpr const uint32_t SSI_RIS_EOTRIS = 0x00000040;  // End of Transmit Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_DMATXRIS = 0x00000020;  // SSI Transmit DMA Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_DMARXRIS = 0x00000010;  // SSI Receive DMA Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_TXRIS = 0x00000008;  // SSI Transmit FIFO Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_RXRIS = 0x00000004;  // SSI Receive FIFO Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_RTRIS = 0x00000002;  // SSI Receive Time-Out Raw Interrupt Status
-        constexpr const uint32_t SSI_RIS_RORRIS = 0x00000001;  // SSI Receive Overrun Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_EOTRIS = 0x00000040;   // End of Transmit Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_DMATXRIS = 0x00000020; // SSI Transmit DMA Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_DMARXRIS = 0x00000010; // SSI Receive DMA Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_TXRIS = 0x00000008;    // SSI Transmit FIFO Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_RXRIS = 0x00000004;    // SSI Receive FIFO Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_RTRIS = 0x00000002;    // SSI Receive Time-Out Raw Interrupt Status
+        constexpr const uint32_t SSI_RIS_RORRIS = 0x00000001;   // SSI Receive Overrun Raw Interrupt Status
 
-        constexpr const uint32_t SSI_MIS_EOTMIS = 0x00000040;  // End of Transmit Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_DMATXMIS = 0x00000020;  // SSI Transmit DMA Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_DMARXMIS = 0x00000010;  // SSI Receive DMA Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_TXMIS = 0x00000008;  // SSI Transmit FIFO Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_RXMIS = 0x00000004;  // SSI Receive FIFO Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_RTMIS = 0x00000002;  // SSI Receive Time-Out Masked Interrupt Status
-        constexpr const uint32_t SSI_MIS_RORMIS = 0x00000001;  // SSI Receive Overrun Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_EOTMIS = 0x00000040;   // End of Transmit Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_DMATXMIS = 0x00000020; // SSI Transmit DMA Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_DMARXMIS = 0x00000010; // SSI Receive DMA Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_TXMIS = 0x00000008;    // SSI Transmit FIFO Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_RXMIS = 0x00000004;    // SSI Receive FIFO Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_RTMIS = 0x00000002;    // SSI Receive Time-Out Masked Interrupt Status
+        constexpr const uint32_t SSI_MIS_RORMIS = 0x00000001;   // SSI Receive Overrun Masked Interrupt Status
 
-        constexpr const uint32_t SSI_ICR_EOTIC = 0x00000040;  // End of Transmit Interrupt Clear
-        constexpr const uint32_t SSI_ICR_DMATXIC = 0x00000020;  // SSI Transmit DMA Interrupt Clear
-        constexpr const uint32_t SSI_ICR_DMARXIC = 0x00000010;  // SSI Receive DMA Interrupt Clear
-        constexpr const uint32_t SSI_ICR_RTIC = 0x00000002;  // SSI Receive Time-Out Interrupt Clear
-        constexpr const uint32_t SSI_ICR_RORIC = 0x00000001;  // SSI Receive Overrun Interrupt Clear
+        constexpr const uint32_t SSI_ICR_EOTIC = 0x00000040;   // End of Transmit Interrupt Clear
+        constexpr const uint32_t SSI_ICR_DMATXIC = 0x00000020; // SSI Transmit DMA Interrupt Clear
+        constexpr const uint32_t SSI_ICR_DMARXIC = 0x00000010; // SSI Receive DMA Interrupt Clear
+        constexpr const uint32_t SSI_ICR_RTIC = 0x00000002;    // SSI Receive Time-Out Interrupt Clear
+        constexpr const uint32_t SSI_ICR_RORIC = 0x00000001;   // SSI Receive Overrun Interrupt Clear
 
-        constexpr const uint32_t SSI_DMACTL_TXDMAE = 0x00000002;  // Transmit DMA Enable
-        constexpr const uint32_t SSI_DMACTL_RXDMAE = 0x00000001;  // Receive DMA Enable
+        constexpr const uint32_t SSI_DMACTL_TXDMAE = 0x00000002; // Transmit DMA Enable
+        constexpr const uint32_t SSI_DMACTL_RXDMAE = 0x00000001; // Receive DMA Enable
 
-        constexpr const uint32_t SSI_PP_FSSHLDFRM = 0x00000008;  // FSS Hold Frame Capability
-        constexpr const uint32_t SSI_PP_MODE_M = 0x00000006;  // Mode of Operation
-        constexpr const uint32_t SSI_PP_MODE_LEGACY = 0x00000000;  // Legacy SSI mode
-        constexpr const uint32_t SSI_PP_MODE_ADVBI = 0x00000002;  // Legacy mode, Advanced SSI mode and Bi-SSI mode enabled
-        constexpr const uint32_t SSI_PP_MODE_ADVBIQUAD = 0x00000004;  // Legacy mode, Advanced mode, Bi-SSI and Quad-SSI mode enabled
-        constexpr const uint32_t SSI_PP_HSCLK = 0x00000001;  // High Speed Capability
+        constexpr const uint32_t SSI_PP_FSSHLDFRM = 0x00000008;      // FSS Hold Frame Capability
+        constexpr const uint32_t SSI_PP_MODE_M = 0x00000006;         // Mode of Operation
+        constexpr const uint32_t SSI_PP_MODE_LEGACY = 0x00000000;    // Legacy SSI mode
+        constexpr const uint32_t SSI_PP_MODE_ADVBI = 0x00000002;     // Legacy mode, Advanced SSI mode and Bi-SSI mode enabled
+        constexpr const uint32_t SSI_PP_MODE_ADVBIQUAD = 0x00000004; // Legacy mode, Advanced mode, Bi-SSI and Quad-SSI mode enabled
+        constexpr const uint32_t SSI_PP_HSCLK = 0x00000001;          // High Speed Capability
 
-        constexpr const uint32_t SSI_CC_CS_M = 0x0000000F;  // SSI Baud Clock Source
-        constexpr const uint32_t SSI_CC_CS_SYSPLL = 0x00000000;  // System clock (based on clocksource and divisor factor)
+        constexpr const uint32_t SSI_CC_CS_M = 0x0000000F;      // SSI Baud Clock Source
+        constexpr const uint32_t SSI_CC_CS_SYSPLL = 0x00000000; // System clock (based on clocksource and divisor factor)
         constexpr const uint32_t SSI_CC_CS_PIOSC = 0x00000005;  // PIOSC
 
         constexpr uint32_t phase_polarity(bool phase1st, bool polarityLow)

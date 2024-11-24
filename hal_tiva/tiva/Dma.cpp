@@ -78,14 +78,14 @@ namespace hal::tiva
             return data;
         }
 
-        volatile void * GoToEndAddress(volatile void* address, const DmaChannel::Increment& increment, std::size_t size)
+        volatile void* GoToEndAddress(volatile void* address, const DmaChannel::Increment& increment, std::size_t size)
         {
             uint32_t bufferAddress = 0;
 
             if (increment != DmaChannel::Increment::none)
                 bufferAddress = (size << static_cast<std::size_t>(increment)) - 1;
 
-            return static_cast<volatile void *>(reinterpret_cast<volatile uint32_t*>(address) + bufferAddress);
+            return static_cast<volatile void*>(reinterpret_cast<volatile uint32_t*>(address) + bufferAddress);
         }
     }
 
@@ -141,7 +141,7 @@ namespace hal::tiva
     {
         DisableAllAttributes();
 
-        auto controlArray = reinterpret_cast<DmaChannel::Control *>(UDMA->CTLBASE);
+        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
         auto index = channel.number + static_cast<uint32_t>(configuration.type);
         auto control = &controlArray[index];
 
@@ -180,7 +180,7 @@ namespace hal::tiva
         HardwareRegister(mapEncodingRegister) = HardwareRegister(mapEncodingRegister) & ~(0xf << shift) | channel.mapping << shift;
     }
 
-    void DmaChannel::ConfigureTransfer(Type type, Transfer transfer, volatile void * sourceAddress, volatile void * destinationAddress, std::size_t size) const
+    void DmaChannel::ConfigureTransfer(Type type, Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const
     {
         really_assert(size <= 1024);
         really_assert(reinterpret_cast<uint32_t>(sourceAddress) >= 0x20000000);

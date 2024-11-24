@@ -36,8 +36,8 @@
 #define __ARM_ARCH_6M__ 1
 #endif
 
-#if (defined (__TARGET_ARCH_7_M ) && (__TARGET_ARCH_7_M  == 1))
-  #define __ARM_ARCH_7M__           1
+#if (defined(__TARGET_ARCH_7_M) && (__TARGET_ARCH_7_M == 1))
+#define __ARM_ARCH_7M__ 1
 #endif
 
 #if (defined(__TARGET_ARCH_7E_M) && (__TARGET_ARCH_7E_M == 1))
@@ -216,7 +216,6 @@ __STATIC_INLINE uint32_t __get_MSP(void)
   return(__regMainStackPointer);
 }
 
-
 /**
   \brief   Set Main Stack Pointer
   \details Assigns the given value to the Main Stack Pointer (MSP).
@@ -224,10 +223,9 @@ __STATIC_INLINE uint32_t __get_MSP(void)
  */
 __STATIC_INLINE void __set_MSP(uint32_t topOfMainStack)
 {
-  register uint32_t __regMainStackPointer     __ASM("msp");
-  __regMainStackPointer = topOfMainStack;
+    register uint32_t __regMainStackPointer __ASM("msp");
+    __regMainStackPointer = topOfMainStack;
 }
-
 
 /**
   \brief   Get Priority Mask
@@ -236,8 +234,8 @@ __STATIC_INLINE void __set_MSP(uint32_t topOfMainStack)
  */
 __STATIC_INLINE uint32_t __get_PRIMASK(void)
 {
-  register uint32_t __regPriMask         __ASM("primask");
-  return(__regPriMask);
+    register uint32_t __regPriMask __ASM("primask");
+    return (__regPriMask);
 }
 
 
@@ -304,8 +302,8 @@ __STATIC_INLINE void __set_BASEPRI(uint32_t basePri)
  */
 __STATIC_INLINE void __set_BASEPRI_MAX(uint32_t basePri)
 {
-  register uint32_t __regBasePriMax      __ASM("basepri_max");
-  __regBasePriMax = (basePri & 0xFFU);
+    register uint32_t __regBasePriMax __ASM("basepri_max");
+    __regBasePriMax = (basePri & 0xFFU);
 }
 
 
@@ -460,8 +458,8 @@ __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)
 #ifndef __NO_EMBEDDED_ASM
 __attribute__((section(".rev16_text"))) __STATIC_INLINE __ASM uint32_t __REV16(uint32_t value)
 {
-  rev16 r0, r0
-  bx lr
+    rev16 r0, r0
+                  bx lr
 }
 #endif
 
