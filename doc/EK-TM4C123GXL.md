@@ -4,7 +4,7 @@
 
 ## Debugging with JLink SWD
 
-1. Solder a strip header to DBG 
+1. Solder a strip header to DBG
 2. Move switch to position DEVICE (Avoid conflicts to TI-ICDI)
 3. Connect pin EXTDBG to ground (disable TI-ICDI)
 4. Connect +3V3 to jtag pin 1

@@ -62,39 +62,39 @@ namespace hal::tiva
         constexpr const uint32_t UART_FBRD_DIVFRAC_M = 0x0000003F; // Fractional Baud-Rate Divisor
         constexpr const uint32_t UART_FBRD_DIVFRAC_S = 0;
 
-        constexpr const uint32_t UART_LCRH_SPS = 0x00000080; // UART Stick Parity Select
+        constexpr const uint32_t UART_LCRH_SPS = 0x00000080;    // UART Stick Parity Select
         constexpr const uint32_t UART_LCRH_WLEN_M = 0x00000060; // UART Word Length
         constexpr const uint32_t UART_LCRH_WLEN_5 = 0x00000000; // 5 bits (default)
         constexpr const uint32_t UART_LCRH_WLEN_6 = 0x00000020; // 6 bits
         constexpr const uint32_t UART_LCRH_WLEN_7 = 0x00000040; // 7 bits
         constexpr const uint32_t UART_LCRH_WLEN_8 = 0x00000060; // 8 bits
-        constexpr const uint32_t UART_LCRH_FEN = 0x00000010; // UART Enable FIFOs
-        constexpr const uint32_t UART_LCRH_STP2 = 0x00000008; // UART Two Stop Bits Select
-        constexpr const uint32_t UART_LCRH_EPS = 0x00000004; // UART Even Parity Select
-        constexpr const uint32_t UART_LCRH_PEN = 0x00000002; // UART Parity Enable
-        constexpr const uint32_t UART_LCRH_BRK = 0x00000001; // UART Send Break
+        constexpr const uint32_t UART_LCRH_FEN = 0x00000010;    // UART Enable FIFOs
+        constexpr const uint32_t UART_LCRH_STP2 = 0x00000008;   // UART Two Stop Bits Select
+        constexpr const uint32_t UART_LCRH_EPS = 0x00000004;    // UART Even Parity Select
+        constexpr const uint32_t UART_LCRH_PEN = 0x00000002;    // UART Parity Enable
+        constexpr const uint32_t UART_LCRH_BRK = 0x00000001;    // UART Send Break
 
-        constexpr const uint32_t UART_CTL_CTSEN = 0x00008000; // Enable Clear To Send
-        constexpr const uint32_t UART_CTL_RTSEN = 0x00004000; // Enable Request to Send
-        constexpr const uint32_t UART_CTL_RTS = 0x00000800; // Request to Send
-        constexpr const uint32_t UART_CTL_DTR = 0x00000400; // Data Terminal Ready
-        constexpr const uint32_t UART_CTL_RXE = 0x00000200; // UART Receive Enable
-        constexpr const uint32_t UART_CTL_TXE = 0x00000100; // UART Transmit Enable
-        constexpr const uint32_t UART_CTL_LBE = 0x00000080; // UART Loop Back Enable
-        constexpr const uint32_t UART_CTL_HSE = 0x00000020; // High-Speed Enable
-        constexpr const uint32_t UART_CTL_EOT = 0x00000010; // End of Transmission
-        constexpr const uint32_t UART_CTL_SMART = 0x00000008; // ISO 7816 Smart Card Support
-        constexpr const uint32_t UART_CTL_SIRLP = 0x00000004; // UART SIR Low-Power Mode
-        constexpr const uint32_t UART_CTL_SIREN = 0x00000002; // UART SIR Enable
+        constexpr const uint32_t UART_CTL_CTSEN = 0x00008000;  // Enable Clear To Send
+        constexpr const uint32_t UART_CTL_RTSEN = 0x00004000;  // Enable Request to Send
+        constexpr const uint32_t UART_CTL_RTS = 0x00000800;    // Request to Send
+        constexpr const uint32_t UART_CTL_DTR = 0x00000400;    // Data Terminal Ready
+        constexpr const uint32_t UART_CTL_RXE = 0x00000200;    // UART Receive Enable
+        constexpr const uint32_t UART_CTL_TXE = 0x00000100;    // UART Transmit Enable
+        constexpr const uint32_t UART_CTL_LBE = 0x00000080;    // UART Loop Back Enable
+        constexpr const uint32_t UART_CTL_HSE = 0x00000020;    // High-Speed Enable
+        constexpr const uint32_t UART_CTL_EOT = 0x00000010;    // End of Transmission
+        constexpr const uint32_t UART_CTL_SMART = 0x00000008;  // ISO 7816 Smart Card Support
+        constexpr const uint32_t UART_CTL_SIRLP = 0x00000004;  // UART SIR Low-Power Mode
+        constexpr const uint32_t UART_CTL_SIREN = 0x00000002;  // UART SIR Enable
         constexpr const uint32_t UART_CTL_UARTEN = 0x00000001; // UART Enable
 
-        constexpr const uint32_t UART_IFLS_RX_M = 0x00000038; // UART Receive Interrupt FIFO Level Select
+        constexpr const uint32_t UART_IFLS_RX_M = 0x00000038;  // UART Receive Interrupt FIFO Level Select
         constexpr const uint32_t UART_IFLS_RX1_8 = 0x00000000; // RX FIFO >= 1/8 full
         constexpr const uint32_t UART_IFLS_RX2_8 = 0x00000008; // RX FIFO >= 1/4 full
         constexpr const uint32_t UART_IFLS_RX4_8 = 0x00000010; // RX FIFO >= 1/2 full (default)
         constexpr const uint32_t UART_IFLS_RX6_8 = 0x00000018; // RX FIFO >= 3/4 full
         constexpr const uint32_t UART_IFLS_RX7_8 = 0x00000020; // RX FIFO >= 7/8 full
-        constexpr const uint32_t UART_IFLS_TX_M = 0x00000007; // UART Transmit Interrupt FIFO Level Select
+        constexpr const uint32_t UART_IFLS_TX_M = 0x00000007;  // UART Transmit Interrupt FIFO Level Select
         constexpr const uint32_t UART_IFLS_TX1_8 = 0x00000000; // TX FIFO <= 1/8 full
         constexpr const uint32_t UART_IFLS_TX2_8 = 0x00000001; // TX FIFO <= 1/4 full
         constexpr const uint32_t UART_IFLS_TX4_8 = 0x00000002; // TX FIFO <= 1/2 full (default)
@@ -217,9 +217,7 @@ namespace hal::tiva
             UART7_BASE,
         }};
 
-        constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray =
-        {{
-            UART0_IRQn,
+        constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray = { { UART0_IRQn,
             UART1_IRQn,
             UART2_IRQn,
             UART3_IRQn,

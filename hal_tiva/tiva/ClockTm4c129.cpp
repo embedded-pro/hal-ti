@@ -6,15 +6,15 @@
 namespace
 {
     // NOLINTBEGIN
-    constexpr const uint32_t SYSCTL_RSCLKCFG_MEMTIMU = 0x80000000; // Memory Timing Register Update
-    constexpr const uint32_t SYSCTL_RSCLKCFG_NEWFREQ = 0x40000000; // New PLLFREQ Accept
-    constexpr const uint32_t SYSCTL_RSCLKCFG_ACG = 0x20000000; // Auto Clock Gating
-    constexpr const uint32_t SYSCTL_RSCLKCFG_USEPLL = 0x10000000; // Use PLL
-    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_M = 0x0F000000; // PLL Source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_PIOSC = 0x00000000; // PIOSC is PLL input clock source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_MOSC = 0x03000000; // MOSC is the PLL input clock source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_M = 0x00F00000; // Oscillator Source
-    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_PIOSC = 0x00000000; // PIOSC is oscillator source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_MEMTIMU = 0x80000000;       // Memory Timing Register Update
+    constexpr const uint32_t SYSCTL_RSCLKCFG_NEWFREQ = 0x40000000;       // New PLLFREQ Accept
+    constexpr const uint32_t SYSCTL_RSCLKCFG_ACG = 0x20000000;           // Auto Clock Gating
+    constexpr const uint32_t SYSCTL_RSCLKCFG_USEPLL = 0x10000000;        // Use PLL
+    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_M = 0x0F000000;      // PLL Source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_PIOSC = 0x00000000;  // PIOSC is PLL input clock source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_PLLSRC_MOSC = 0x03000000;   // MOSC is the PLL input clock source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_M = 0x00F00000;      // Oscillator Source
+    constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_PIOSC = 0x00000000;  // PIOSC is oscillator source
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_LFIOSC = 0x00200000; // LFIOSC is oscillator source
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_MOSC = 0x00300000;   // MOSC is oscillator source
     constexpr const uint32_t SYSCTL_RSCLKCFG_OSCSRC_RTC = 0x00400000;    // Hibernation Module RTC Oscillator (RTCOSC)
@@ -120,7 +120,7 @@ namespace
     constexpr const uint32_t SYSCTL_MOSC_PWR_DIS = 0x00000008;   // Power down the MOSC.
     constexpr const uint32_t SYSCTL_MOSC_LOWFREQ = 0x00000000;   // MOSC is less than 10MHz
     constexpr const uint32_t SYSCTL_MOSC_HIGHFREQ = 0x00000010;  // MOSC is greater than 10MHz
-    constexpr const uint32_t SYSCTL_MOSC_SESRC = 0x00000020;  // Singled ended oscillator source.
+    constexpr const uint32_t SYSCTL_MOSC_SESRC = 0x00000020;     // Singled ended oscillator source.
 
     const std::array<uint32_t, 27> crystalLookupTable = { {
         1000000,
@@ -264,8 +264,7 @@ namespace
         return result / static_cast<uint32_t>(q);
     }
 
-    const std::array<uint32_t, MAX_VCO_ENTRIES> vcoFrequenciesLookupTable =
-    {
+    const std::array<uint32_t, MAX_VCO_ENTRIES> vcoFrequenciesLookupTable = {
         160000000, // VCO 320
         240000000, // VCO 480
     };

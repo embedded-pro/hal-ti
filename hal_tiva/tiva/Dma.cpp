@@ -47,7 +47,7 @@ namespace hal::tiva
         constexpr static uint32_t CHCTL_XFERMODE_PINGPONG = 0x00000003; // Ping-Pong
         constexpr static uint32_t CHCTL_XFERMODE_MEM_SG = 0x00000004;   // Memory Scatter-Gather
         constexpr static uint32_t CHCTL_XFERMODE_MEM_SGA = 0x00000005;  // Alternate Memory Scatter-Gather
-        constexpr static uint32_t CHCTL_XFERMODE_PER_SG = 0x00000006;  // Peripheral Scatter-Gather
+        constexpr static uint32_t CHCTL_XFERMODE_PER_SG = 0x00000006;   // Peripheral Scatter-Gather
         constexpr static uint32_t CHCTL_XFERMODE_PER_SGA = 0x00000007;  // Alternate Peripheral Scatter-Gather
         constexpr static uint32_t CHCTL_XFERSIZE_S = 4;
 

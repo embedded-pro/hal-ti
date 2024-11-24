@@ -27,7 +27,7 @@
 
 
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 400677)
-  #error "Please use Arm Compiler Toolchain V4.0.677 or later!"
+#error "Please use Arm Compiler Toolchain V4.0.677 or later!"
 #endif
 
 /* CMSIS compiler control architecture macros */
@@ -84,8 +84,8 @@
 #ifndef   __UNALIGNED_UINT16_WRITE
   #define __UNALIGNED_UINT16_WRITE(addr, val)    ((*((__packed uint16_t *)(addr))) = (val))
 #endif
-#ifndef   __UNALIGNED_UINT16_READ
-  #define __UNALIGNED_UINT16_READ(addr)          (*((const __packed uint16_t *)(addr)))
+#ifndef __UNALIGNED_UINT16_WRITE
+#define __UNALIGNED_UINT16_WRITE(addr, val) ((*((__packed uint16_t*)(addr))) = (val))
 #endif
 #ifndef   __UNALIGNED_UINT32_WRITE
   #define __UNALIGNED_UINT32_WRITE(addr, val)    ((*((__packed uint32_t *)(addr))) = (val))
@@ -93,8 +93,8 @@
 #ifndef   __UNALIGNED_UINT32_READ
   #define __UNALIGNED_UINT32_READ(addr)          (*((const __packed uint32_t *)(addr)))
 #endif
-#ifndef   __ALIGNED
-  #define __ALIGNED(x)                           __attribute__((aligned(x)))
+#ifndef __UNALIGNED_UINT32_READ
+#define __UNALIGNED_UINT32_READ(addr) (*((const __packed uint32_t*)(addr)))
 #endif
 #ifndef   __RESTRICT
   #define __RESTRICT                             __restrict
@@ -113,7 +113,6 @@
  */
 /* intrinsic void __enable_irq();     */
 
-
 /**
   \brief   Disable IRQ Interrupts
   \details Disables IRQ interrupts by setting the I-bit in the CPSR.
@@ -128,8 +127,8 @@
  */
 __STATIC_INLINE uint32_t __get_CONTROL(void)
 {
-  register uint32_t __regControl         __ASM("control");
-  return(__regControl);
+    register uint32_t __regControl __ASM("control");
+    return (__regControl);
 }
 
 
@@ -200,8 +199,8 @@ __STATIC_INLINE uint32_t __get_PSP(void)
  */
 __STATIC_INLINE void __set_PSP(uint32_t topOfProcStack)
 {
-  register uint32_t __regProcessStackPointer  __ASM("psp");
-  __regProcessStackPointer = topOfProcStack;
+    register uint32_t __regProcessStackPointer __ASM("psp");
+    __regProcessStackPointer = topOfProcStack;
 }
 
 
@@ -237,7 +236,6 @@ __STATIC_INLINE uint32_t __get_PRIMASK(void)
     register uint32_t __regPriMask __ASM("primask");
     return (__regPriMask);
 }
-
 
 /**
   \brief   Set Priority Mask
@@ -292,7 +290,6 @@ __STATIC_INLINE void __set_BASEPRI(uint32_t basePri)
     register uint32_t __regBasePri __ASM("basepri");
     __regBasePri = (basePri & 0xFFU);
 }
-
 
 /**
   \brief   Set Base Priority with condition
@@ -395,15 +392,13 @@ __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)
   \details Wait For Event is a hint instruction that permits the processor to enter
            a low-power state until one of a number of events occurs.
  */
-#define __WFE                             __wfe
-
+#define __WFE __wfe
 
 /**
   \brief   Send Event
   \details Send Event is a hint instruction. It causes an event to be signaled to the CPU.
  */
-#define __SEV                             __sev
-
+#define __SEV __sev
 
 /**
   \brief   Instruction Synchronization Barrier
@@ -439,7 +434,6 @@ __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)
                    __schedule_barrier();\
                 } while (0U)
 
-                  
 /**
   \brief   Reverse byte order (32 bit)
   \details Reverses the byte order in unsigned integer value. For example, 0x12345678 becomes 0x78563412.
@@ -463,7 +457,6 @@ __attribute__((section(".rev16_text"))) __STATIC_INLINE __ASM uint32_t __REV16(u
 }
 #endif
 
-
 /**
   \brief   Reverse byte order (16 bit)
   \details Reverses the byte order in a 16-bit value and returns the signed 16-bit result. For example, 0x0080 becomes 0x8000.
@@ -473,8 +466,8 @@ __attribute__((section(".rev16_text"))) __STATIC_INLINE __ASM uint32_t __REV16(u
 #ifndef __NO_EMBEDDED_ASM
 __attribute__((section(".revsh_text"))) __STATIC_INLINE __ASM int16_t __REVSH(int16_t value)
 {
-  revsh r0, r0
-  bx lr
+    revsh r0, r0
+                  bx lr
 }
 #endif
 
@@ -505,9 +498,9 @@ __attribute__((section(".revsh_text"))) __STATIC_INLINE __ASM int16_t __REVSH(in
   \param [in]    value  Value to reverse
   \return               Reversed value
  */
-#if ((defined (__ARM_ARCH_7M__ ) && (__ARM_ARCH_7M__  == 1)) || \
-     (defined (__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1))     )
-  #define __RBIT                          __rbit
+#if ((defined(__ARM_ARCH_7M__) && (__ARM_ARCH_7M__ == 1)) || \
+     (defined(__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1)))
+#define __RBIT __rbit
 #else
 __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
 {
@@ -561,9 +554,8 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 5060020)
   #define __LDREXH(ptr)                                                        ((uint16_t) __ldrex(ptr))
 #else
-  #define __LDREXH(ptr)          _Pragma("push") _Pragma("diag_suppress 3731") ((uint16_t) __ldrex(ptr))  _Pragma("pop")
+#define __LDREXH(ptr) _Pragma("push") _Pragma("diag_suppress 3731")((uint16_t)__ldrex(ptr)) _Pragma("pop")
 #endif
-
 
 /**
   \brief   LDR Exclusive (32 bit)
@@ -572,7 +564,7 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
   \return        value of type uint32_t at (*ptr)
  */
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 5060020)
-  #define __LDREXW(ptr)                                                        ((uint32_t ) __ldrex(ptr))
+#define __LDREXW(ptr) ((uint32_t)__ldrex(ptr))
 #else
   #define __LDREXW(ptr)          _Pragma("push") _Pragma("diag_suppress 3731") ((uint32_t ) __ldrex(ptr))  _Pragma("pop")
 #endif
@@ -699,8 +691,7 @@ __attribute__((section(".rrx_text"))) __STATIC_INLINE __ASM uint32_t __RRX(uint3
   \param [in]  value  Value to store
   \param [in]    ptr  Pointer to location
  */
-#define __STRBT(value, ptr)               __strt(value, ptr)
-
+#define __STRBT(value, ptr) __strt(value, ptr)
 
 /**
   \brief   STRT Unprivileged (16 bit)
@@ -708,8 +699,7 @@ __attribute__((section(".rrx_text"))) __STATIC_INLINE __ASM uint32_t __RRX(uint3
   \param [in]  value  Value to store
   \param [in]    ptr  Pointer to location
  */
-#define __STRHT(value, ptr)               __strt(value, ptr)
-
+#define __STRHT(value, ptr) __strt(value, ptr)
 
 /**
   \brief   STRT Unprivileged (32 bit)
@@ -717,7 +707,7 @@ __attribute__((section(".rrx_text"))) __STATIC_INLINE __ASM uint32_t __RRX(uint3
   \param [in]  value  Value to store
   \param [in]    ptr  Pointer to location
  */
-#define __STRT(value, ptr)                __strt(value, ptr)
+#define __STRT(value, ptr) __strt(value, ptr)
 
 #else  /* ((defined (__ARM_ARCH_7M__ ) && (__ARM_ARCH_7M__  == 1)) || \
            (defined (__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1))     ) */

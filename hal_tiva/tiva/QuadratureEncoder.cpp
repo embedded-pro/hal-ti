@@ -35,7 +35,7 @@ namespace hal::tiva
         constexpr const uint32_t QEI_CTL_ENABLE = 0x00000001;  // Enable QEI
         constexpr const uint32_t QEI_CTL_FILTCNT_S = 16;
 
-        constexpr const uint32_t QEI_STAT_DIRECTION = 0x00000002;  // Direction of Rotation Error Detected
+        constexpr const uint32_t QEI_STAT_DIRECTION = 0x00000002; // Direction of Rotation Error Detected
 
         constexpr const uint32_t QEI_POS_M = 0xFFFFFFFF;  // Current Position Integrator Value
         constexpr const uint32_t QEI_POS_S = 0;
@@ -52,7 +52,7 @@ namespace hal::tiva
         constexpr const uint32_t QEI_COUNT_M = 0xFFFFFFFF; // Velocity Pulse Count
         constexpr const uint32_t QEI_COUNT_S = 0;
 
-        constexpr const uint32_t QEI_SPEED_M = 0xFFFFFFFF;  // Velocity
+        constexpr const uint32_t QEI_SPEED_M = 0xFFFFFFFF; // Velocity
         constexpr const uint32_t QEI_SPEED_S = 0;
 
         constexpr const uint32_t QEI_INTEN_ERROR = 0x00000008; // Phase Error Interrupt Enable
@@ -60,10 +60,10 @@ namespace hal::tiva
         constexpr const uint32_t QEI_INTEN_TIMER = 0x00000002; // Timer Expires Interrupt Enable
         constexpr const uint32_t QEI_INTEN_INDEX = 0x00000001; // Index Pulse Detected Interrupt Enable
 
-        constexpr const uint32_t QEI_RIS_ERROR = 0x00000008;  // Phase Error Detected
-        constexpr const uint32_t QEI_RIS_DIR = 0x00000004;  // Direction Change Detected
-        constexpr const uint32_t QEI_RIS_TIMER = 0x00000002;  // Velocity Timer Expired
-        constexpr const uint32_t QEI_RIS_INDEX = 0x00000001;  // Index Pulse Asserted
+        constexpr const uint32_t QEI_RIS_ERROR = 0x00000008; // Phase Error Detected
+        constexpr const uint32_t QEI_RIS_DIR = 0x00000004;   // Direction Change Detected
+        constexpr const uint32_t QEI_RIS_TIMER = 0x00000002; // Velocity Timer Expired
+        constexpr const uint32_t QEI_RIS_INDEX = 0x00000001; // Index Pulse Asserted
 
         constexpr const uint32_t QEI_ISC_ERROR = 0x00000008;  // Phase Error Interrupt
         constexpr const uint32_t QEI_ISC_DIR = 0x00000004;  // Direction Change Interrupt

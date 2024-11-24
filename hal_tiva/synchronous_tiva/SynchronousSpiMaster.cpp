@@ -27,21 +27,21 @@ namespace hal::tiva
         constexpr const uint32_t SSI_CR0_DSS_15 = 0x0000000E;    // 15-bit data
         constexpr const uint32_t SSI_CR0_DSS_16 = 0x0000000F;    // 16-bit data
         constexpr const uint32_t SSI_CR0_SCR_S = 8;
-        
-        constexpr const uint32_t SSI_CR1_EOM = 0x00000800;  // Stop Frame (End of Message)
-        constexpr const uint32_t SSI_CR1_FSSHLDFRM = 0x00000400;  // FSS Hold Frame
-        constexpr const uint32_t SSI_CR1_HSCLKEN = 0x00000200;  // High Speed Clock Enable
-        constexpr const uint32_t SSI_CR1_DIR = 0x00000100;  // SSI Direction of Operation
-        constexpr const uint32_t SSI_CR1_MODE_M = 0x000000C0;  // SSI Mode
-        constexpr const uint32_t SSI_CR1_MODE_LEGACY = 0x00000000;  // Legacy SSI mode
-        constexpr const uint32_t SSI_CR1_MODE_BI = 0x00000040;  // Bi-SSI mode
-        constexpr const uint32_t SSI_CR1_MODE_QUAD = 0x00000080;  // Quad-SSI Mode
-        constexpr const uint32_t SSI_CR1_EOT = 0x00000010;  // End of Transmission
-        constexpr const uint32_t SSI_CR1_MS = 0x00000004;  // SSI Master/Slave Select
-        constexpr const uint32_t SSI_CR1_SSE = 0x00000002;  // SSI Synchronous Serial Port Enable
-        constexpr const uint32_t SSI_CR1_LBM = 0x00000001;  // SSI Loopback Mode
 
-        constexpr const uint32_t SSI_DR_DATA_M = 0x0000FFFF;  // SSI Receive/Transmit Data
+        constexpr const uint32_t SSI_CR1_EOM = 0x00000800;         // Stop Frame (End of Message)
+        constexpr const uint32_t SSI_CR1_FSSHLDFRM = 0x00000400;   // FSS Hold Frame
+        constexpr const uint32_t SSI_CR1_HSCLKEN = 0x00000200;     // High Speed Clock Enable
+        constexpr const uint32_t SSI_CR1_DIR = 0x00000100;         // SSI Direction of Operation
+        constexpr const uint32_t SSI_CR1_MODE_M = 0x000000C0;      // SSI Mode
+        constexpr const uint32_t SSI_CR1_MODE_LEGACY = 0x00000000; // Legacy SSI mode
+        constexpr const uint32_t SSI_CR1_MODE_BI = 0x00000040;     // Bi-SSI mode
+        constexpr const uint32_t SSI_CR1_MODE_QUAD = 0x00000080;   // Quad-SSI Mode
+        constexpr const uint32_t SSI_CR1_EOT = 0x00000010;         // End of Transmission
+        constexpr const uint32_t SSI_CR1_MS = 0x00000004;          // SSI Master/Slave Select
+        constexpr const uint32_t SSI_CR1_SSE = 0x00000002;         // SSI Synchronous Serial Port Enable
+        constexpr const uint32_t SSI_CR1_LBM = 0x00000001;         // SSI Loopback Mode
+
+        constexpr const uint32_t SSI_DR_DATA_M = 0x0000FFFF; // SSI Receive/Transmit Data
         constexpr const uint32_t SSI_DR_DATA_S = 0;
 
         constexpr const uint32_t SSI_SR_BSY = 0x00000010; // SSI Busy Bit

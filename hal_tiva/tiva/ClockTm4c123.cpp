@@ -533,7 +533,7 @@ namespace
         if ((rcc2 & SYSCTL_RCC2_USERCC2_B) != 0)
         {
             if ((rcc2 & SYSCTL_RCC2_DIV400_B) != 0 && (((rcc2 & SYSCTL_RCC2_USERCC2_B) != 0 && (rcc2 & SYSCTL_RCC2_BYPASS2_B) == 0) ||
-               ((rcc2 & SYSCTL_RCC2_USERCC2_B) == 0 && (rcc & SYSCTL_RCC_BYPASS_B) == 0)))
+                                                          ((rcc2 & SYSCTL_RCC2_USERCC2_B) == 0 && (rcc & SYSCTL_RCC_BYPASS_B) == 0)))
 
             {
                 return ((inputFrequency * 2) / (((rcc2 & (SYSCTL_RCC2_SYSDIV2_M | SYSCTL_RCC2_SYSDIV2LSB_B)) >> (SYSCTL_RCC2_SYSDIV2_S - 1)) + 1));

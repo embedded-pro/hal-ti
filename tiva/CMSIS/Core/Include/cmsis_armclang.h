@@ -43,11 +43,8 @@
 #ifndef   __STATIC_INLINE
   #define __STATIC_INLINE                        static __inline
 #endif
-#ifndef   __STATIC_FORCEINLINE                 
-  #define __STATIC_FORCEINLINE                   __attribute__((always_inline)) static __inline
-#endif                                           
-#ifndef   __NO_RETURN
-  #define __NO_RETURN                            __attribute__((__noreturn__))
+#ifndef __STATIC_FORCEINLINE
+#define __STATIC_FORCEINLINE __attribute__((always_inline)) static __inline
 #endif
 #ifndef   __USED
   #define __USED                                 __attribute__((used))
@@ -76,13 +73,16 @@
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT16_WRITE)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT16_WRITE */
-  __PACKED_STRUCT T_UINT16_WRITE { uint16_t v; };
-  #pragma clang diagnostic pop
-  #define __UNALIGNED_UINT16_WRITE(addr, val)    (void)((((struct T_UINT16_WRITE *)(void *)(addr))->v) = (val))
+__PACKED_STRUCT T_UINT16_WRITE
+{
+    uint16_t v;
+};
+#pragma clang diagnostic pop
+#define __UNALIGNED_UINT16_WRITE(addr, val) (void)((((struct T_UINT16_WRITE*)(void*)(addr))->v) = (val))
 #endif
-#ifndef   __UNALIGNED_UINT16_READ
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wpacked"
+#ifndef __UNALIGNED_UINT16_READ
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT16_READ)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT16_READ */
   __PACKED_STRUCT T_UINT16_READ { uint16_t v; };
   #pragma clang diagnostic pop
@@ -92,17 +92,23 @@
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT32_WRITE)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT32_WRITE */
-  __PACKED_STRUCT T_UINT32_WRITE { uint32_t v; };
-  #pragma clang diagnostic pop
-  #define __UNALIGNED_UINT32_WRITE(addr, val)    (void)((((struct T_UINT32_WRITE *)(void *)(addr))->v) = (val))
+__PACKED_STRUCT T_UINT32_WRITE
+{
+    uint32_t v;
+};
+#pragma clang diagnostic pop
+#define __UNALIGNED_UINT32_WRITE(addr, val) (void)((((struct T_UINT32_WRITE*)(void*)(addr))->v) = (val))
 #endif
 #ifndef   __UNALIGNED_UINT32_READ
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT32_READ)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT32_READ */
-  __PACKED_STRUCT T_UINT32_READ { uint32_t v; };
-  #pragma clang diagnostic pop
-  #define __UNALIGNED_UINT32_READ(addr)          (((const struct T_UINT32_READ *)(const void *)(addr))->v)
+__PACKED_STRUCT T_UINT32_READ
+{
+    uint32_t v;
+};
+#pragma clang diagnostic pop
+#define __UNALIGNED_UINT32_READ(addr) (((const struct T_UINT32_READ*)(const void*)(addr))->v)
 #endif
 #ifndef   __ALIGNED
   #define __ALIGNED(x)                           __attribute__((aligned(x)))
@@ -186,7 +192,6 @@ __STATIC_FORCEINLINE void __TZ_set_CONTROL_NS(uint32_t control)
   __ASM volatile ("MSR control_ns, %0" : : "r" (control) : "memory");
 }
 #endif
-
 
 /**
   \brief   Get IPSR Register
@@ -321,7 +326,7 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_MSP_NS(void)
  */
 __STATIC_FORCEINLINE void __set_MSP(uint32_t topOfMainStack)
 {
-  __ASM volatile ("MSR msp, %0" : : "r" (topOfMainStack) : );
+    __ASM volatile("MSR msp, %0" : : "r"(topOfMainStack) :);
 }
 
 
@@ -333,7 +338,7 @@ __STATIC_FORCEINLINE void __set_MSP(uint32_t topOfMainStack)
  */
 __STATIC_FORCEINLINE void __TZ_set_MSP_NS(uint32_t topOfMainStack)
 {
-  __ASM volatile ("MSR msp_ns, %0" : : "r" (topOfMainStack) : );
+    __ASM volatile("MSR msp_ns, %0" : : "r"(topOfMainStack) :);
 }
 #endif
 
@@ -387,7 +392,7 @@ __STATIC_FORCEINLINE uint32_t __get_PRIMASK(void)
  */
 __STATIC_FORCEINLINE uint32_t __TZ_get_PRIMASK_NS(void)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("MRS %0, primask_ns" : "=r" (result) );
   return(result);
@@ -418,10 +423,9 @@ __STATIC_FORCEINLINE void __TZ_set_PRIMASK_NS(uint32_t priMask)
 }
 #endif
 
-
-#if ((defined (__ARM_ARCH_7M__      ) && (__ARM_ARCH_7M__      == 1)) || \
-     (defined (__ARM_ARCH_7EM__     ) && (__ARM_ARCH_7EM__     == 1)) || \
-     (defined (__ARM_ARCH_8M_MAIN__ ) && (__ARM_ARCH_8M_MAIN__ == 1))    )
+#if ((defined(__ARM_ARCH_7M__) && (__ARM_ARCH_7M__ == 1)) ||   \
+     (defined(__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1)) || \
+     (defined(__ARM_ARCH_8M_MAIN__) && (__ARM_ARCH_8M_MAIN__ == 1)))
 /**
   \brief   Enable FIQ
   \details Enables FIQ interrupts by clearing the F-bit in the CPSR.
@@ -435,8 +439,7 @@ __STATIC_FORCEINLINE void __TZ_set_PRIMASK_NS(uint32_t priMask)
   \details Disables FIQ interrupts by setting the F-bit in the CPSR.
            Can only be executed in Privileged modes.
  */
-#define __disable_fault_irq               __disable_fiq   /* see arm_compat.h */
-
+#define __disable_fault_irq __disable_fiq /* see arm_compat.h */
 
 /**
   \brief   Get Base Priority
@@ -1349,8 +1352,8 @@ __STATIC_FORCEINLINE uint32_t __UADD8(uint32_t op1, uint32_t op2)
 {
   uint32_t result;
 
-  __ASM volatile ("uadd8 %0, %1, %2" : "=r" (result) : "r" (op1), "r" (op2) );
-  return(result);
+    __ASM volatile("uadd8 %0, %1, %2" : "=r"(result) : "r"(op1), "r"(op2));
+    return (result);
 }
 
 __STATIC_FORCEINLINE uint32_t __UQADD8(uint32_t op1, uint32_t op2)
