@@ -103,10 +103,9 @@ namespace hal::tiva
         { 1, Port::D, 2, 0x02 },
         { 2, Port::B, 6, 0x02 },
         { 3, Port::D, 2, 0x01 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins = { {
         { 0, Port::A, 5, 0x02 },
         { 1, Port::F, 1, 0x02 },
         { 1, Port::D, 3, 0x02 },
@@ -166,7 +165,7 @@ namespace hal::tiva
         { 1, Port::A, 7, 0x03 },
         { 2, Port::E, 5, 0x03 },
         { 3, Port::D, 1, 0x03 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinoutTable, 2> pinoutTableI2cArray =
     {{
@@ -285,7 +284,7 @@ namespace hal::tiva
         { 0, Port::B, 4, 0x04 },
         { 0, Port::E, 4, 0x04 },
         { 1, Port::F, 4, 0x05 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel0Pins = { {
         { 0, Port::B, 4, 0x04 },
@@ -303,8 +302,7 @@ namespace hal::tiva
         { 1, Port::E, 4, 0x05 },
     }};
 
-    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel3Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel3Pins = { {
         { 0, Port::B, 5, 0x04 },
         { 1, Port::A, 7, 0x05 },
         { 1, Port::E, 5, 0x05 },

@@ -46,19 +46,19 @@ namespace hal::tiva
         constexpr const uint32_t QEI_LOAD_M = 0xFFFFFFFF;  // Velocity Timer Load Value
         constexpr const uint32_t QEI_LOAD_S = 0;
 
-        constexpr const uint32_t QEI_TIME_M = 0xFFFFFFFF;  // Velocity Timer Current Value
+        constexpr const uint32_t QEI_TIME_M = 0xFFFFFFFF; // Velocity Timer Current Value
         constexpr const uint32_t QEI_TIME_S = 0;
 
-        constexpr const uint32_t QEI_COUNT_M = 0xFFFFFFFF;  // Velocity Pulse Count
+        constexpr const uint32_t QEI_COUNT_M = 0xFFFFFFFF; // Velocity Pulse Count
         constexpr const uint32_t QEI_COUNT_S = 0;
 
         constexpr const uint32_t QEI_SPEED_M = 0xFFFFFFFF;  // Velocity
         constexpr const uint32_t QEI_SPEED_S = 0;
 
-        constexpr const uint32_t QEI_INTEN_ERROR = 0x00000008;  // Phase Error Interrupt Enable
-        constexpr const uint32_t QEI_INTEN_DIR = 0x00000004;  // Direction Change Interrupt Enable
-        constexpr const uint32_t QEI_INTEN_TIMER = 0x00000002;  // Timer Expires Interrupt Enable
-        constexpr const uint32_t QEI_INTEN_INDEX = 0x00000001;  // Index Pulse Detected Interrupt Enable
+        constexpr const uint32_t QEI_INTEN_ERROR = 0x00000008; // Phase Error Interrupt Enable
+        constexpr const uint32_t QEI_INTEN_DIR = 0x00000004;   // Direction Change Interrupt Enable
+        constexpr const uint32_t QEI_INTEN_TIMER = 0x00000002; // Timer Expires Interrupt Enable
+        constexpr const uint32_t QEI_INTEN_INDEX = 0x00000001; // Index Pulse Detected Interrupt Enable
 
         constexpr const uint32_t QEI_RIS_ERROR = 0x00000008;  // Phase Error Detected
         constexpr const uint32_t QEI_RIS_DIR = 0x00000004;  // Direction Change Detected

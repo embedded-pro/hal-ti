@@ -27,38 +27,38 @@
 #define FREERTOS_CONFIG_H
 
 /*-----------------------------------------------------------
-* Application specific definitions.
-*
-* These definitions should be adjusted for your particular hardware and
-* application requirements.
-*
-* THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
-* FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE.  See
-* https://www.FreeRTOS.org/a00110.html
-*----------------------------------------------------------*/
+ * Application specific definitions.
+ *
+ * These definitions should be adjusted for your particular hardware and
+ * application requirements.
+ *
+ * THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
+ * FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE.  See
+ * https://www.FreeRTOS.org/a00110.html
+ *----------------------------------------------------------*/
 
-#define configUSE_PREEMPTION                       1
-#define configUSE_PORT_OPTIMISED_TASK_SELECTION    0
-#define configUSE_IDLE_HOOK                        0
-#define configUSE_TICK_HOOK                        1
-#define configUSE_DAEMON_TASK_STARTUP_HOOK         0
-#define configTICK_RATE_HZ                         ( 1000 )                  /* In this non-real time simulated environment the tick frequency has to be at least a multiple of the Win32 tick frequency, and therefore very slow. */
-#define configMINIMAL_STACK_SIZE                   ( ( unsigned short ) 70 ) /* In this simulated case, the stack only has to hold one small structure as the real stack is part of the win32 thread. */
-#define configTOTAL_HEAP_SIZE                      ( ( size_t ) ( 65 * 1024 ) )
-#define configMAX_TASK_NAME_LEN                    ( 12 )
-#define configUSE_TRACE_FACILITY                   1
-#define configUSE_16_BIT_TICKS                     0
-#define configIDLE_SHOULD_YIELD                    1
-#define configUSE_MUTEXES                          1
-#define configCHECK_FOR_STACK_OVERFLOW             0
-#define configUSE_RECURSIVE_MUTEXES                1
-#define configQUEUE_REGISTRY_SIZE                  20
-#define configUSE_APPLICATION_TASK_TAG             1
-#define configUSE_COUNTING_SEMAPHORES              1
-#define configUSE_ALTERNATIVE_API                  0
-#define configUSE_QUEUE_SETS                       1
-#define configUSE_TASK_NOTIFICATIONS               1
-#define configSUPPORT_STATIC_ALLOCATION            0
+#define configUSE_PREEMPTION 1
+#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
+#define configUSE_IDLE_HOOK 0
+#define configUSE_TICK_HOOK 1
+#define configUSE_DAEMON_TASK_STARTUP_HOOK 0
+#define configTICK_RATE_HZ (1000)                     /* In this non-real time simulated environment the tick frequency has to be at least a multiple of the Win32 tick frequency, and therefore very slow. */
+#define configMINIMAL_STACK_SIZE ((unsigned short)70) /* In this simulated case, the stack only has to hold one small structure as the real stack is part of the win32 thread. */
+#define configTOTAL_HEAP_SIZE ((size_t)(65 * 1024))
+#define configMAX_TASK_NAME_LEN (12)
+#define configUSE_TRACE_FACILITY 1
+#define configUSE_16_BIT_TICKS 0
+#define configIDLE_SHOULD_YIELD 1
+#define configUSE_MUTEXES 1
+#define configCHECK_FOR_STACK_OVERFLOW 0
+#define configUSE_RECURSIVE_MUTEXES 1
+#define configQUEUE_REGISTRY_SIZE 20
+#define configUSE_APPLICATION_TASK_TAG 1
+#define configUSE_COUNTING_SEMAPHORES 1
+#define configUSE_ALTERNATIVE_API 0
+#define configUSE_QUEUE_SETS 1
+#define configUSE_TASK_NOTIFICATIONS 1
+#define configSUPPORT_STATIC_ALLOCATION 0
 
 /* Software timer related configuration options.  The maximum possible task
  * priority is configMAX_PRIORITIES - 1.  The priority of the timer task is
@@ -84,7 +84,7 @@ void vConfigureTimerForRunTimeStats( void );    /* Prototype of function that in
  * format the raw data provided by the uxTaskGetSystemState() function in to human
  * readable ASCII form.  See the notes in the implementation of vTaskList() within
  * FreeRTOS/Source/tasks.c for limitations. */
-#define configUSE_STATS_FORMATTING_FUNCTIONS      0
+#define configUSE_STATS_FORMATTING_FUNCTIONS 0
 
 /* Enables the test whereby a stack larger than the total heap size is
  * requested. */
@@ -128,14 +128,14 @@ extern void vAssertCalled(const char* const pcFileName,
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 
 #ifdef __NVIC_PRIO_BITS
- /* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
+/* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
 #define configPRIO_BITS __NVIC_PRIO_BITS
 #else
 #define configPRIO_BITS 4
 #endif
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY 0xf
-#define configKERNEL_INTERRUPT_PRIORITY ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
+#define configKERNEL_INTERRUPT_PRIORITY (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
 extern uint32_t SystemCoreClock;
 #define configCPU_CLOCK_HZ SystemCoreClock

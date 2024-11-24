@@ -133,19 +133,19 @@ namespace hal::tiva
 
         constexpr const uint32_t UART_MIS_DMATXMIS = 0x00020000; // Transmit DMA Masked Interrupt Status
         constexpr const uint32_t UART_MIS_DMARXMIS = 0x00010000; // Receive DMA Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_9BITMIS = 0x00001000; // 9-Bit Mode Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_EOTMIS = 0x00000800; // End of Transmission Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_OEMIS = 0x00000400; // UART Overrun Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_BEMIS = 0x00000200; // UART Break Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_PEMIS = 0x00000100; // UART Parity Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_FEMIS = 0x00000080; // UART Framing Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RTMIS = 0x00000040; // UART Receive Time-Out Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_TXMIS = 0x00000020; // UART Transmit Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RXMIS = 0x00000010; // UART Receive Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_DSRMIS = 0x00000008; // UART Data Set Ready Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_DCDMIS = 0x00000004; // UART Data Carrier Detect Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_CTSMIS = 0x00000002; // UART Clear to Send Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RIMIS = 0x00000001; // UART Ring Indicator Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_9BITMIS = 0x00001000;  // 9-Bit Mode Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_EOTMIS = 0x00000800;   // End of Transmission Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_OEMIS = 0x00000400;    // UART Overrun Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_BEMIS = 0x00000200;    // UART Break Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_PEMIS = 0x00000100;    // UART Parity Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_FEMIS = 0x00000080;    // UART Framing Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RTMIS = 0x00000040;    // UART Receive Time-Out Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_TXMIS = 0x00000020;    // UART Transmit Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RXMIS = 0x00000010;    // UART Receive Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_DSRMIS = 0x00000008;   // UART Data Set Ready Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_DCDMIS = 0x00000004;   // UART Data Carrier Detect Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_CTSMIS = 0x00000002;   // UART Clear to Send Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RIMIS = 0x00000001;    // UART Ring Indicator Modem Masked Interrupt Status
 
         constexpr const uint32_t UART_ICR_DMATXIC = 0x00020000; // Transmit DMA Interrupt Clear
         constexpr const uint32_t UART_ICR_DMARXIC = 0x00010000; // Receive DMA Interrupt Clear
@@ -181,7 +181,7 @@ namespace hal::tiva
 
         constexpr const uint32_t UART_CC_CS_M = 0x0000000F; // UART Baud Clock Source
         constexpr const uint32_t UART_CC_CS_SYSCLK = 0x00000000; // System clock (based on clock source and divisor factor)
-        constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005; // PIOSC
+        constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005;  // PIOSC
         // NOLINTEND
 
         const std::array<uint32_t, 13> baudRateTiva{ {
@@ -218,7 +218,7 @@ namespace hal::tiva
     }
 
     SynchronousUart::SynchronousUart(infra::ByteRange readBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, TimeKeeper& timeKeeper, uint32_t baudrate)
-        : SynchronousUart(readBuffer, aUartIndex, uartTx, uartRx, uartTx, uartRx, timeKeeper, {false, false}, baudrate)
+        : SynchronousUart(readBuffer, aUartIndex, uartTx, uartRx, uartTx, uartRx, timeKeeper, { false, false }, baudrate)
     {}
 
     SynchronousUart::SynchronousUart(infra::ByteRange readBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, TimeKeeper& timeKeeper,
@@ -239,12 +239,10 @@ namespace hal::tiva
 
     SynchronousUart::~SynchronousUart()
     {
-
     }
 
     void SynchronousUart::SendData(infra::ConstByteRange data)
     {
-
     }
 
     bool SynchronousUart::ReceiveData(infra::ByteRange data)
@@ -272,7 +270,6 @@ namespace hal::tiva
 
     void SynchronousUart::Invoke()
     {
-
     }
 
     bool SynchronousUart::Full() const

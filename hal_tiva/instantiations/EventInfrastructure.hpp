@@ -3,7 +3,8 @@
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "hal_tiva/cortex/SystemTickTimerService.hpp"
-#include "infra/event/EventDispatcherWithWeakPtr.hpp"
+#include "hal_tiva/tiva/Gpio.hpp"
+
 
 namespace instantiations
 {

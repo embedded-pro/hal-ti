@@ -31,29 +31,28 @@
 #endif
 
 /* CMSIS compiler control architecture macros */
-#if ((defined (__TARGET_ARCH_6_M  ) && (__TARGET_ARCH_6_M   == 1)) || \
-     (defined (__TARGET_ARCH_6S_M ) && (__TARGET_ARCH_6S_M  == 1))   )
-  #define __ARM_ARCH_6M__           1
+#if ((defined(__TARGET_ARCH_6_M) && (__TARGET_ARCH_6_M == 1)) || \
+     (defined(__TARGET_ARCH_6S_M) && (__TARGET_ARCH_6S_M == 1)))
+#define __ARM_ARCH_6M__ 1
 #endif
 
 #if (defined (__TARGET_ARCH_7_M ) && (__TARGET_ARCH_7_M  == 1))
   #define __ARM_ARCH_7M__           1
 #endif
 
-#if (defined (__TARGET_ARCH_7E_M) && (__TARGET_ARCH_7E_M == 1))
-  #define __ARM_ARCH_7EM__          1
+#if (defined(__TARGET_ARCH_7E_M) && (__TARGET_ARCH_7E_M == 1))
+#define __ARM_ARCH_7EM__ 1
 #endif
 
-  /* __ARM_ARCH_8M_BASE__  not applicable */
-  /* __ARM_ARCH_8M_MAIN__  not applicable */
-
+/* __ARM_ARCH_8M_BASE__  not applicable */
+/* __ARM_ARCH_8M_MAIN__  not applicable */
 
 /* CMSIS compiler specific defines */
 #ifndef   __ASM
   #define __ASM                                  __asm
 #endif
-#ifndef   __INLINE
-  #define __INLINE                               __inline
+#ifndef __INLINE
+#define __INLINE __inline
 #endif
 #ifndef   __STATIC_INLINE
   #define __STATIC_INLINE                        static __inline
@@ -249,8 +248,8 @@ __STATIC_INLINE uint32_t __get_PRIMASK(void)
  */
 __STATIC_INLINE void __set_PRIMASK(uint32_t priMask)
 {
-  register uint32_t __regPriMask         __ASM("primask");
-  __regPriMask = (priMask);
+    register uint32_t __regPriMask __ASM("primask");
+    __regPriMask = (priMask);
 }
 
 
@@ -292,8 +291,8 @@ __STATIC_INLINE uint32_t  __get_BASEPRI(void)
  */
 __STATIC_INLINE void __set_BASEPRI(uint32_t basePri)
 {
-  register uint32_t __regBasePri         __ASM("basepri");
-  __regBasePri = (basePri & 0xFFU);
+    register uint32_t __regBasePri __ASM("basepri");
+    __regBasePri = (basePri & 0xFFU);
 }
 
 
@@ -317,8 +316,8 @@ __STATIC_INLINE void __set_BASEPRI_MAX(uint32_t basePri)
  */
 __STATIC_INLINE uint32_t __get_FAULTMASK(void)
 {
-  register uint32_t __regFaultMask       __ASM("faultmask");
-  return(__regFaultMask);
+    register uint32_t __regFaultMask __ASM("faultmask");
+    return (__regFaultMask);
 }
 
 /**

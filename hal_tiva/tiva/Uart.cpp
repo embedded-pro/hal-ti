@@ -43,7 +43,7 @@ namespace hal::tiva
         constexpr const uint32_t UART_ECR_DATA_M = 0x000000FF; // Error Clear
         constexpr const uint32_t UART_ECR_DATA_S = 0;
 
-        constexpr const uint32_t UART_FR_RI = 0x00000100; // Ring Indicator
+        constexpr const uint32_t UART_FR_RI = 0x00000100;   // Ring Indicator
         constexpr const uint32_t UART_FR_TXFE = 0x00000080; // UART Transmit FIFO Empty
         constexpr const uint32_t UART_FR_RXFF = 0x00000040; // UART Receive FIFO Full
         constexpr const uint32_t UART_FR_TXFF = 0x00000020; // UART Transmit FIFO Full
@@ -226,8 +226,7 @@ namespace hal::tiva
             UART4_IRQn,
             UART5_IRQn,
             UART6_IRQn,
-            UART7_IRQn
-        }};
+            UART7_IRQn } };
 
         const infra::MemoryRange<UART0_Type* const> peripheralUart = infra::ReinterpretCastMemoryRange<UART0_Type* const>(infra::MakeRange(peripheralUartArray));
 
@@ -292,9 +291,11 @@ namespace hal::tiva
 
     void Uart::DisableUart() const
     {
-        while (uartArray[uartIndex]->FR & UART_FR_BUSY) { } /* Wait for end of TX. */
-        uartArray[uartIndex]->LCRH &=~ UART_LCRH_FEN; /* Disable FIFO. */
-        uartArray[uartIndex]->CTL &=~ ( UART_CTL_UARTEN | enableTx | enableRx);
+        while (uartArray[uartIndex]->FR & UART_FR_BUSY)
+        {
+        }                                             /* Wait for end of TX. */
+        uartArray[uartIndex]->LCRH &= ~UART_LCRH_FEN; /* Disable FIFO. */
+        uartArray[uartIndex]->CTL &= ~(UART_CTL_UARTEN | enableTx | enableRx);
     }
 
     void Uart::EnableUart() const

@@ -3,7 +3,8 @@
 
 #include "hal_tiva/tiva/Ethernet.hpp"
 #include "hal_tiva/instantiations/lwip/EthernetSmiObserver.hpp"
-#include "lwip/lwip_cpp/LightweightIp.hpp"
+#include "hal_tiva/tiva/Ethernet.hpp"
+
 #include "lwip/lwip_cpp/LightweightIpOverEthernet.hpp"
 #include "services/network/LlmnrResponder.hpp"
 

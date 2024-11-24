@@ -6,46 +6,46 @@ namespace hal::tiva
 {
     namespace
     {
-        constexpr static uint32_t CHCTL_DSTINC_M = 0xC0000000;  // Destination Address Increment
-        constexpr static uint32_t CHCTL_DSTINC_8 = 0x00000000;  // Byte
-        constexpr static uint32_t CHCTL_DSTINC_16 = 0x40000000;  // Half-word
-        constexpr static uint32_t CHCTL_DSTINC_32 = 0x80000000;  // Word
-        constexpr static uint32_t CHCTL_DSTINC_NONE = 0xC0000000;  // No increment
-        constexpr static uint32_t CHCTL_DSTSIZE_M = 0x30000000;  // Destination Data Size
-        constexpr static uint32_t CHCTL_DSTSIZE_8 = 0x00000000;  // Byte
-        constexpr static uint32_t CHCTL_DSTSIZE_16 = 0x10000000;  // Half-word
-        constexpr static uint32_t CHCTL_DSTSIZE_32 = 0x20000000;  // Word
-        constexpr static uint32_t CHCTL_SRCINC_M = 0x0C000000;  // Source Address Increment
-        constexpr static uint32_t CHCTL_SRCINC_8 = 0x00000000;  // Byte
-        constexpr static uint32_t CHCTL_SRCINC_16 = 0x04000000;  // Half-word
-        constexpr static uint32_t CHCTL_SRCINC_32 = 0x08000000;  // Word
-        constexpr static uint32_t CHCTL_SRCINC_NONE = 0x0C000000;  // No increment
-        constexpr static uint32_t CHCTL_SRCSIZE_M = 0x03000000;  // Source Data Size
-        constexpr static uint32_t CHCTL_SRCSIZE_8 = 0x00000000;  // Byte
-        constexpr static uint32_t CHCTL_SRCSIZE_16 = 0x01000000;  // Half-word
-        constexpr static uint32_t CHCTL_SRCSIZE_32 = 0x02000000;  // Word
-        constexpr static uint32_t CHCTL_DSTPROT0 = 0x00200000;  // Destination Privilege Access
-        constexpr static uint32_t CHCTL_SRCPROT0 = 0x00040000;  // Source Privilege Access
-        constexpr static uint32_t CHCTL_ARBSIZE_M = 0x0003C000;  // Arbitration Size
-        constexpr static uint32_t CHCTL_ARBSIZE_1 = 0x00000000;  // 1 Transfer
-        constexpr static uint32_t CHCTL_ARBSIZE_2 = 0x00004000;  // 2 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_4 = 0x00008000;  // 4 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_8 = 0x0000C000;  // 8 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_16 = 0x00010000;  // 16 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_32 = 0x00014000;  // 32 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_64 = 0x00018000;  // 64 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_128 = 0x0001C000;  // 128 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_256 =   0x00020000;  // 256 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_512 = 0x00024000;  // 512 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_1024 = 0x00028000;  // 1024 Transfers
-        constexpr static uint32_t CHCTL_XFERSIZE_M = 0x00003FF0;  // Transfer Size (minus 1)
-        constexpr static uint32_t CHCTL_NXTUSEBURST = 0x00000008;  // Next Useburst
-        constexpr static uint32_t CHCTL_XFERMODE_M = 0x00000007;  // uDMA Transfer Mode
-        constexpr static uint32_t CHCTL_XFERMODE_STOP = 0x00000000;  // Stop
-        constexpr static uint32_t CHCTL_XFERMODE_BASIC = 0x00000001;  // Basic
-        constexpr static uint32_t CHCTL_XFERMODE_AUTO = 0x00000002;  // Auto-Request
-        constexpr static uint32_t CHCTL_XFERMODE_PINGPONG = 0x00000003;  // Ping-Pong
-        constexpr static uint32_t CHCTL_XFERMODE_MEM_SG = 0x00000004;  // Memory Scatter-Gather
+        constexpr static uint32_t CHCTL_DSTINC_M = 0xC0000000;          // Destination Address Increment
+        constexpr static uint32_t CHCTL_DSTINC_8 = 0x00000000;          // Byte
+        constexpr static uint32_t CHCTL_DSTINC_16 = 0x40000000;         // Half-word
+        constexpr static uint32_t CHCTL_DSTINC_32 = 0x80000000;         // Word
+        constexpr static uint32_t CHCTL_DSTINC_NONE = 0xC0000000;       // No increment
+        constexpr static uint32_t CHCTL_DSTSIZE_M = 0x30000000;         // Destination Data Size
+        constexpr static uint32_t CHCTL_DSTSIZE_8 = 0x00000000;         // Byte
+        constexpr static uint32_t CHCTL_DSTSIZE_16 = 0x10000000;        // Half-word
+        constexpr static uint32_t CHCTL_DSTSIZE_32 = 0x20000000;        // Word
+        constexpr static uint32_t CHCTL_SRCINC_M = 0x0C000000;          // Source Address Increment
+        constexpr static uint32_t CHCTL_SRCINC_8 = 0x00000000;          // Byte
+        constexpr static uint32_t CHCTL_SRCINC_16 = 0x04000000;         // Half-word
+        constexpr static uint32_t CHCTL_SRCINC_32 = 0x08000000;         // Word
+        constexpr static uint32_t CHCTL_SRCINC_NONE = 0x0C000000;       // No increment
+        constexpr static uint32_t CHCTL_SRCSIZE_M = 0x03000000;         // Source Data Size
+        constexpr static uint32_t CHCTL_SRCSIZE_8 = 0x00000000;         // Byte
+        constexpr static uint32_t CHCTL_SRCSIZE_16 = 0x01000000;        // Half-word
+        constexpr static uint32_t CHCTL_SRCSIZE_32 = 0x02000000;        // Word
+        constexpr static uint32_t CHCTL_DSTPROT0 = 0x00200000;          // Destination Privilege Access
+        constexpr static uint32_t CHCTL_SRCPROT0 = 0x00040000;          // Source Privilege Access
+        constexpr static uint32_t CHCTL_ARBSIZE_M = 0x0003C000;         // Arbitration Size
+        constexpr static uint32_t CHCTL_ARBSIZE_1 = 0x00000000;         // 1 Transfer
+        constexpr static uint32_t CHCTL_ARBSIZE_2 = 0x00004000;         // 2 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_4 = 0x00008000;         // 4 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_8 = 0x0000C000;         // 8 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_16 = 0x00010000;        // 16 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_32 = 0x00014000;        // 32 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_64 = 0x00018000;        // 64 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_128 = 0x0001C000;       // 128 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_256 = 0x00020000;       // 256 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_512 = 0x00024000;       // 512 Transfers
+        constexpr static uint32_t CHCTL_ARBSIZE_1024 = 0x00028000;      // 1024 Transfers
+        constexpr static uint32_t CHCTL_XFERSIZE_M = 0x00003FF0;        // Transfer Size (minus 1)
+        constexpr static uint32_t CHCTL_NXTUSEBURST = 0x00000008;       // Next Useburst
+        constexpr static uint32_t CHCTL_XFERMODE_M = 0x00000007;        // uDMA Transfer Mode
+        constexpr static uint32_t CHCTL_XFERMODE_STOP = 0x00000000;     // Stop
+        constexpr static uint32_t CHCTL_XFERMODE_BASIC = 0x00000001;    // Basic
+        constexpr static uint32_t CHCTL_XFERMODE_AUTO = 0x00000002;     // Auto-Request
+        constexpr static uint32_t CHCTL_XFERMODE_PINGPONG = 0x00000003; // Ping-Pong
+        constexpr static uint32_t CHCTL_XFERMODE_MEM_SG = 0x00000004;   // Memory Scatter-Gather
         constexpr static uint32_t CHCTL_XFERMODE_MEM_SGA = 0x00000005;  // Alternate Memory Scatter-Gather
         constexpr static uint32_t CHCTL_XFERMODE_PER_SG = 0x00000006;  // Peripheral Scatter-Gather
         constexpr static uint32_t CHCTL_XFERMODE_PER_SGA = 0x00000007;  // Alternate Peripheral Scatter-Gather
@@ -53,7 +53,7 @@ namespace hal::tiva
 
         volatile uint32_t& HardwareRegister(uint32_t reg)
         {
-            return *reinterpret_cast<volatile uint32_t *>(reg);
+            return *reinterpret_cast<volatile uint32_t*>(reg);
         }
 
         uint32_t ChannelControlMask()
@@ -102,7 +102,6 @@ namespace hal::tiva
 
     Dma::~Dma()
     {
-
     }
 
     void Dma::Invoke()
@@ -156,7 +155,7 @@ namespace hal::tiva
 
     DmaChannel::Transfer DmaChannel::Mode(Type type) const
     {
-        auto controlArray = reinterpret_cast<DmaChannel::Control *>(UDMA->CTLBASE);
+        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
         auto index = channel.number + static_cast<uint32_t>(type);
         auto control = &controlArray[index];
 

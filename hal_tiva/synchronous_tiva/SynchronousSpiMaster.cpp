@@ -50,7 +50,7 @@ namespace hal::tiva
         constexpr const uint32_t SSI_SR_TNF = 0x00000002;  // SSI Transmit FIFO Not Full
         constexpr const uint32_t SSI_SR_TFE = 0x00000001;  // SSI Transmit FIFO Empty
 
-        constexpr const uint32_t SSI_CPSR_CPSDVSR_M = 0x000000FF;  // SSI Clock Prescale Divisor
+        constexpr const uint32_t SSI_CPSR_CPSDVSR_M = 0x000000FF; // SSI Clock Prescale Divisor
         constexpr const uint32_t SSI_CPSR_CPSDVSR_S = 0;
 
         constexpr const uint32_t SSI_IM_EOTIM = 0x00000040;  // End of Transmit Interrupt Mask
@@ -116,7 +116,7 @@ namespace hal::tiva
             SSI1_BASE,
             SSI2_BASE,
             SSI3_BASE,
-        }};
+        } };
 
         const infra::MemoryRange<SSI0_Type* const> peripheralSsi = infra::ReinterpretCastMemoryRange<SSI0_Type* const>(infra::MakeRange(peripheralSsiArray));
 
