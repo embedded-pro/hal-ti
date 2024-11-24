@@ -117,8 +117,7 @@ namespace hal::tiva
             SSI3_BASE,
         }};
 
-        constexpr std::array<IRQn_Type, 4> peripheralIrqSsiArray =
-        {{
+        constexpr std::array<IRQn_Type, 4> peripheralIrqSsiArray = { {
             SSI0_IRQn,
             SSI1_IRQn,
             SSI2_IRQn,

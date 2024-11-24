@@ -66,8 +66,8 @@
 #ifndef   __USED
   #define __USED                                 __attribute__((used))
 #endif
-#ifndef   __WEAK
-  #define __WEAK                                 __attribute__((weak))
+#ifndef __USED
+#define __USED __attribute__((used))
 #endif
 #ifndef   __PACKED
   #define __PACKED                               __attribute__((packed))
@@ -96,8 +96,11 @@
 #ifndef __UNALIGNED_UINT32_READ
 #define __UNALIGNED_UINT32_READ(addr) (*((const __packed uint32_t*)(addr)))
 #endif
-#ifndef   __RESTRICT
-  #define __RESTRICT                             __restrict
+#ifndef __ALIGNED
+#define __ALIGNED(x) __attribute__((aligned(x)))
+#endif
+#ifndef __RESTRICT
+#define __RESTRICT __restrict
 #endif
 
 /* ###########################  Core Function Access  ########################### */
@@ -139,10 +142,9 @@ __STATIC_INLINE uint32_t __get_CONTROL(void)
  */
 __STATIC_INLINE void __set_CONTROL(uint32_t control)
 {
-  register uint32_t __regControl         __ASM("control");
-  __regControl = control;
+    register uint32_t __regControl __ASM("control");
+    __regControl = control;
 }
-
 
 /**
   \brief   Get IPSR Register
@@ -187,8 +189,8 @@ __STATIC_INLINE uint32_t __get_xPSR(void)
  */
 __STATIC_INLINE uint32_t __get_PSP(void)
 {
-  register uint32_t __regProcessStackPointer  __ASM("psp");
-  return(__regProcessStackPointer);
+    register uint32_t __regProcessStackPointer __ASM("psp");
+    return (__regProcessStackPointer);
 }
 
 
@@ -202,7 +204,6 @@ __STATIC_INLINE void __set_PSP(uint32_t topOfProcStack)
     register uint32_t __regProcessStackPointer __ASM("psp");
     __regProcessStackPointer = topOfProcStack;
 }
-
 
 /**
   \brief   Get Main Stack Pointer
@@ -278,7 +279,6 @@ __STATIC_INLINE uint32_t  __get_BASEPRI(void)
   register uint32_t __regBasePri         __ASM("basepri");
   return(__regBasePri);
 }
-
 
 /**
   \brief   Set Base Priority
@@ -417,11 +417,13 @@ __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)
   \details Acts as a special kind of Data Memory Barrier.
            It completes when all explicit memory accesses before this instruction complete.
  */
-#define __DSB() do {\
-                   __schedule_barrier();\
-                   __dsb(0xF);\
-                   __schedule_barrier();\
-                } while (0U)
+#define __DSB()               \
+    do                        \
+    {                         \
+        __schedule_barrier(); \
+        __dsb(0xF);           \
+        __schedule_barrier(); \
+    } while (0U)
 
 /**
   \brief   Data Memory Barrier
@@ -440,8 +442,7 @@ __STATIC_INLINE void __set_FPSCR(uint32_t fpscr)
   \param [in]    value  Value to reverse
   \return               Reversed value
  */
-#define __REV                             __rev
-
+#define __REV __rev
 
 /**
   \brief   Reverse byte order (16 bit)
@@ -471,7 +472,6 @@ __attribute__((section(".revsh_text"))) __STATIC_INLINE __ASM int16_t __REVSH(in
 }
 #endif
 
-
 /**
   \brief   Rotate Right in unsigned value (32 bit)
   \details Rotate Right (immediate) provides the value of the contents of a register rotated by a variable number of bits.
@@ -489,8 +489,7 @@ __attribute__((section(".revsh_text"))) __STATIC_INLINE __ASM int16_t __REVSH(in
   \param [in]    value  is ignored by the processor.
                  If required, a debugger can use it to store additional information about the breakpoint.
  */
-#define __BKPT(value)                       __breakpoint(value)
-
+#define __BKPT(value) __breakpoint(value)
 
 /**
   \brief   Reverse bit order of value
@@ -504,18 +503,18 @@ __attribute__((section(".revsh_text"))) __STATIC_INLINE __ASM int16_t __REVSH(in
 #else
 __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
 {
-  uint32_t result;
-  uint32_t s = (4U /*sizeof(v)*/ * 8U) - 1U; /* extra shift needed at end */
+    uint32_t result;
+    uint32_t s = (4U /*sizeof(v)*/ * 8U) - 1U; /* extra shift needed at end */
 
-  result = value;                      /* r will be reversed bits of v; first get LSB of v */
-  for (value >>= 1U; value != 0U; value >>= 1U)
-  {
-    result <<= 1U;
-    result |= value & 1U;
-    s--;
-  }
-  result <<= s;                        /* shift when v's highest bits are zero */
-  return result;
+    result = value; /* r will be reversed bits of v; first get LSB of v */
+    for (value >>= 1U; value != 0U; value >>= 1U)
+    {
+        result <<= 1U;
+        result |= value & 1U;
+        s--;
+    }
+    result <<= s; /* shift when v's highest bits are zero */
+    return result;
 }
 #endif
 
@@ -566,7 +565,7 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 5060020)
 #define __LDREXW(ptr) ((uint32_t)__ldrex(ptr))
 #else
-  #define __LDREXW(ptr)          _Pragma("push") _Pragma("diag_suppress 3731") ((uint32_t ) __ldrex(ptr))  _Pragma("pop")
+#define __LDREXW(ptr) _Pragma("push") _Pragma("diag_suppress 3731")((uint32_t)__ldrex(ptr)) _Pragma("pop")
 #endif
 
 
@@ -594,11 +593,10 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
   \return          1  Function failed
  */
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 5060020)
-  #define __STREXH(value, ptr)                                                 __strex(value, ptr)
+#define __STREXH(value, ptr) __strex(value, ptr)
 #else
   #define __STREXH(value, ptr)   _Pragma("push") _Pragma("diag_suppress 3731") __strex(value, ptr)        _Pragma("pop")
 #endif
-
 
 /**
   \brief   STR Exclusive (32 bit)
@@ -611,7 +609,7 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __RBIT(uint32_t value)
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 5060020)
   #define __STREXW(value, ptr)                                                 __strex(value, ptr)
 #else
-  #define __STREXW(value, ptr)   _Pragma("push") _Pragma("diag_suppress 3731") __strex(value, ptr)        _Pragma("pop")
+#define __STREXW(value, ptr) _Pragma("push") _Pragma("diag_suppress 3731") __strex(value, ptr) _Pragma("pop")
 #endif
 
 
@@ -709,8 +707,8 @@ __attribute__((section(".rrx_text"))) __STATIC_INLINE __ASM uint32_t __RRX(uint3
  */
 #define __STRT(value, ptr) __strt(value, ptr)
 
-#else  /* ((defined (__ARM_ARCH_7M__ ) && (__ARM_ARCH_7M__  == 1)) || \
-           (defined (__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1))     ) */
+#else /* ((defined (__ARM_ARCH_7M__ ) && (__ARM_ARCH_7M__  == 1)) || \
+          (defined (__ARM_ARCH_7EM__) && (__ARM_ARCH_7EM__ == 1))     ) */
 
 /**
   \brief   Signed Saturate

@@ -103,19 +103,19 @@ namespace hal::tiva
 
         constexpr const uint32_t UART_IM_DMATXIM = 0x00020000; // Transmit DMA Interrupt Mask
         constexpr const uint32_t UART_IM_DMARXIM = 0x00010000; // Receive DMA Interrupt Mask
-        constexpr const uint32_t UART_IM_9BITIM = 0x00001000; // 9-Bit Mode Interrupt Mask
-        constexpr const uint32_t UART_IM_EOTIM = 0x00000800; // End of Transmission Interrupt Mask
-        constexpr const uint32_t UART_IM_OEIM = 0x00000400; // UART Overrun Error Interrupt Mask
-        constexpr const uint32_t UART_IM_BEIM = 0x00000200; // UART Break Error Interrupt Mask
-        constexpr const uint32_t UART_IM_PEIM = 0x00000100; // UART Parity Error Interrupt Mask
-        constexpr const uint32_t UART_IM_FEIM = 0x00000080; // UART Framing Error Interrupt Mask
-        constexpr const uint32_t UART_IM_RTIM = 0x00000040; // UART Receive Time-Out Interrupt Mask
-        constexpr const uint32_t UART_IM_TXIM = 0x00000020; // UART Transmit Interrupt Mask
-        constexpr const uint32_t UART_IM_RXIM = 0x00000010; // UART Receive Interrupt Mask
-        constexpr const uint32_t UART_IM_DSRMIM = 0x00000008; // UART Data Set Ready Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_DCDMIM = 0x00000004; // UART Data Carrier Detect Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_CTSMIM = 0x00000002; // UART Clear to Send Modem Interrupt Mask
-        constexpr const uint32_t UART_IM_RIMIM = 0x00000001; // UART Ring Indicator Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_9BITIM = 0x00001000;  // 9-Bit Mode Interrupt Mask
+        constexpr const uint32_t UART_IM_EOTIM = 0x00000800;   // End of Transmission Interrupt Mask
+        constexpr const uint32_t UART_IM_OEIM = 0x00000400;    // UART Overrun Error Interrupt Mask
+        constexpr const uint32_t UART_IM_BEIM = 0x00000200;    // UART Break Error Interrupt Mask
+        constexpr const uint32_t UART_IM_PEIM = 0x00000100;    // UART Parity Error Interrupt Mask
+        constexpr const uint32_t UART_IM_FEIM = 0x00000080;    // UART Framing Error Interrupt Mask
+        constexpr const uint32_t UART_IM_RTIM = 0x00000040;    // UART Receive Time-Out Interrupt Mask
+        constexpr const uint32_t UART_IM_TXIM = 0x00000020;    // UART Transmit Interrupt Mask
+        constexpr const uint32_t UART_IM_RXIM = 0x00000010;    // UART Receive Interrupt Mask
+        constexpr const uint32_t UART_IM_DSRMIM = 0x00000008;  // UART Data Set Ready Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_DCDMIM = 0x00000004;  // UART Data Carrier Detect Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_CTSMIM = 0x00000002;  // UART Clear to Send Modem Interrupt Mask
+        constexpr const uint32_t UART_IM_RIMIM = 0x00000001;   // UART Ring Indicator Modem Interrupt Mask
 
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMARXRIS = 0x00010000; // Receive DMA Raw Interrupt Status
@@ -181,7 +181,7 @@ namespace hal::tiva
         constexpr const uint32_t UART_PP_NB = 0x00000002; // 9-Bit Support
         constexpr const uint32_t UART_PP_SC = 0x00000001; // Smart Card Support
 
-        constexpr const uint32_t UART_CC_CS_M = 0x0000000F; // UART Baud Clock Source
+        constexpr const uint32_t UART_CC_CS_M = 0x0000000F;      // UART Baud Clock Source
         constexpr const uint32_t UART_CC_CS_SYSCLK = 0x00000000; // System clock (based on clock source and divisor factor)
         constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005; // PIOSC
         // NOLINTEND

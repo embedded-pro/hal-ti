@@ -27,21 +27,21 @@
 #ifndef __CMSIS_ARMCLANG_H
 #define __CMSIS_ARMCLANG_H
 
-#pragma clang system_header   /* treat file as system include file */
+#pragma clang system_header /* treat file as system include file */
 
 #ifndef __ARM_COMPAT_H
-#include <arm_compat.h>    /* Compatibility header for Arm Compiler 5 intrinsics */
+#include <arm_compat.h> /* Compatibility header for Arm Compiler 5 intrinsics */
 #endif
 
 /* CMSIS compiler specific defines */
-#ifndef   __ASM
-  #define __ASM                                  __asm
+#ifndef __ASM
+#define __ASM __asm
 #endif
-#ifndef   __INLINE
-  #define __INLINE                               __inline
+#ifndef __INLINE
+#define __INLINE __inline
 #endif
-#ifndef   __STATIC_INLINE
-  #define __STATIC_INLINE                        static __inline
+#ifndef __STATIC_INLINE
+#define __STATIC_INLINE static __inline
 #endif
 #ifndef __STATIC_FORCEINLINE
 #define __STATIC_FORCEINLINE __attribute__((always_inline)) static __inline
@@ -69,9 +69,9 @@
   #pragma clang diagnostic pop
   #define __UNALIGNED_UINT32(x)                  (((struct T_UINT32 *)(x))->v)
 #endif
-#ifndef   __UNALIGNED_UINT16_WRITE
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wpacked"
+#ifndef __UNALIGNED_UINT16_WRITE
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT16_WRITE)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT16_WRITE */
 __PACKED_STRUCT T_UINT16_WRITE
 {
@@ -99,9 +99,9 @@ __PACKED_STRUCT T_UINT32_WRITE
 #pragma clang diagnostic pop
 #define __UNALIGNED_UINT32_WRITE(addr, val) (void)((((struct T_UINT32_WRITE*)(void*)(addr))->v) = (val))
 #endif
-#ifndef   __UNALIGNED_UINT32_READ
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wpacked"
+#ifndef __UNALIGNED_UINT32_READ
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpacked"
 /*lint -esym(9058, T_UINT32_READ)*/ /* disable MISRA 2012 Rule 2.4 for T_UINT32_READ */
 __PACKED_STRUCT T_UINT32_READ
 {
@@ -169,7 +169,6 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_CONTROL_NS(void)
 }
 #endif
 
-
 /**
   \brief   Set Control Register
   \details Writes the given value to the Control Register.
@@ -200,7 +199,7 @@ __STATIC_FORCEINLINE void __TZ_set_CONTROL_NS(uint32_t control)
  */
 __STATIC_FORCEINLINE uint32_t __get_IPSR(void)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
   return(result);
@@ -234,7 +233,6 @@ __STATIC_FORCEINLINE uint32_t __get_xPSR(void)
   return(result);
 }
 
-
 /**
   \brief   Get Process Stack Pointer
   \details Returns the current value of the Process Stack Pointer (PSP).
@@ -242,10 +240,10 @@ __STATIC_FORCEINLINE uint32_t __get_xPSR(void)
  */
 __STATIC_FORCEINLINE uint32_t __get_PSP(void)
 {
-  uint32_t result;
+    uint32_t result;
 
-  __ASM volatile ("MRS %0, psp"  : "=r" (result) );
-  return(result);
+    __ASM volatile("MRS %0, psp" : "=r"(result));
+    return (result);
 }
 
 
@@ -257,7 +255,7 @@ __STATIC_FORCEINLINE uint32_t __get_PSP(void)
  */
 __STATIC_FORCEINLINE uint32_t __TZ_get_PSP_NS(void)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("MRS %0, psp_ns"  : "=r" (result) );
   return(result);
@@ -302,8 +300,7 @@ __STATIC_FORCEINLINE uint32_t __get_MSP(void)
   return(result);
 }
 
-
-#if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
+#if (defined(__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3))
 /**
   \brief   Get Main Stack Pointer (non-secure)
   \details Returns the current value of the non-secure Main Stack Pointer (MSP) when in secure state.
@@ -311,13 +308,12 @@ __STATIC_FORCEINLINE uint32_t __get_MSP(void)
  */
 __STATIC_FORCEINLINE uint32_t __TZ_get_MSP_NS(void)
 {
-  uint32_t result;
+    uint32_t result;
 
-  __ASM volatile ("MRS %0, msp_ns" : "=r" (result) );
-  return(result);
+    __ASM volatile("MRS %0, msp_ns" : "=r"(result));
+    return (result);
 }
 #endif
-
 
 /**
   \brief   Set Main Stack Pointer
@@ -329,8 +325,7 @@ __STATIC_FORCEINLINE void __set_MSP(uint32_t topOfMainStack)
     __ASM volatile("MSR msp, %0" : : "r"(topOfMainStack) :);
 }
 
-
-#if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
+#if (defined(__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3))
 /**
   \brief   Set Main Stack Pointer (non-secure)
   \details Assigns the given value to the non-secure Main Stack Pointer (MSP) when in secure state.
@@ -407,11 +402,10 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_PRIMASK_NS(void)
  */
 __STATIC_FORCEINLINE void __set_PRIMASK(uint32_t priMask)
 {
-  __ASM volatile ("MSR primask, %0" : : "r" (priMask) : "memory");
+    __ASM volatile("MSR primask, %0" : : "r"(priMask) : "memory");
 }
 
-
-#if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
+#if (defined(__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3))
 /**
   \brief   Set Priority Mask (non-secure)
   \details Assigns the given value to the non-secure Priority Mask Register when in secure state.
@@ -448,14 +442,13 @@ __STATIC_FORCEINLINE void __TZ_set_PRIMASK_NS(uint32_t priMask)
  */
 __STATIC_FORCEINLINE uint32_t __get_BASEPRI(void)
 {
-  uint32_t result;
+    uint32_t result;
 
-  __ASM volatile ("MRS %0, basepri" : "=r" (result) );
-  return(result);
+    __ASM volatile("MRS %0, basepri" : "=r"(result));
+    return (result);
 }
 
-
-#if (defined (__ARM_FEATURE_CMSE ) && (__ARM_FEATURE_CMSE == 3))
+#if (defined(__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3))
 /**
   \brief   Get Base Priority (non-secure)
   \details Returns the current value of the non-secure Base Priority register when in secure state.
@@ -463,7 +456,7 @@ __STATIC_FORCEINLINE uint32_t __get_BASEPRI(void)
  */
 __STATIC_FORCEINLINE uint32_t __TZ_get_BASEPRI_NS(void)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("MRS %0, basepri_ns" : "=r" (result) );
   return(result);
@@ -800,8 +793,7 @@ __STATIC_FORCEINLINE void __TZ_set_MSPLIM_NS(uint32_t MainStackPtrLimit)
   \brief   Wait For Interrupt
   \details Wait For Interrupt is a hint instruction that suspends execution until one of a number of events occurs.
  */
-#define __WFI          __builtin_arm_wfi
-
+#define __WFI __builtin_arm_wfi
 
 /**
   \brief   Wait For Event
@@ -1407,7 +1399,7 @@ __STATIC_FORCEINLINE uint32_t __USUB8(uint32_t op1, uint32_t op2)
 
 __STATIC_FORCEINLINE uint32_t __UQSUB8(uint32_t op1, uint32_t op2)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("uqsub8 %0, %1, %2" : "=r" (result) : "r" (op1), "r" (op2) );
   return(result);
@@ -1536,7 +1528,7 @@ __STATIC_FORCEINLINE uint32_t __QASX(uint32_t op1, uint32_t op2)
 
 __STATIC_FORCEINLINE uint32_t __SHASX(uint32_t op1, uint32_t op2)
 {
-  uint32_t result;
+    uint32_t result;
 
   __ASM volatile ("shasx %0, %1, %2" : "=r" (result) : "r" (op1), "r" (op2) );
   return(result);

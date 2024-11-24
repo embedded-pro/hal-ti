@@ -205,7 +205,7 @@ namespace hal::tiva
         { 0, Port::D, 7, 0x06 },
         { 0, Port::F, 1, 0x06 },
         { 1, Port::C, 6, 0x06 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinoutTable, 3> pinoutTableQeiArray =
     {{
