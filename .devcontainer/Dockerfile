@@ -1,0 +1,3 @@
+FROM gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849
+
+HEALTHCHECK NONE

@@ -2,10 +2,8 @@
 #define HAL_PWM_TIVA_HPP
 
 #include "hal/interfaces/Pwm.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
-#include "infra/util/Function.hpp"
 #include "infra/util/Optional.hpp"
 
 namespace hal::tiva
@@ -71,7 +69,7 @@ namespace hal::tiva
 
                 uint32_t Value() const
                 {
-                    uint32_t value = static_cast<uint32_t>(counterZero);
+                    auto value = static_cast<uint32_t>(counterZero);
 
                     value |= static_cast<uint32_t>(counterLoad) << 2;
                     value |= static_cast<uint32_t>(comparatorAUp) << 4;
@@ -112,7 +110,7 @@ namespace hal::tiva
         Pwm(uint8_t aPwmIndex, PinChannel channel0, const Config& config = Config());
         Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, const Config& config = Config());
         Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, const Config& config = Config());
-        Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3,const Config& config = Config());
+        Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3, const Config& config = Config());
 
         ~Pwm();
 
@@ -123,33 +121,32 @@ namespace hal::tiva
     private:
         struct PwmChannelType
         {
-            __IO uint32_t  CTL;        /*!< PWM Control                            */
-            __IO uint32_t  INTEN;      /*!< PWM Interrupt and Trigger Enable       */
-            __IO uint32_t  RIS;        /*!< PWM Raw Interrupt Status               */
-            __IO uint32_t  ISC;        /*!< PWM Interrupt Status and Clear         */
-            __IO uint32_t  LOAD;       /*!< PWM Load                               */
-            __IO uint32_t  COUNT;      /*!< PWM Counter                            */
-            __IO uint32_t  CMPA;       /*!< PWM Compare A                          */
-            __IO uint32_t  CMPB;       /*!< PWM Compare B                          */
-            __IO uint32_t  GENA;       /*!< PWM Generator A Control                */
-            __IO uint32_t  GENB;       /*!< PWM Generator B Control                */
-            __IO uint32_t  DBCTL;      /*!< PWM Dead-Band Control                  */
-            __IO uint32_t  DBRISE;     /*!< PWM Dead-Band Rising-Edge Delay        */
-            __IO uint32_t  DBFALL;     /*!< PWM Dead-Band Falling-Edge-Delay       */
-            __IO uint32_t  FLTSRC0;    /*!< PWM Fault Source 0                     */
-            __IO uint32_t  FLTSRC1;    /*!< PWM Fault Source 1                     */
-            __IO uint32_t  MINFLTPER;  /*!< PWM Minimum Fault Period               */
+            __IO uint32_t CTL;       /*!< PWM Control                            */
+            __IO uint32_t INTEN;     /*!< PWM Interrupt and Trigger Enable       */
+            __IO uint32_t RIS;       /*!< PWM Raw Interrupt Status               */
+            __IO uint32_t ISC;       /*!< PWM Interrupt Status and Clear         */
+            __IO uint32_t LOAD;      /*!< PWM Load                               */
+            __IO uint32_t COUNT;     /*!< PWM Counter                            */
+            __IO uint32_t CMPA;      /*!< PWM Compare A                          */
+            __IO uint32_t CMPB;      /*!< PWM Compare B                          */
+            __IO uint32_t GENA;      /*!< PWM Generator A Control                */
+            __IO uint32_t GENB;      /*!< PWM Generator B Control                */
+            __IO uint32_t DBCTL;     /*!< PWM Dead-Band Control                  */
+            __IO uint32_t DBRISE;    /*!< PWM Dead-Band Rising-Edge Delay        */
+            __IO uint32_t DBFALL;    /*!< PWM Dead-Band Falling-Edge-Delay       */
+            __IO uint32_t FLTSRC0;   /*!< PWM Fault Source 0                     */
+            __IO uint32_t FLTSRC1;   /*!< PWM Fault Source 1                     */
+            __IO uint32_t MINFLTPER; /*!< PWM Minimum Fault Period               */
         };
 
-        static constexpr std::array<uint32_t, 4> peripheralPwmChannelOffsetArray =
-        {{
+        static constexpr std::array<uint32_t, 4> peripheralPwmChannelOffsetArray = { {
             0x00000040, /* Channel 0 */
             0x00000080, /* Channel 1 */
             0x000000C0, /* Channel 2 */
             0x00000100, /* Channel 3 */
-        }};
+        } };
 
-        static constexpr PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, uint32_t channelIndex)
+        static PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, uint32_t channelIndex)
         {
             return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[channelIndex]);
         }

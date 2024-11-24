@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #if defined(TM4C129)
-#define GPIOA_Type  GPIOA_AHB_Type
+#define GPIOA_Type GPIOA_AHB_Type
 #endif
 
 namespace hal::tiva
@@ -94,16 +94,16 @@ namespace hal::tiva
     public:
         GpioPin(Port port, uint8_t index, Drive drive = Drive::Default, Current current = Current::Default);
 
-        virtual bool Get() const override;
-        virtual void Set(bool value) override;
-        virtual bool GetOutputLatch() const override;
-        virtual void SetAsInput() override;
-        virtual bool IsInput() const override;
-        virtual void Config(PinConfigType config) override;
-        virtual void Config(PinConfigType config, bool startOutputState) override;
-        virtual void ResetConfig() override;
-        virtual void EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger) override;
-        virtual void DisableInterrupt() override;
+        bool Get() const override;
+        void Set(bool value) override;
+        bool GetOutputLatch() const override;
+        void SetAsInput() override;
+        bool IsInput() const override;
+        void Config(PinConfigType config) override;
+        void Config(PinConfigType config, bool startOutputState) override;
+        void ResetConfig() override;
+        void EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type = InterruptType::dispatched) override;
+        void DisableInterrupt() override;
 
         virtual void ConfigAnalog();
         virtual void ConfigPeripheral(PinConfigPeripheral pinConfigType);
@@ -123,18 +123,18 @@ namespace hal::tiva
     public:
         DummyPin();
 
-        virtual bool Get() const override;
-        virtual void Set(bool value) override;
-        virtual bool GetOutputLatch() const override;
-        virtual void SetAsInput() override;
-        virtual bool IsInput() const override;
-        virtual void Config(PinConfigType config) override;
-        virtual void Config(PinConfigType config, bool startOutputState) override;
-        virtual void ResetConfig() override;
-        virtual void EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger) override;
-        virtual void DisableInterrupt() override;
-        virtual void ConfigAnalog() override;
-        virtual void ConfigPeripheral(PinConfigPeripheral pinConfigType) override;
+        bool Get() const override;
+        void Set(bool value) override;
+        bool GetOutputLatch() const override;
+        void SetAsInput() override;
+        bool IsInput() const override;
+        void Config(PinConfigType config) override;
+        void Config(PinConfigType config, bool startOutputState) override;
+        void ResetConfig() override;
+        void EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type = InterruptType::dispatched) override;
+        void DisableInterrupt() override;
+        void ConfigAnalog() override;
+        void ConfigPeripheral(PinConfigPeripheral pinConfigType) override;
     };
 
     extern DummyPin dummyPin;
@@ -154,7 +154,7 @@ namespace hal::tiva
     class AnalogPin
     {
     public:
-        AnalogPin(GpioPin& pin);
+        explicit AnalogPin(GpioPin& pin);
         AnalogPin(const AnalogPin& other) = delete;
         AnalogPin& operator=(const AnalogPin& other) = delete;
         ~AnalogPin();
@@ -225,7 +225,6 @@ namespace hal::tiva
     public:
         Gpio(infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable, infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable = infra::MemoryRange<const Gpio::AnalogPinPosition>());
 
-    public:
         std::pair<const PinPosition&, const PinoutTable&> GetPeripheralPinConfig(Port port, uint8_t index, PinConfigPeripheral pinConfigType) const;
         uint32_t AdcChannel(Port port, uint8_t index) const;
 

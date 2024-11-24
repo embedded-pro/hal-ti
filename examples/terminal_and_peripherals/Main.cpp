@@ -1,5 +1,4 @@
 #include "hal_tiva/instantiations/EventInfrastructure.hpp"
-#include "hal_tiva/instantiations/EventInfrastructure.hpp"
 #include "hal_tiva/instantiations/LaunchPadBsp.hpp"
 #include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "services/util/DebugLed.hpp"

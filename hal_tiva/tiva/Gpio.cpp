@@ -5,15 +5,15 @@
 #include <array>
 
 #if defined(TM4C129)
-#define GPIOA  GPIOA_AHB
-#define GPIOB  GPIOB_AHB
-#define GPIOC  GPIOC_AHB
-#define GPIOD  GPIOD_AHB
-#define GPIOE  GPIOE_AHB
-#define GPIOF  GPIOF_AHB
-#define GPIOG  GPIOG_AHB
-#define GPIOH  GPIOH_AHB
-#define GPIOJ  GPIOJ_AHB
+#define GPIOA GPIOA_AHB
+#define GPIOB GPIOB_AHB
+#define GPIOC GPIOC_AHB
+#define GPIOD GPIOD_AHB
+#define GPIOE GPIOE_AHB
+#define GPIOF GPIOF_AHB
+#define GPIOG GPIOG_AHB
+#define GPIOH GPIOH_AHB
+#define GPIOJ GPIOJ_AHB
 #endif
 
 namespace hal::tiva
@@ -153,6 +153,7 @@ namespace hal::tiva
             { 0xF0FFFFFF, 24 },
             { 0x0FFFFFFF, 28 },
         }};
+
         // clang-format on
 
         constexpr GPIOA_Type* GpioTiva(Port port)
@@ -284,7 +285,7 @@ namespace hal::tiva
         Gpio::Instance().ClearPinReservation(port, index);
     }
 
-    void GpioPin::EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger)
+    void GpioPin::EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type)
     {
         Gpio::Instance().EnableInterrupt(port, index, action, trigger);
     }
@@ -305,13 +306,13 @@ namespace hal::tiva
 
     void GpioPin::ConfigPeripheral(PinConfigPeripheral pinConfigType)
     {
-        std::pair<const Gpio::PinPosition&, const Gpio::PinoutTable&> peripheralPinConfig = Gpio::Instance().GetPeripheralPinConfig(port, index, pinConfigType);
+        const auto& peripheralPinConfig = Gpio::Instance().GetPeripheralPinConfig(port, index, pinConfigType);
 
         Gpio::Instance().ReservePin(port, index);
 
-        auto portControl = peripheralPinConfig.second;
-        auto drive = peripheralPinConfig.second.drive;
-        auto current = peripheralPinConfig.second.current;
+        const auto& portControl = peripheralPinConfig.second;
+        const auto& drive = peripheralPinConfig.second.drive;
+        const auto& current = peripheralPinConfig.second.current;
 
         infra::ReplaceBit(GpioTiva(port)->DIR, modeTiva[static_cast<uint8_t>(portControl.config)].dir, index);
         infra::ReplaceBit(GpioTiva(port)->DEN, portControl.isDigital, index);
@@ -368,7 +369,7 @@ namespace hal::tiva
     void DummyPin::ResetConfig()
     {}
 
-    void DummyPin::EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger)
+    void DummyPin::EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type)
     {}
 
     void DummyPin::DisableInterrupt()
@@ -412,11 +413,11 @@ namespace hal::tiva
         , drive(drive)
         , current(current)
     {
-        for (const std::pair<Port, uint8_t>& portAndIndex : table)
+        for (const auto& portAndIndex : table)
         {
             SYSCTL->RCGCGPIO = SYSCTL->RCGCGPIO | Rcgc(portAndIndex.first); // NOLINT
 
-            while (!(SYSCTL->PRGPIO & Rcgc(portAndIndex.first))) //NOLINT
+            while (!(SYSCTL->PRGPIO & Rcgc(portAndIndex.first))) // NOLINT
             {
             }
 
@@ -432,7 +433,7 @@ namespace hal::tiva
 
     void MultiGpioPin::ResetConfig()
     {
-        for (const std::pair<Port, uint8_t>& portAndIndex : table)
+        for (const auto& portAndIndex : table)
         {
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, true, portAndIndex.second);
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->DEN, true, portAndIndex.second);
@@ -455,7 +456,7 @@ namespace hal::tiva
 
     void MultiGpioPin::ConfigAnalog()
     {
-        for (const std::pair<Port, uint8_t>& portAndIndex : table)
+        for (const auto& portAndIndex : table)
         {
             Gpio::Instance().ReservePin(portAndIndex.first, portAndIndex.second);
 
@@ -467,13 +468,13 @@ namespace hal::tiva
 
     void MultiGpioPin::ConfigPeripheral(PinConfigPeripheral pinConfigType)
     {
-        for (const std::pair<Port, uint8_t>& portAndIndex : table)
+        for (const auto& portAndIndex : table)
         {
-            std::pair<const Gpio::PinPosition&, const Gpio::PinoutTable&> peripheralPinConfig = Gpio::Instance().GetPeripheralPinConfig(portAndIndex.first, portAndIndex.second, pinConfigType);
+            const auto& peripheralPinConfig = Gpio::Instance().GetPeripheralPinConfig(portAndIndex.first, portAndIndex.second, pinConfigType);
 
             Gpio::Instance().ReservePin(portAndIndex.first, portAndIndex.second);
 
-            auto portControl = peripheralPinConfig.second;
+            const auto& portControl = peripheralPinConfig.second;
 
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, modeTiva[static_cast<uint8_t>(portControl.config)].dir, portAndIndex.second);
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->DEN, portControl.isDigital, portAndIndex.second);
@@ -523,6 +524,7 @@ namespace hal::tiva
         , interruptDispatcherF(GPIOF_IRQn, [this]()
             { ExtiInterrupt(GPIOF, 0, 8); })
     { }
+
     // clang-format on
 
     std::pair<const Gpio::PinPosition&, const Gpio::PinoutTable&> Gpio::GetPeripheralPinConfig(Port port, uint8_t index, PinConfigPeripheral pinConfigType) const

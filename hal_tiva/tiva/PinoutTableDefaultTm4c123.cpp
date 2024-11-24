@@ -32,7 +32,7 @@ namespace hal::tiva
     {{
         { 1, Port::C, 4, 0x08 },
         { 1, Port::F, 0, 0x01 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinPosition, 2> pinoutTableUartCtsPins =
     {{
@@ -78,17 +78,15 @@ namespace hal::tiva
 
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableUart = pinoutTableUartArray;
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiClkPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiClkPins = { {
         { 0, Port::A, 2, 0x02 },
         { 1, Port::F, 2, 0x02 },
         { 1, Port::D, 0, 0x02 },
         { 2, Port::B, 4, 0x02 },
         { 3, Port::D, 0, 0x01 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiFssPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiFssPins = { {
         { 0, Port::A, 3, 0x02 },
         { 1, Port::F, 3, 0x02 },
         { 1, Port::D, 1, 0x02 },
@@ -96,17 +94,15 @@ namespace hal::tiva
         { 3, Port::D, 1, 0x01 },
     }};
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiRxPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiRxPins = { {
         { 0, Port::A, 4, 0x02 },
         { 1, Port::F, 0, 0x02 },
         { 1, Port::D, 2, 0x02 },
         { 2, Port::B, 6, 0x02 },
         { 3, Port::D, 2, 0x01 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins = { {
         { 0, Port::A, 5, 0x02 },
         { 1, Port::F, 1, 0x02 },
         { 1, Port::D, 3, 0x02 },
@@ -158,7 +154,7 @@ namespace hal::tiva
         { 1, Port::A, 6, 0x03 },
         { 2, Port::E, 4, 0x03 },
         { 3, Port::D, 0, 0x03 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinPosition, 4> pinoutTableI2cSdaPins =
     {{
@@ -166,7 +162,7 @@ namespace hal::tiva
         { 1, Port::A, 7, 0x03 },
         { 2, Port::E, 5, 0x03 },
         { 3, Port::D, 1, 0x03 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinoutTable, 2> pinoutTableI2cArray =
     {{
@@ -209,7 +205,7 @@ namespace hal::tiva
         { 0, Port::D, 7, 0x06 },
         { 0, Port::F, 1, 0x06 },
         { 1, Port::C, 6, 0x06 },
-    }};
+    } };
 
     constexpr std::array<const Gpio::PinoutTable, 3> pinoutTableQeiArray =
     {{
@@ -279,68 +275,58 @@ namespace hal::tiva
 
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableCan = pinoutTableCanArray;
 
-    constexpr std::array<const Gpio::PinPosition, 4> pinoutTablePwmFaultPins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 4> pinoutTablePwmFaultPins = { {
         { 0, Port::F, 0, 0x04 },
         { 0, Port::B, 4, 0x04 },
         { 0, Port::E, 4, 0x04 },
         { 1, Port::F, 4, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel0Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel0Pins = { {
         { 0, Port::B, 4, 0x04 },
         { 1, Port::D, 0, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel1Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel1Pins = { {
         { 0, Port::B, 7, 0x04 },
         { 1, Port::D, 1, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel2Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel2Pins = { {
         { 0, Port::B, 4, 0x04 },
         { 1, Port::A, 6, 0x05 },
         { 1, Port::E, 4, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel3Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel3Pins = { {
         { 0, Port::B, 5, 0x04 },
         { 1, Port::A, 7, 0x05 },
         { 1, Port::E, 5, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel4Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel4Pins = { {
         { 0, Port::E, 4, 0x04 },
         { 1, Port::F, 0, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel5Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 2> pinoutTablePwmChannel5Pins = { {
         { 0, Port::E, 5, 0x04 },
         { 1, Port::F, 1, 0x05 },
     }};
 
-    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel6Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel6Pins = { {
         { 0, Port::C, 4, 0x04 },
         { 0, Port::D, 0, 0x04 },
         { 1, Port::F, 2, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel7Pins =
-    {{
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTablePwmChannel7Pins = { {
         { 0, Port::C, 5, 0x04 },
         { 0, Port::D, 1, 0x04 },
         { 1, Port::F, 3, 0x05 },
-    }};
+    } };
 
-    constexpr std::array<const Gpio::PinoutTable, 9> pinoutTablePwmArray =
-    {{
+    constexpr std::array<const Gpio::PinoutTable, 9> pinoutTablePwmArray = { {
         {
             PinConfigPeripheral::pwmFault,
             pinoutTablePwmFaultPins,
@@ -413,26 +399,25 @@ namespace hal::tiva
             Current::_2mA,
             true,
         },
-    }};
+    } };
 
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTablePwm = pinoutTablePwmArray;
 
     constexpr std::array<const infra::MemoryRange<const Gpio::PinoutTable>, 6> pinoutTableDefaultArray = { pinoutTableUart, pinoutTableSpi, pinoutTableI2c, pinoutTableCan, pinoutTablePwm, pinoutTableQei };
     constexpr infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTableDefault = pinoutTableDefaultArray;
-    constexpr std::array<const Gpio::AnalogPinPosition, 12> analogTableDefaultArray =
-    {{
-        { Type::adc, Port::E, 3,  0 },
-        { Type::adc, Port::E, 2,  1 },
-        { Type::adc, Port::E, 1,  2 },
-        { Type::adc, Port::E, 0,  3 },
-        { Type::adc, Port::D, 3,  4 },
-        { Type::adc, Port::D, 2,  5 },
-        { Type::adc, Port::D, 1,  6 },
-        { Type::adc, Port::D, 0,  7 },
-        { Type::adc, Port::E, 5,  8 },
-        { Type::adc, Port::E, 4,  9 },
+    constexpr std::array<const Gpio::AnalogPinPosition, 12> analogTableDefaultArray = { {
+        { Type::adc, Port::E, 3, 0 },
+        { Type::adc, Port::E, 2, 1 },
+        { Type::adc, Port::E, 1, 2 },
+        { Type::adc, Port::E, 0, 3 },
+        { Type::adc, Port::D, 3, 4 },
+        { Type::adc, Port::D, 2, 5 },
+        { Type::adc, Port::D, 1, 6 },
+        { Type::adc, Port::D, 0, 7 },
+        { Type::adc, Port::E, 5, 8 },
+        { Type::adc, Port::E, 4, 9 },
         { Type::adc, Port::B, 4, 10 },
         { Type::adc, Port::B, 5, 11 },
-    }};
+    } };
     constexpr infra::MemoryRange<const Gpio::AnalogPinPosition> analogTableDefault = analogTableDefaultArray;
 }

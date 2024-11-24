@@ -39,7 +39,7 @@ namespace hal::tiva
         uint8_t fractional;
     };
 
-    void ConfigureClock(crystalFrequency hseValue, oscillatorSource oscSource = oscillatorSource::main, systemClockDivider systemClockDivisor = {2,5}, bool usesPll = true);
+    void ConfigureClock(crystalFrequency hseValue, oscillatorSource oscSource = oscillatorSource::main, systemClockDivider systemClockDivisor = { 2, 5 }, bool usesPll = true);
 }
 
 #endif
