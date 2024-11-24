@@ -16,8 +16,8 @@ if (HAL_TI_STANDALONE)
 
     FetchContent_Declare(
         emil
-        GIT_REPOSITORY https://github.com/gabrielfrasantos/embedded-infra-lib.git
-        GIT_TAG        230ca4750f210485ff99b3fea1f9161948fc4d26 # Unreleased
+        GIT_REPOSITORY https://gitlab.com/embedded-library/infrastructure/embedded-infra-lib.git
+        GIT_TAG        faf8fa589bff11a58c4d6b1462b9b2fa0c612f88 # Unreleased
     )
 
     FetchContent_MakeAvailable(emil)

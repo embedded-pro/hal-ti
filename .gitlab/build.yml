@@ -1,0 +1,46 @@
+host-build-and-test:
+  stage: build
+  image: gabrielfrasantos/embedded-devcontainer:lastest@sha256:1e1ac37bf82565cf8676100c4380f2a372c6b581e0404ad449b35a9ce93856e5
+  interruptible: true
+  script:
+    - cmake --preset=$target -S . -B build/$target
+    - cmake --build build/$target --config RelWithDebInfo
+    - ctest --test-dir build/host -C RelWithDebInfo --output-on-failure --stop-on-failure --no-tests=error
+  artifacts:
+    paths:
+      - build/$target
+    expire_in: 1 hours
+    when: on_success
+  parallel:
+    matrix:
+      - target: ["host"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+      when: always
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      when: always
+    - when: never
+
+embedded-build:
+  stage: build
+  image: gabrielfrasantos/embedded-devcontainer:lastest@sha256:1e1ac37bf82565cf8676100c4380f2a372c6b581e0404ad449b35a9ce93856e5
+  interruptible: true
+  script:
+    - cmake --preset=$target -S . -B build/$target
+    - cmake --build build/$target --config Debug
+  artifacts:
+    paths:
+      - build/$target
+    expire_in: 1 hours
+    when: on_success
+  parallel:
+    matrix:
+      - target:
+          - tm4c123gh6pm
+          - tm4c1294ncpdt
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+      when: always
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      when: always
+    - when: never
