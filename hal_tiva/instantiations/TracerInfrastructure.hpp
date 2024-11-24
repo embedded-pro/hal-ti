@@ -1,9 +1,9 @@
 #ifndef HAL_TI_TRACER_INFRASTRUCTURE_HPP
 #define HAL_TI_TRACER_INFRASTRUCTURE_HPP
 
-#include "hal_tiva/tiva/Gpio.hpp"
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
-#include "hal_tiva/tiva/Uart.hpp"
+#include "hal_tiva/tiva/Gpio.hpp"
+
 #include "services/tracer/StreamWriterOnSynchronousSerialCommunication.hpp"
 #include "services/tracer/TracerWithDateTime.hpp"
 

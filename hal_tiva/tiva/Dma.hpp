@@ -4,7 +4,6 @@
 #include "infra/util/InterfaceConnector.hpp"
 #include "infra/util/Optional.hpp"
 #include DEVICE_HEADER
-#include "infra/util/Function.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include <cstdint>
 
