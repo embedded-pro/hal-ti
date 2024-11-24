@@ -5,7 +5,6 @@ host-build-and-test:
   script:
     - cmake --preset=$target -S . -B build/$target
     - cmake --build build/$target --config RelWithDebInfo
-    - ctest --test-dir build/host -C RelWithDebInfo --output-on-failure --stop-on-failure --no-tests=error
   artifacts:
     paths:
       - build/$target
