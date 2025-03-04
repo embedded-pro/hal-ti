@@ -1,4 +1,4 @@
-#include "hal_tiva/tiva/QuadratureEncoder.hpp"
+#include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/BitLogic.hpp"
 
@@ -26,18 +26,18 @@ namespace hal::tiva
         constexpr const uint32_t QEI_CTL_VELDIV_16 = 0x00000100;  // QEI clock /16
         constexpr const uint32_t QEI_CTL_VELDIV_32 = 0x00000140;  // QEI clock /32
         constexpr const uint32_t QEI_CTL_VELDIV_64 = 0x00000180;  // QEI clock /64
-        constexpr const uint32_t QEI_CTL_VELDIV_128 = 0x000001C0;  // QEI clock /128
-        constexpr const uint32_t QEI_CTL_VELEN = 0x00000020;  // Capture Velocity
-        constexpr const uint32_t QEI_CTL_RESMODE = 0x00000010;  // Reset Mode
-        constexpr const uint32_t QEI_CTL_CAPMODE = 0x00000008;  // Capture Mode
-        constexpr const uint32_t QEI_CTL_SIGMODE = 0x00000004;  // Signal Mode
-        constexpr const uint32_t QEI_CTL_SWAP = 0x00000002;  // Swap Signals
-        constexpr const uint32_t QEI_CTL_ENABLE = 0x00000001;  // Enable QEI
+        constexpr const uint32_t QEI_CTL_VELDIV_128 = 0x000001C0; // QEI clock /128
+        constexpr const uint32_t QEI_CTL_VELEN = 0x00000020;      // Capture Velocity
+        constexpr const uint32_t QEI_CTL_RESMODE = 0x00000010;    // Reset Mode
+        constexpr const uint32_t QEI_CTL_CAPMODE = 0x00000008;    // Capture Mode
+        constexpr const uint32_t QEI_CTL_SIGMODE = 0x00000004;    // Signal Mode
+        constexpr const uint32_t QEI_CTL_SWAP = 0x00000002;       // Swap Signals
+        constexpr const uint32_t QEI_CTL_ENABLE = 0x00000001;     // Enable QEI
         constexpr const uint32_t QEI_CTL_FILTCNT_S = 16;
 
         constexpr const uint32_t QEI_STAT_DIRECTION = 0x00000002; // Direction of Rotation Error Detected
 
-        constexpr const uint32_t QEI_POS_M = 0xFFFFFFFF;  // Current Position Integrator Value
+        constexpr const uint32_t QEI_POS_M = 0xFFFFFFFF; // Current Position Integrator Value
         constexpr const uint32_t QEI_POS_S = 0;
 
         constexpr const uint32_t QEI_MAXPOS_M = 0xFFFFFFFF; // Maximum Position Integrator Value
@@ -65,26 +65,24 @@ namespace hal::tiva
         constexpr const uint32_t QEI_RIS_TIMER = 0x00000002; // Velocity Timer Expired
         constexpr const uint32_t QEI_RIS_INDEX = 0x00000001; // Index Pulse Asserted
 
-        constexpr const uint32_t QEI_ISC_ERROR = 0x00000008;  // Phase Error Interrupt
-        constexpr const uint32_t QEI_ISC_DIR = 0x00000004;  // Direction Change Interrupt
-        constexpr const uint32_t QEI_ISC_TIMER = 0x00000002;  // Velocity Timer Expired Interrupt
-        constexpr const uint32_t QEI_ISC_INDEX = 0x00000001;  // Index Pulse Interrupt
+        constexpr const uint32_t QEI_ISC_ERROR = 0x00000008; // Phase Error Interrupt
+        constexpr const uint32_t QEI_ISC_DIR = 0x00000004;   // Direction Change Interrupt
+        constexpr const uint32_t QEI_ISC_TIMER = 0x00000002; // Velocity Timer Expired Interrupt
+        constexpr const uint32_t QEI_ISC_INDEX = 0x00000001; // Index Pulse Interrupt
 
-        constexpr std::array<uint32_t, NUMBER_OF_QEI> peripheralQeiArray =
-        {{
+        constexpr std::array<uint32_t, NUMBER_OF_QEI> peripheralQeiArray = { {
             QEI0_BASE,
 #if defined(TM4C123)
             QEI1_BASE,
 #endif
-        }};
+        } };
 
-        constexpr std::array<IRQn_Type, NUMBER_OF_QEI> peripheralIrqQeiArray =
-        {{
+        constexpr std::array<IRQn_Type, NUMBER_OF_QEI> peripheralIrqQeiArray = { {
             QEI0_IRQn,
 #if defined(TM4C123)
             QEI1_IRQn,
 #endif
-        }};
+        } };
 
         const infra::MemoryRange<QEI0_Type* const> peripheralQei = infra::ReinterpretCastMemoryRange<QEI0_Type* const>(infra::MakeRange(peripheralQeiArray));
 
@@ -102,30 +100,19 @@ namespace hal::tiva
 
         EnableClock();
 
-        qeiArray[qeiIndex]->CTL &=~QEI_CTL_ENABLE; /* Disable QEi */
-		qeiArray[qeiIndex]->CTL |= QEI_CTL_RESMODE | QEI_CTL_CAPMODE | QEI_CTL_VELEN; /* Capture mode is enabled and also reset mode, velocity enabled */
-		qeiArray[qeiIndex]->MAXPOS = config.resolution; /* max position is 1024 (encoder resolution) */
-		qeiArray[qeiIndex]->POS = 0x7FFFFFFF; /* Configure position */
-		qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE; /* Enable QEi */
-
+        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;                                   /* Disable QEi */
+        qeiArray[qeiIndex]->CTL |= QEI_CTL_RESMODE | QEI_CTL_CAPMODE | QEI_CTL_VELEN; /* Capture mode is enabled and also reset mode, velocity enabled */
+        qeiArray[qeiIndex]->MAXPOS = config.resolution;                               /* max position is 1024 (encoder resolution) */
+        qeiArray[qeiIndex]->POS = 0x7FFFFFFF;                                         /* Configure position */
+        qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;                                    /* Enable QEi */
     }
 
     QuadratureEncoder::~QuadratureEncoder()
     {
-        qeiArray[qeiIndex]->INTEN &=~QEI_INTEN_DIR;
+        qeiArray[qeiIndex]->INTEN &= ~QEI_INTEN_DIR;
         qeiInterruptRegistration = infra::none;
-        qeiArray[qeiIndex]->CTL &=~QEI_CTL_ENABLE; /* Disable QEi */
+        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE; /* Disable QEi */
         DisableClock();
-    }
-
-    void QuadratureEncoder::Position(uint32_t position)
-    {
-        qeiArray[qeiIndex]->POS = position;
-    }
-
-    void QuadratureEncoder::Resolution(uint32_t resolution)
-    {
-        qeiArray[qeiIndex]->MAXPOS = resolution;
     }
 
     uint32_t QuadratureEncoder::Position()
@@ -141,18 +128,6 @@ namespace hal::tiva
     QuadratureEncoder::MotionDirection QuadratureEncoder::Direction()
     {
         return qeiArray[qeiIndex]->STAT & QEI_STAT_DIRECTION ? QuadratureEncoder::MotionDirection::reverse : QuadratureEncoder::MotionDirection::forward;
-    }
-
-    void QuadratureEncoder::Direction(const infra::Function<void(MotionDirection)>& onDirectionChange)
-    {
-        this->onDirectionChange = onDirectionChange;
-
-        qeiInterruptRegistration.Emplace(irqArray[qeiIndex], [this]()
-            {
-                HandleInterrupt();
-            });
-
-        qeiArray[qeiIndex]->INTEN |= QEI_INTEN_DIR;
     }
 
     uint32_t QuadratureEncoder::Speed()
