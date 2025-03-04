@@ -10,51 +10,35 @@ target_include_directories(hal_tiva.tiva PUBLIC
 target_link_libraries(hal_tiva.tiva PUBLIC
     hal.interfaces
     infra.timer
-    st.hal_driver
+    ti.hal_driver
     hal_tiva.cortex
 )
 
 target_sources(hal_tiva.tiva PRIVATE
-    AnalogToDigitalPinStm.cpp
-    AnalogToDigitalPinStm.hpp
-    CanStm.cpp
-    CanStm.hpp
-    $<$<STREQUAL:${TARGET_MCU},tm4c123g>:DefaultClockEkTm4c123gxl.cpp>
-    $<$<STREQUAL:${TARGET_MCU},tm4c123g>:DefaultClockEkTm4c123gxl.hpp>
-    DigitalToAnalogPinStm.cpp
-    DigitalToAnalogPinStm.hpp
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:DmaStm.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:DmaStm.hpp>
-    FlashInternalStm.cpp
-    FlashInternalStm.hpp
-    GpioStm.cpp
-    GpioStm.hpp
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:I2cStm.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:I2cStm.hpp>
-    ResetStm.cpp
-    ResetStm.hpp
-    SpiDataSizeConfiguratorStm.cpp
-    SpiDataSizeConfiguratorStm.hpp
-    SpiMasterStm.cpp
-    SpiMasterStm.hpp
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:SpiMasterStmDma.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:SpiMasterStmDma.hpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:SpiSlaveStmDma.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:SpiSlaveStmDma.hpp>
-    SystemTickStm.cpp
-    SystemTickStm.hpp
-    SystemTickTimerService.cpp
-    SystemTickTimerService.hpp
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:UartStm.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:UartStm.hpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:UartStmDma.cpp>
-    $<$<NOT:$<STREQUAL:${TARGET_MCU_FAMILY},stm32g0xx>>:UartStmDma.hpp>
-    $<$<OR:$<STREQUAL:${TARGET_MCU},stm32wb55>,$<STREQUAL:${TARGET_MCU_FAMILY},stm32f7xx>,$<STREQUAL:${TARGET_MCU_FAMILY},stm32g4xx>>:UartStmDuplexDma.cpp>
-    $<$<OR:$<STREQUAL:${TARGET_MCU},stm32wb55>,$<STREQUAL:${TARGET_MCU_FAMILY},stm32f7xx>,$<STREQUAL:${TARGET_MCU_FAMILY},stm32g4xx>>:UartStmDuplexDma.hpp>
-    UsbLinkLayerStm.cpp
-    UsbLinkLayerStm.hpp
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.hpp>
+    Dma.cpp
+    Dma.hpp
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.hpp>
+    Gpio.cpp
+    Gpio.hpp
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:PinoutTableDefaultTm4c123.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:PinoutTableDefaultTm4c123.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:PinoutTableDefaultTm4c129.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:PinoutTableDefaultTm4c129.hpp>
+    Pwm.cpp
+    Pwm.hpp
+    QuadratureEncoder.cpp
+    QuadratureEncoder.hpp
+    SpiMaster.cpp
+    SpiMaster.hpp
+    Uart.cpp
+    Uart.hpp
+    UartWithDma.cpp
+    UartWithDma.hpp
     UniqueDeviceId.cpp
     UniqueDeviceId.hpp
-    WatchDogStm.cpp
-    WatchDogStm.hpp
 )

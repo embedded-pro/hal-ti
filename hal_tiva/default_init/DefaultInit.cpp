@@ -1,5 +1,13 @@
 #include DEVICE_HEADER
 #include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal_tiva/tiva/Gpio.hpp"
+#if defined(TM4C123)
+#include "hal_tiva/tiva/PinoutTableDefaultTm4c123.hpp"
+#elif defined(TM4C129)
+#include "hal_tiva/tiva/PinoutTableDefaultTm4c129.hpp"
+#else
+#error "MCU family not defined or invalid [TM4C123 | TM4C129]!"
+#endif
 #include <errno.h>
 #include <sys/types.h>
 
@@ -26,12 +34,6 @@ extern "C"
         return static_cast<caddr_t>(current_block_address);
     }
 
-    // Avoid the SysTick handler from being initialised by HAL_Init
-    HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-    {
-        return HAL_OK;
-    }
-
     [[gnu::weak]] void Default_Handler_Forwarded()
     {
         hal::InterruptTable::Instance().Invoke(hal::ActiveInterrupt());
@@ -40,7 +42,7 @@ extern "C"
     void abort()
     {
         __BKPT();
-        HAL_NVIC_SystemReset();
+        NVIC_SystemReset();
         __builtin_unreachable();
     }
 
@@ -55,5 +57,11 @@ extern "C"
     void assert_failed(uint8_t* file, uint32_t line)
     {
         std::abort();
+    }
+
+    void HardwareInitialization()
+    {
+        static hal::InterruptTable::WithStorage<128> interruptTable;
+        static hal::tiva::Gpio gpio{ hal::tiva::pinoutTableDefault, hal::tiva::analogTableDefault };
     }
 }

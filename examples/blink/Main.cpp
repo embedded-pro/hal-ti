@@ -1,20 +1,12 @@
-#include "hal_tiva/instantiations/NucleoUi.hpp"
-#include "hal_tiva/instantiations/StmEventInfrastructure.hpp"
-// #include "hal_tiva/tiva/DefaultClockNucleoF767ZI.hpp"
+#include "hal_tiva/instantiations/EventInfrastructure.hpp"
+#include "hal_tiva/instantiations/LaunchPadBsp.hpp"
 #include "services/util/DebugLed.hpp"
-
-unsigned int hse_value = 8000000;
 
 int main()
 {
-    HAL_Init();
-
-    // Configure your clock here
-    // ConfigureDefaultClockNucleo767ZI();
-
-    static main_::StmEventInfrastructure eventInfrastructure;
-    static main_::NUCLEO ui;
-    static services::DebugLed debugLed(ui.ledGreen);
+    static instantiations::LaunchPad launchPad;
+    static instantiations::EventInfrastructure eventInfrastructure;
+    static services::DebugLed debugLed{ launchPad.DebugLed(), std::chrono::milliseconds(100), std::chrono::milliseconds(1400) };
 
     eventInfrastructure.Run();
     __builtin_unreachable();

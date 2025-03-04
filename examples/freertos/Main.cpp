@@ -29,8 +29,6 @@ extern "C" [[gnu::naked]] void SysTick_Handler()
     asm("b xPortSysTickHandler");
 };
 
-unsigned int hse_value = 8000000;
-
 int main()
 {
     HAL_Init();
@@ -38,8 +36,6 @@ int main()
     // Configure your clock here
     // ConfigureDefaultClockNucleo767ZI();
 
-    static hal::InterruptTable::WithStorage<128> interruptTable;
-    static hal::GpioStm gpio{ hal::pinoutTableDefaultStm, hal::analogTableDefaultStm };
     static hal::TimerServiceFreeRtos timerService;
     static hal::LowPowerStrategyFreeRtos lowPowerStrategy;
     static infra::LowPowerEventDispatcher::WithSize<50> eventDispatcher(lowPowerStrategy);
