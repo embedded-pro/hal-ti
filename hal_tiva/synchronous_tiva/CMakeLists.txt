@@ -13,6 +13,10 @@ target_link_libraries(hal_tiva.synchronous_tiva PUBLIC
 )
 
 target_sources(hal_tiva.synchronous_tiva PRIVATE
+    SynchronousPwm.cpp
+    SynchronousPwm.hpp
+    SynchronousQuadratureEncoder.cpp
+    SynchronousQuadratureEncoder.hpp
     SynchronousSpiMaster.cpp
     SynchronousSpiMaster.hpp
     SynchronousUart.cpp

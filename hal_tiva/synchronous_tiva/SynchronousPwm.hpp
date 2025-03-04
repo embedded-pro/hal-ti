@@ -1,7 +1,7 @@
 #ifndef HAL_PWM_TIVA_HPP
 #define HAL_PWM_TIVA_HPP
 
-#include "hal/interfaces/Pwm.hpp"
+#include "hal/synchronous_interfaces/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/Optional.hpp"
@@ -9,7 +9,7 @@
 namespace hal::tiva
 {
     class Pwm
-        : public hal::Pwm
+        : public hal::SynchronousPwm
     {
     public:
         struct Config

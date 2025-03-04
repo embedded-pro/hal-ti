@@ -1,4 +1,4 @@
-#include "hal_tiva/tiva/Pwm.hpp"
+#include "hal_tiva/synchronous_tiva/SynchronousPwm.hpp"
 #include "infra/util/BitLogic.hpp"
 
 #if defined(TM4C129)
