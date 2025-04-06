@@ -436,6 +436,18 @@ namespace hal::tiva
         }
     }
 
+    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2)
+    {
+    }
+
+    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3)
+    {
+    }
+
+    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4)
+    {
+    }
+
     void Pwm::Stop()
     {
         for (auto& channel : channels)

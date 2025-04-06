@@ -13,6 +13,8 @@ target_link_libraries(hal_tiva.cortex PUBLIC
 )
 
 target_sources(hal_tiva.cortex PRIVATE
+    DataWatchpointAndTrace.hpp
+    DataWatchpointAndTrace.cpp
     EventDispatcherCortex.cpp
     EventDispatcherCortex.hpp
     InterruptCortex.cpp

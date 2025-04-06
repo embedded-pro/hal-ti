@@ -9,7 +9,10 @@
 namespace hal::tiva
 {
     class Pwm
-        : public hal::SynchronousPwm
+        : public hal::SynchronousSingleChannelPwm
+        , public hal::SynchronousTwoChannelsPwm
+        , public hal::SynchronousThreeChannelsPwm
+        , public hal::SynchronousFourChannelsPwm
     {
     public:
         struct Config
@@ -116,6 +119,9 @@ namespace hal::tiva
 
         void SetBaseFrequency(hal::Hertz baseFrequency) override;
         void Start(hal::Percent globalDutyCycle) override;
+        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2) override;
+        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3) override;
+        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4) override;
         void Stop() override;
 
     private:
