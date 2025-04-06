@@ -19,16 +19,6 @@ jobs:
         configuration: ["RelWithDebInfo"]
         gcc: ["10.3-2021.10"]
         target: ["tm4c123gh6pm", "tm4c1294ncpdt"]
-        include:
-          - gcc: "7-2018-q2"
-            configuration: "RelWithDebInfo"
-            target: "tm4c123gh6pm"
-          - gcc: "8-2019-q3"
-            configuration: "RelWithDebInfo"
-            target: "tm4c123gh6pm"
-          - gcc: "9-2020-q2"
-            configuration: "RelWithDebInfo"
-            target: "tm4c123gh6pm"
     steps:
       - name: Configure Git
         run: |

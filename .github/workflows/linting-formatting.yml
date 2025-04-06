@@ -13,25 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  formatter:
-    name: Formatting
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          persist-credentials: false
-      - uses: DoozyX/clang-format-lint-action@a83a8fb7d371f66da7dd1c4f33a193023899494b # v0.16
-        with:
-          clangFormatVersion: 15
-          inplace: true
-          extensions: "cpp,hpp"
-      - uses: reviewdog/action-suggester@94877e550e6b522dc1d21231974b645ff2f084ce # v1.8.0
-        with:
-          tool_name: clang-format
-          filter_mode: diff_context
   linter:
     name: Linter
     runs-on: ubuntu-latest
@@ -49,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Linter artifacts
         if: ${{ success() }} || ${{ failure() }}
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: linter
           path: |
