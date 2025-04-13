@@ -15,6 +15,8 @@ target_link_libraries(hal_tiva.tiva PUBLIC
 )
 
 target_sources(hal_tiva.tiva PRIVATE
+    Adc.cpp
+    Adc.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.cpp>
