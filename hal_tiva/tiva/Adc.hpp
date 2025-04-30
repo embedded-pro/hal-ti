@@ -64,6 +64,7 @@ namespace hal::tiva
 
     private:
         constexpr static uint32_t maxSamples = 23;
+        constexpr static uint32_t numberOfSequencers = 4;
 
         uint8_t adcIndex;
         uint8_t adcSequencer;

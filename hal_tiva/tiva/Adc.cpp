@@ -118,7 +118,7 @@ namespace
 
     void SequenceEnable(ADC0_Type& adc, uint8_t sequencer)
     {
-        adc.ACTSS &= ~(1 << sequencer);
+        adc.ACTSS |= (1 << sequencer);
     }
 
     void SequenceConfigure(ADC0_Type& adc, uint8_t sequencer, hal::tiva::Adc::Trigger trigger, uint8_t priority)
@@ -192,7 +192,7 @@ namespace
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray.at(peripheralIrqAdcArray.size() * adcIndex + adcSequencer), [this]()
+        : ImmediateInterruptHandler(peripheralIrqAdcArray.at(numberOfSequencers * adcIndex + adcSequencer), [this]()
               {
                   if (IsInterruptTriggered(*peripheralAdc[this->adcIndex], this->adcSequencer))
                   {
