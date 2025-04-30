@@ -59,7 +59,7 @@ namespace hal::tiva
 
         struct Config
         {
-            constexpr Config(bool enableTx, bool enableRx)
+            constexpr Config(bool enableTx = true, bool enableRx = true)
                 : enableTx(enableTx)
                 , enableRx(enableRx)
             {}
