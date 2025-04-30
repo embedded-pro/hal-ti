@@ -59,13 +59,24 @@ namespace hal::tiva
 
         struct Config
         {
-            constexpr Config(bool enableTx = true, bool enableRx = true)
+            constexpr Config(bool enableTx, bool enableRx)
                 : enableTx(enableTx)
                 , enableRx(enableRx)
             {}
 
-            bool enableTx = true;
-            bool enableRx = true;
+            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, infra::Optional<InterruptPriority> priority)
+                : enableTx(enableTx)
+                , enableRx(enableRx)
+                , baudrate(baudrate)
+                , hwFlowControl(hwFlowControl)
+                , parity(parity)
+                , stopbits(stopbits)
+                , numberOfBytes(numberOfBytes)
+                , priority(priority)
+            {}
+
+            bool enableTx;
+            bool enableRx;
             Baudrate baudrate = Baudrate::_115200_bps;
             FlowControl hwFlowControl = FlowControl::none;
             Parity parity = Parity::none;
