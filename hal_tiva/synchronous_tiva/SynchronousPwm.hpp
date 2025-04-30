@@ -4,11 +4,11 @@
 #include "hal/synchronous_interfaces/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
-    class Pwm
+    class SynchronousPwm
         : public hal::SynchronousSingleChannelPwm
         , public hal::SynchronousTwoChannelsPwm
         , public hal::SynchronousThreeChannelsPwm
@@ -27,78 +27,50 @@ namespace hal::tiva
 
                 enum class UpdateMode
                 {
-                    immediate = 0,
                     locally = 2,
                     globally = 3,
                 };
 
                 Mode mode = Mode::edgeAligned;
-                UpdateMode updateMode = UpdateMode::immediate;
+                UpdateMode updateMode = UpdateMode::globally;
+                bool debugMode = false;
 
-                uint32_t Value() const
-                {
-                    uint32_t value = static_cast<uint32_t>(mode) << 1;
-
-                    value |= static_cast<uint32_t>(updateMode == UpdateMode::globally) << 3;
-                    value |= static_cast<uint32_t>(updateMode == UpdateMode::globally) << 4;
-                    value |= static_cast<uint32_t>(updateMode == UpdateMode::globally) << 5;
-
-                    value |= static_cast<uint32_t>(updateMode) << 6;
-                    value |= static_cast<uint32_t>(updateMode) << 8;
-                    value |= static_cast<uint32_t>(updateMode) << 10;
-                    value |= static_cast<uint32_t>(updateMode) << 12;
-                    value |= static_cast<uint32_t>(updateMode) << 14;
-
-                    return value & 0xfffe;
-                }
-            };
-
-            struct Generator
-            {
-                enum class Action
-                {
-                    doNothing = 0,
-                    invert = 1,
-                    low = 2,
-                    high = 3,
-                };
-
-                Action comparatorBDown = Action::doNothing;
-                Action comparatorBUp = Action::doNothing;
-                Action comparatorADown = Action::low;
-                Action comparatorAUp = Action::doNothing;
-                Action counterLoad = Action::high;
-                Action counterZero = Action::doNothing;
-
-                uint32_t Value() const
-                {
-                    auto value = static_cast<uint32_t>(counterZero);
-
-                    value |= static_cast<uint32_t>(counterLoad) << 2;
-                    value |= static_cast<uint32_t>(comparatorAUp) << 4;
-                    value |= static_cast<uint32_t>(comparatorADown) << 6;
-                    value |= static_cast<uint32_t>(comparatorBUp) << 8;
-                    value |= static_cast<uint32_t>(comparatorBDown) << 10;
-
-                    return value;
-                }
+                uint32_t Value() const;
             };
 
             struct DeadTime
             {
-                uint8_t fall = 0xff;
-                uint8_t rise = 0xff;
+                uint8_t fallInClockCycles = 0xff;
+                uint8_t riseInClockCycles = 0xff;
             };
 
-            constexpr Config()
-            {}
+            enum class ClockDivisor
+            {
+                divisor1,
+                divisor2,
+                divisor4,
+                divisor8,
+                divisor16,
+                divisor32,
+                divisor64,
+            };
+
+            enum class Trigger
+            {
+                countZero,
+                countLoad,
+                countComparatorAUp,
+                countComparatorADown,
+                countComparatorBUp,
+                countComparatorBDown,
+            };
 
             bool channelAInverted = false;
             bool channelBInverted = false;
             Control control;
-            Generator generatorA;
-            Generator generatorB;
-            DeadTime deadTime;
+            ClockDivisor clockDivisor = ClockDivisor::divisor64;
+            std::optional<DeadTime> deadTime;
+            std::optional<Trigger> trigger;
         };
 
         struct PinChannel
@@ -110,12 +82,11 @@ namespace hal::tiva
             bool usesChannelB = false;
         };
 
-        Pwm(uint8_t aPwmIndex, PinChannel channel0, const Config& config = Config());
-        Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, const Config& config = Config());
-        Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, const Config& config = Config());
-        Pwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3, const Config& config = Config());
-
-        ~Pwm();
+        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, const Config& config);
+        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, const Config& config);
+        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, const Config& config);
+        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3, const Config& config);
+        ~SynchronousPwm();
 
         void SetBaseFrequency(hal::Hertz baseFrequency) override;
         void Start(hal::Percent globalDutyCycle) override;
@@ -157,25 +128,9 @@ namespace hal::tiva
             return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[channelIndex]);
         }
 
-        struct PeripheralChannels
+        struct Generator
         {
-            explicit PeripheralChannels(PinChannel& pins, PinConfigPeripheral pinAConfig, PinConfigPeripheral pinBConfig, uint32_t pwmOffset, uint32_t index)
-                : address(PwmChannel(pwmOffset, index))
-            {
-                index *= 2;
-
-                if (pins.usesChannelA)
-                {
-                    a.Emplace(pins.pinA, pinAConfig);
-                    enable |= 1 << index;
-                }
-
-                if (pins.usesChannelB)
-                {
-                    b.Emplace(pins.pinB, pinBConfig);
-                    enable |= 1 << (index + 1);
-                }
-            }
+            Generator(PinChannel& pins, PinConfigPeripheral pinAConfig, PinConfigPeripheral pinBConfig, uint32_t pwmOffset, uint32_t index);
 
             infra::Optional<PeripheralPin> a;
             infra::Optional<PeripheralPin> b;
@@ -185,18 +140,15 @@ namespace hal::tiva
 
         uint8_t pwmIndex;
         const Config& config;
-        infra::BoundedVector<PeripheralChannels>::WithMaxSize<4> channels;
-        uint32_t peripheralFrequency;
+        infra::BoundedVector<Generator>::WithMaxSize<4> generators;
         infra::MemoryRange<PWM0_Type* const> pwmArray;
-        hal::Hertz baseFrequency;
 
     private:
-        void Configure(const PeripheralChannels& channel);
-        void Reset();
-        void MasterControl();
-        void SetClockPrescaler(uint32_t frequency);
-        void SetBaseFrequency();
-        void HandleInterrupt();
+        void Initialize();
+        void GeneratorConfiguration(Generator& generator);
+        void SetComparator(Generator& generator, hal::Percent& dutyCycle);
+        void Sync();
+        uint32_t GetLoad(Generator& generator);
         void EnableClock();
         void DisableClock();
     };

@@ -40,6 +40,10 @@ void Reset_Handler();
 void SVC_Handler() __attribute__((weak, alias("Default_Handler")));
 void PendSV_Handler() __attribute__((weak, alias("Default_Handler")));
 void SysTick_Handler() __attribute__((weak, alias("Default_Handler")));
+void AdcSequence0_Handler() __attribute__((weak, alias("Default_Handler")));
+void AdcSequence1_Handler() __attribute__((weak, alias("Default_Handler")));
+void AdcSequence2_Handler() __attribute__((weak, alias("Default_Handler")));
+void AdcSequence3_Handler() __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -76,161 +80,161 @@ extern unsigned _estack;
 #pragma GCC diagnostic ignored "-Wpedantic"
 
 __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
-   (void*)&_estack, /*!< The initial stack pointer, 0x20008000 32K */
-   Reset_Handler, /*!< The reset handler */
-   Default_Handler, /*!< NMI_Handler,               The NMI handler */
-   Default_Handler, /*!< HardFault_Handler,         The hard fault handler */
-   Default_Handler, /*!< MemManage_Handler,         The MPU fault handler */
-   Default_Handler, /*!< BusFault_Handler,          The bus fault handler */
-   Default_Handler, /*!< UsageFault_Handler,        The usage fault handler */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   SVC_Handler, /*!< SVC_Handler,               SVCall handler */
-   Default_Handler, /*!< DebugMon_Handler,          Debug monitor handler */
-   0, /*!< Reserved */
-   PendSV_Handler, /*!< PendSV_Handler,            The PendSV handler */
-   SysTick_Handler, /*!< SysTick_Handler,           The SysTick handler */
-   Default_Handler, /*!< GPIOA_Handler,             GPIO Port A */
-   Default_Handler, /*!< GPIOB_Handler,             GPIO Port B */
-   Default_Handler, /*!< GPIOC_Handler,             GPIO Port C */
-   Default_Handler, /*!< GPIOD_Handler,             GPIO Port D */
-   Default_Handler, /*!< GPIOE_Handler,             GPIO Port E */
-   Default_Handler, /*!< UART0_Handler,             UART0 Rx and Tx */
-   Default_Handler, /*!< UART1_Handler,             UART1 Rx and Tx */
-   Default_Handler, /*!< SSI0_Handler,              SSI0 Rx and Tx */
-   Default_Handler, /*!< I2C0_Handler,              I2C0 Master and Slave */
-   Default_Handler, /*!< PMW0_FAULT_Handler,        PWM Fault */
-   Default_Handler, /*!< PWM0_0_Handler,            PWM Generator 0 */
-   Default_Handler, /*!< PWM0_1_Handler,            PWM Generator 1 */
-   Default_Handler, /*!< PWM0_2_Handler,            PWM Generator 2 */
-   Default_Handler, /*!< QEI0_Handler,              Quadrature Encoder 0 */
-   Default_Handler, /*!< ADC0SS0_Handler,           ADC Sequence 0 */
-   Default_Handler, /*!< ADC0SS1_Handler,           ADC Sequence 1 */
-   Default_Handler, /*!< ADC0SS2_Handler,           ADC Sequence 2 */
-   Default_Handler, /*!< ADC0SS3_Handler,           ADC Sequence 3 */
-   Default_Handler, /*!< WDT_Handler,               Watchdog timer */
-   Default_Handler, /*!< TIMER0A_Handler,           Timer 0 subtimer A */
-   Default_Handler, /*!< TIMER0B_Handler,           Timer 0 subtimer B */
-   Default_Handler, /*!< TIMER1A_Handler,           Timer 1 subtimer A */
-   Default_Handler, /*!< TIMER1B_Handler,           Timer 1 subtimer B */
-   Default_Handler, /*!< TIMER2A_Handler,           Timer 2 subtimer A */
-   Default_Handler, /*!< TIMER2B_Handler,           Timer 2 subtimer B */
-   Default_Handler, /*!< COMP0_Handler,             Analog Comparator 0 */
-   Default_Handler, /*!< COMP1_Handler,             Analog Comparator 1 */
-   0, /*!< Reserved */
-   Default_Handler, /*!< SYSCTL_Handler,            System Control (PLL, OSC, BO) */
-   Default_Handler, /*!< FLASH_Handler,             FLASH Control */
-   Default_Handler, /*!< GPIOF_Handler,             GPIO Port F */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< UART2_Handler,             UART2 Rx and Tx */
-   Default_Handler, /*!< SSI1_Handler,              SSI1 Rx and Tx */
-   Default_Handler, /*!< TIMER3A_Handler,           Timer 3 subtimer A */
-   Default_Handler, /*!< TIMER3B_Handler,           Timer 3 subtimer B */
-   Default_Handler, /*!< I2C1_Handler,              I2C1 Master and Slave */
-   Default_Handler, /*!< QEI1_Handler,              Quadrature Encoder 1 */
-   Default_Handler, /*!< CAN0_Handler,              CAN0 */
-   Default_Handler, /*!< CAN1_Handler,              CAN1 */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< HIB_Handler,               Hibernate */
-   Default_Handler, /*!< USB0_Handler,              USB0 */
-   Default_Handler, /*!< PWM0_3_Handler,            PWM Generator 3 */
-   Default_Handler, /*!< UDMA_Handler,              uDMA Software Transfer */
-   Default_Handler, /*!< UDMAERR_Handler,           uDMA Error */
-   Default_Handler, /*!< ADC1SS0_Handler,           ADC1 Sequence 0 */
-   Default_Handler, /*!< ADC1SS1_Handler,           ADC1 Sequence 1 */
-   Default_Handler, /*!< ADC1SS2_Handler,           ADC1 Sequence 2 */
-   Default_Handler, /*!< ADC1SS3_Handler,           ADC1 Sequence 3 */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< SSI2_Handler,              SSI2 Rx and Tx */
-   Default_Handler, /*!< SSI3_Handler,              SSI3 Rx and Tx */
-   Default_Handler, /*!< UART3_Handler,             UART3 Rx and Tx */
-   Default_Handler, /*!< UART4_Handler,             UART4 Rx and Tx */
-   Default_Handler, /*!< UART5_Handler,             UART5 Rx and Tx */
-   Default_Handler, /*!< UART6_Handler,             UART6 Rx and Tx */
-   Default_Handler, /*!< UART7_Handler,             UART7 Rx and Tx */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< I2C2_Handler                I2C2 Master and Slave */
-   Default_Handler, /*!< I2C3_Handler,               I2C3 Master and Slave */
-   Default_Handler, /*!< TIMER4A_Handler,            Timer 4 subtimer A */
-   Default_Handler, /*!< TIMER4B_Handler,            Timer 4 subtimer B */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< TIMER5A_Handler,           Timer 5 subtimer A */
-   Default_Handler, /*!< TIMER5B_Handler,           Timer 5 subtimer B */
-   Default_Handler, /*!< WTIMER0A_Handler,          Wide Timer 0 subtimer A */
-   Default_Handler, /*!< WTIMER0B_Handler,          Wide Timer 0 subtimer B */
-   Default_Handler, /*!< WTIMER1A_Handler,          Wide Timer 1 subtimer A */
-   Default_Handler, /*!< WTIMER1B_Handler,          Wide Timer 1 subtimer B */
-   Default_Handler, /*!< WTIMER2A_Handler,          Wide Timer 2 subtimer A */
-   Default_Handler, /*!< WTIMER2B_Handler,          Wide Timer 2 subtimer B */
-   Default_Handler, /*!< WTIMER3A_Handler,          Wide Timer 3 subtimer A */
-   Default_Handler, /*!< WTIMER3B_Handler,          Wide Timer 3 subtimer B */
-   Default_Handler, /*!< WTIMER4A_Handler,          Wide Timer 4 subtimer A */
-   Default_Handler, /*!< WTIMER4B_Handler,          Wide Timer 4 subtimer B */
-   Default_Handler, /*!< WTIMER5A_Handler,          Wide Timer 5 subtimer A */
-   Default_Handler, /*!< WTIMER5B_Handler,          Wide Timer 5 subtimer B */
-   Default_Handler, /*!< FPU_Handler,               FPU */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   0, /*!< Reserved */
-   Default_Handler, /*!< PWM1_0_Handler,           PWM 1 Generator 0 */
-   Default_Handler, /*!< PWM1_1_Handler,           PWM 1 Generator 1 */
-   Default_Handler, /*!< PWM1_2_Handler,           PWM 1 Generator 2 */
-   Default_Handler, /*!< PWM1_3_Handler,           PWM 1 Generator 3 */
-   Default_Handler, /*!< PWM1_FAULT_Handler        PWM 1 Fault */
+    (void*)&_estack,      /*!< The initial stack pointer, 0x20008000 32K */
+    Reset_Handler,        /*!< The reset handler */
+    Default_Handler,      /*!< NMI_Handler,               The NMI handler */
+    Default_Handler,      /*!< HardFault_Handler,         The hard fault handler */
+    Default_Handler,      /*!< MemManage_Handler,         The MPU fault handler */
+    Default_Handler,      /*!< BusFault_Handler,          The bus fault handler */
+    Default_Handler,      /*!< UsageFault_Handler,        The usage fault handler */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    SVC_Handler,          /*!< SVC_Handler,               SVCall handler */
+    Default_Handler,      /*!< DebugMon_Handler,          Debug monitor handler */
+    0,                    /*!< Reserved */
+    PendSV_Handler,       /*!< PendSV_Handler,            The PendSV handler */
+    SysTick_Handler,      /*!< SysTick_Handler,           The SysTick handler */
+    Default_Handler,      /*!< GPIOA_Handler,             GPIO Port A */
+    Default_Handler,      /*!< GPIOB_Handler,             GPIO Port B */
+    Default_Handler,      /*!< GPIOC_Handler,             GPIO Port C */
+    Default_Handler,      /*!< GPIOD_Handler,             GPIO Port D */
+    Default_Handler,      /*!< GPIOE_Handler,             GPIO Port E */
+    Default_Handler,      /*!< UART0_Handler,             UART0 Rx and Tx */
+    Default_Handler,      /*!< UART1_Handler,             UART1 Rx and Tx */
+    Default_Handler,      /*!< SSI0_Handler,              SSI0 Rx and Tx */
+    Default_Handler,      /*!< I2C0_Handler,              I2C0 Master and Slave */
+    Default_Handler,      /*!< PMW0_FAULT_Handler,        PWM Fault */
+    Default_Handler,      /*!< PWM0_0_Handler,            PWM Generator 0 */
+    Default_Handler,      /*!< PWM0_1_Handler,            PWM Generator 1 */
+    Default_Handler,      /*!< PWM0_2_Handler,            PWM Generator 2 */
+    Default_Handler,      /*!< QEI0_Handler,              Quadrature Encoder 0 */
+    AdcSequence0_Handler, /*!< ADC0SS0_Handler,           ADC Sequence 0 */
+    AdcSequence1_Handler, /*!< ADC0SS1_Handler,           ADC Sequence 1 */
+    AdcSequence2_Handler, /*!< ADC0SS2_Handler,           ADC Sequence 2 */
+    AdcSequence3_Handler, /*!< ADC0SS3_Handler,           ADC Sequence 3 */
+    Default_Handler,      /*!< WDT_Handler,               Watchdog timer */
+    Default_Handler,      /*!< TIMER0A_Handler,           Timer 0 subtimer A */
+    Default_Handler,      /*!< TIMER0B_Handler,           Timer 0 subtimer B */
+    Default_Handler,      /*!< TIMER1A_Handler,           Timer 1 subtimer A */
+    Default_Handler,      /*!< TIMER1B_Handler,           Timer 1 subtimer B */
+    Default_Handler,      /*!< TIMER2A_Handler,           Timer 2 subtimer A */
+    Default_Handler,      /*!< TIMER2B_Handler,           Timer 2 subtimer B */
+    Default_Handler,      /*!< COMP0_Handler,             Analog Comparator 0 */
+    Default_Handler,      /*!< COMP1_Handler,             Analog Comparator 1 */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< SYSCTL_Handler,            System Control (PLL, OSC, BO) */
+    Default_Handler,      /*!< FLASH_Handler,             FLASH Control */
+    Default_Handler,      /*!< GPIOF_Handler,             GPIO Port F */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< UART2_Handler,             UART2 Rx and Tx */
+    Default_Handler,      /*!< SSI1_Handler,              SSI1 Rx and Tx */
+    Default_Handler,      /*!< TIMER3A_Handler,           Timer 3 subtimer A */
+    Default_Handler,      /*!< TIMER3B_Handler,           Timer 3 subtimer B */
+    Default_Handler,      /*!< I2C1_Handler,              I2C1 Master and Slave */
+    Default_Handler,      /*!< QEI1_Handler,              Quadrature Encoder 1 */
+    Default_Handler,      /*!< CAN0_Handler,              CAN0 */
+    Default_Handler,      /*!< CAN1_Handler,              CAN1 */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< HIB_Handler,               Hibernate */
+    Default_Handler,      /*!< USB0_Handler,              USB0 */
+    Default_Handler,      /*!< PWM0_3_Handler,            PWM Generator 3 */
+    Default_Handler,      /*!< UDMA_Handler,              uDMA Software Transfer */
+    Default_Handler,      /*!< UDMAERR_Handler,           uDMA Error */
+    Default_Handler,      /*!< ADC1SS0_Handler,           ADC1 Sequence 0 */
+    Default_Handler,      /*!< ADC1SS1_Handler,           ADC1 Sequence 1 */
+    Default_Handler,      /*!< ADC1SS2_Handler,           ADC1 Sequence 2 */
+    Default_Handler,      /*!< ADC1SS3_Handler,           ADC1 Sequence 3 */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< SSI2_Handler,              SSI2 Rx and Tx */
+    Default_Handler,      /*!< SSI3_Handler,              SSI3 Rx and Tx */
+    Default_Handler,      /*!< UART3_Handler,             UART3 Rx and Tx */
+    Default_Handler,      /*!< UART4_Handler,             UART4 Rx and Tx */
+    Default_Handler,      /*!< UART5_Handler,             UART5 Rx and Tx */
+    Default_Handler,      /*!< UART6_Handler,             UART6 Rx and Tx */
+    Default_Handler,      /*!< UART7_Handler,             UART7 Rx and Tx */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< I2C2_Handler                I2C2 Master and Slave */
+    Default_Handler,      /*!< I2C3_Handler,               I2C3 Master and Slave */
+    Default_Handler,      /*!< TIMER4A_Handler,            Timer 4 subtimer A */
+    Default_Handler,      /*!< TIMER4B_Handler,            Timer 4 subtimer B */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< TIMER5A_Handler,           Timer 5 subtimer A */
+    Default_Handler,      /*!< TIMER5B_Handler,           Timer 5 subtimer B */
+    Default_Handler,      /*!< WTIMER0A_Handler,          Wide Timer 0 subtimer A */
+    Default_Handler,      /*!< WTIMER0B_Handler,          Wide Timer 0 subtimer B */
+    Default_Handler,      /*!< WTIMER1A_Handler,          Wide Timer 1 subtimer A */
+    Default_Handler,      /*!< WTIMER1B_Handler,          Wide Timer 1 subtimer B */
+    Default_Handler,      /*!< WTIMER2A_Handler,          Wide Timer 2 subtimer A */
+    Default_Handler,      /*!< WTIMER2B_Handler,          Wide Timer 2 subtimer B */
+    Default_Handler,      /*!< WTIMER3A_Handler,          Wide Timer 3 subtimer A */
+    Default_Handler,      /*!< WTIMER3B_Handler,          Wide Timer 3 subtimer B */
+    Default_Handler,      /*!< WTIMER4A_Handler,          Wide Timer 4 subtimer A */
+    Default_Handler,      /*!< WTIMER4B_Handler,          Wide Timer 4 subtimer B */
+    Default_Handler,      /*!< WTIMER5A_Handler,          Wide Timer 5 subtimer A */
+    Default_Handler,      /*!< WTIMER5B_Handler,          Wide Timer 5 subtimer B */
+    Default_Handler,      /*!< FPU_Handler,               FPU */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    0,                    /*!< Reserved */
+    Default_Handler,      /*!< PWM1_0_Handler,           PWM 1 Generator 0 */
+    Default_Handler,      /*!< PWM1_1_Handler,           PWM 1 Generator 1 */
+    Default_Handler,      /*!< PWM1_2_Handler,           PWM 1 Generator 2 */
+    Default_Handler,      /*!< PWM1_3_Handler,           PWM 1 Generator 3 */
+    Default_Handler,      /*!< PWM1_FAULT_Handler        PWM 1 Fault */
 };
 
 #pragma GCC diagnostic pop
@@ -278,14 +282,14 @@ void Reset_Handler()
     // Zero fill the bss segment.
     //
     __asm("    ldr     r0, =_bss\n"
-            "    ldr     r1, =_ebss\n"
-            "    mov     r2, #0\n"
-            "    .thumb_func\n"
-            "zero_loop:\n"
-            "        cmp     r0, r1\n"
-            "        it      lt\n"
-            "        strlt   r2, [r0], #4\n"
-            "        blt     zero_loop");
+          "    ldr     r1, =_ebss\n"
+          "    mov     r2, #0\n"
+          "    .thumb_func\n"
+          "zero_loop:\n"
+          "        cmp     r0, r1\n"
+          "        it      lt\n"
+          "        strlt   r2, [r0], #4\n"
+          "        blt     zero_loop");
 
     (void)_bss;
     (void)_ebss; // get rid of unused warnings

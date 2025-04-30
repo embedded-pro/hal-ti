@@ -64,8 +64,19 @@ namespace hal::tiva
                 , enableRx(enableRx)
             {}
 
-            bool enableTx = true;
-            bool enableRx = true;
+            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, infra::Optional<InterruptPriority> priority)
+                : enableTx(enableTx)
+                , enableRx(enableRx)
+                , baudrate(baudrate)
+                , hwFlowControl(hwFlowControl)
+                , parity(parity)
+                , stopbits(stopbits)
+                , numberOfBytes(numberOfBytes)
+                , priority(priority)
+            {}
+
+            bool enableTx;
+            bool enableRx;
             Baudrate baudrate = Baudrate::_115200_bps;
             FlowControl hwFlowControl = FlowControl::none;
             Parity parity = Parity::none;
@@ -76,7 +87,7 @@ namespace hal::tiva
 
         Uart(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, const Config& config = Config(true, true));
         Uart(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, const Config& config = Config(true, true));
-        virtual ~Uart();
+        ~Uart();
 
         void SendData(infra::MemoryRange<const uint8_t> data, infra::Function<void()> actionOnCompletion = infra::emptyFunction) override;
         void ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived) override;
