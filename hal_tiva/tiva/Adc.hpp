@@ -6,6 +6,7 @@
 #include "hal/interfaces/AdcMultiChannel.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -33,12 +34,23 @@ namespace hal::tiva
             sampleAndHold256,
         };
 
+        enum class Oversampling : uint8_t
+        {
+            oversampling2 = 1,
+            oversampling4,
+            oversampling8,
+            oversampling16,
+            oversampling32,
+            oversampling64,
+        };
+
         struct Config
         {
             bool externalReference;
             uint8_t priority;
             Trigger trigger;
             SampleAndHold sampleAndHold;
+            std::optional<Oversampling> oversampling;
         };
 
         Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config);

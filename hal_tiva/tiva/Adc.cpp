@@ -151,6 +151,11 @@ namespace
         *SSOP &= ~(1 << stepOffset);
     }
 
+    void SequenceOversampling(ADC0_Type& adc, uint8_t oversampling)
+    {
+        adc.SAC = oversampling;
+    }
+
     void InterruptEnable(ADC0_Type& adc, uint8_t sequencer)
     {
         adc.ISC = 1 << sequencer;
@@ -212,6 +217,9 @@ namespace hal::tiva
             SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, i, inputs[i].AdcChannel() | sh);
 
         SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, lastChannel, inputs[lastChannel].AdcChannel() | sh | ADC_CTL_IE | ADC_CTL_END);
+
+        if (config.oversampling)
+            SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
     }
 
     Adc::~Adc()
