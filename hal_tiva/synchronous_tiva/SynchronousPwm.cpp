@@ -326,7 +326,7 @@ namespace
     {
 #if defined(TM4C123)
         really_assert(SYSCTL->DC1 & (SYSCTL_DC1_PWM0 | SYSCTL_DC1_PWM1));
-        SYSCTL->RCC = ((SYSCTL->RCC & ~(SYSCTL_RCC_USEPWMDIV | SYSCTL_RCC_PWMDIV_M)) | ui32Config);
+        SYSCTL->RCC = ((SYSCTL->RCC & ~(SYSCTL_RCC_USEPWMDIV | SYSCTL_RCC_PWMDIV_M)) | clockDivisor[static_cast<std::size_t>(divisor)]);
 #else
         pwmBase->CC = ((pwmBase->CC & ~(PWM_CC_USEPWMDIV | PWM_CC_PWMDIV_M)) | clockDivisor[static_cast<std::size_t>(divisor)]);
 #endif
