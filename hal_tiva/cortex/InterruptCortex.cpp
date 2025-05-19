@@ -6,7 +6,7 @@ namespace hal
 {
     namespace
     {
-        constexpr auto invalidIrq = static_cast<IRQn_Type>(0xffff);
+        constexpr auto invalidIrq = static_cast<IRQn_Type>(-128);
 
         void EnableInterrupt(IRQn_Type irq, InterruptPriority priority)
         {
@@ -223,6 +223,17 @@ namespace hal
 
     void ImmediateInterruptHandler::Invoke()
     {
-        onInvoke();
+        auto expect = false;
+
+        if (processingInterrupt.compare_exchange_strong(expect, true, std::memory_order_acquire))
+        {
+            __DSB();
+            onInvoke();
+            __DSB();
+
+            processingInterrupt.store(false, std::memory_order_release);
+        }
+        else
+            NVIC_SetPendingIRQ(Irq());
     }
 }
