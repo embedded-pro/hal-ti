@@ -1,5 +1,7 @@
 #include "hal_tiva/synchronous_tiva/SynchronousPwm.hpp"
+#include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BitLogic.hpp"
+#include "infra/util/EnumCast.hpp"
 
 namespace
 {
@@ -302,6 +304,13 @@ namespace
         PWM_CHANNEL_INTEN_TRCMPBD,
     } };
 
+    constexpr const std::array<std::pair<hal::tiva::PinConfigPeripheral, hal::tiva::PinConfigPeripheral>, 4> pinConfigPeripheral = { {
+        { hal::tiva::PinConfigPeripheral::pwmChannel0, hal::tiva::PinConfigPeripheral::pwmChannel1 },
+        { hal::tiva::PinConfigPeripheral::pwmChannel2, hal::tiva::PinConfigPeripheral::pwmChannel3 },
+        { hal::tiva::PinConfigPeripheral::pwmChannel4, hal::tiva::PinConfigPeripheral::pwmChannel5 },
+        { hal::tiva::PinConfigPeripheral::pwmChannel6, hal::tiva::PinConfigPeripheral::pwmChannel7 },
+    } };
+
     constexpr const std::array<uint32_t, 7> clockDivisor = { {
 #if defined(TM4C123)
         0, // DIV_1
@@ -400,65 +409,33 @@ namespace hal::tiva
         return value & 0x7fffe;
     }
 
-    SynchronousPwm::Generator::Generator(PinChannel& pins, PinConfigPeripheral pinAConfig, PinConfigPeripheral pinBConfig, uint32_t pwmOffset, uint32_t index)
-        : address(PwmChannel(pwmOffset, index))
+    SynchronousPwm::Generator::Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex generator)
+        : address(PwmChannel(pwmOffset, generator))
     {
-        index *= 2;
+        auto index = static_cast<uint8_t>(generator) * 2;
+        auto pinConfig = pinConfigPeripheral.at(infra::enum_cast(generator));
 
         if (pins.usesChannelA)
         {
-            a.Emplace(pins.pinA, pinAConfig);
+            a.Emplace(pins.pinA, pinConfig.first);
             enable |= 1 << index;
         }
 
         if (pins.usesChannelB)
         {
-            b.Emplace(pins.pinB, pinBConfig);
+            b.Emplace(pins.pinB, pinConfig.second);
             enable |= 1 << (index + 1);
         }
     }
 
-    SynchronousPwm::SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, const Config& config)
-
+    SynchronousPwm::SynchronousPwm(uint8_t aPwmIndex, infra::MemoryRange<PinChannel> channels, const Config& config)
         : pwmIndex(aPwmIndex)
         , config(config)
     {
-        generators.emplace_back(channel0, PinConfigPeripheral::pwmChannel0, PinConfigPeripheral::pwmChannel1, peripheralPwmArray[pwmIndex], 0);
+        really_assert(!channels.empty() && channels.size() <= generators.size());
 
-        Initialize();
-    }
-
-    SynchronousPwm::SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, const Config& config)
-
-        : pwmIndex(aPwmIndex)
-        , config(config)
-    {
-        generators.emplace_back(channel0, PinConfigPeripheral::pwmChannel0, PinConfigPeripheral::pwmChannel1, peripheralPwmArray[pwmIndex], 0);
-        generators.emplace_back(channel1, PinConfigPeripheral::pwmChannel2, PinConfigPeripheral::pwmChannel3, peripheralPwmArray[pwmIndex], 1);
-
-        Initialize();
-    }
-
-    SynchronousPwm::SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, const Config& config)
-
-        : pwmIndex(aPwmIndex)
-        , config(config)
-    {
-        generators.emplace_back(channel0, PinConfigPeripheral::pwmChannel0, PinConfigPeripheral::pwmChannel1, peripheralPwmArray[pwmIndex], 0);
-        generators.emplace_back(channel1, PinConfigPeripheral::pwmChannel2, PinConfigPeripheral::pwmChannel3, peripheralPwmArray[pwmIndex], 1);
-        generators.emplace_back(channel2, PinConfigPeripheral::pwmChannel4, PinConfigPeripheral::pwmChannel5, peripheralPwmArray[pwmIndex], 2);
-
-        Initialize();
-    }
-
-    SynchronousPwm::SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3, const Config& config)
-        : pwmIndex(aPwmIndex)
-        , config(config)
-    {
-        generators.emplace_back(channel0, PinConfigPeripheral::pwmChannel0, PinConfigPeripheral::pwmChannel1, peripheralPwmArray[pwmIndex], 0);
-        generators.emplace_back(channel1, PinConfigPeripheral::pwmChannel2, PinConfigPeripheral::pwmChannel3, peripheralPwmArray[pwmIndex], 1);
-        generators.emplace_back(channel2, PinConfigPeripheral::pwmChannel4, PinConfigPeripheral::pwmChannel5, peripheralPwmArray[pwmIndex], 2);
-        generators.emplace_back(channel3, PinConfigPeripheral::pwmChannel6, PinConfigPeripheral::pwmChannel6, peripheralPwmArray[pwmIndex], 3);
+        for (auto& channel : channels)
+            generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator);
 
         Initialize();
     }

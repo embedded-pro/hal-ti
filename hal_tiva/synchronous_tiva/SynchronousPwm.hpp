@@ -4,6 +4,7 @@
 #include "hal/synchronous_interfaces/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
+#include "infra/util/EnumCast.hpp"
 #include <optional>
 
 namespace hal::tiva
@@ -73,8 +74,18 @@ namespace hal::tiva
             std::optional<Trigger> trigger;
         };
 
+        enum class GeneratorIndex : uint8_t
+        {
+            generator0 = 0,
+            generator1 = 1,
+            generator2 = 2,
+            generator3 = 3,
+        };
+
         struct PinChannel
         {
+            GeneratorIndex generator;
+
             GpioPin& pinA = dummyPin;
             GpioPin& pinB = dummyPin;
 
@@ -82,10 +93,7 @@ namespace hal::tiva
             bool usesChannelB = false;
         };
 
-        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, const Config& config);
-        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, const Config& config);
-        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, const Config& config);
-        SynchronousPwm(uint8_t aPwmIndex, PinChannel channel0, PinChannel channel1, PinChannel channel2, PinChannel channel3, const Config& config);
+        SynchronousPwm(uint8_t aPwmIndex, infra::MemoryRange<PinChannel> channels, const Config& config);
         ~SynchronousPwm();
 
         void SetBaseFrequency(hal::Hertz baseFrequency) override;
@@ -123,14 +131,14 @@ namespace hal::tiva
             0x00000100, /* Channel 3 */
         } };
 
-        static PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, uint32_t channelIndex)
+        static PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
         {
-            return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[channelIndex]);
+            return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
         struct Generator
         {
-            Generator(PinChannel& pins, PinConfigPeripheral pinAConfig, PinConfigPeripheral pinBConfig, uint32_t pwmOffset, uint32_t index);
+            Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index);
 
             infra::Optional<PeripheralPin> a;
             infra::Optional<PeripheralPin> b;
