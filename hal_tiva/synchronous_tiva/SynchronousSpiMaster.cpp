@@ -152,14 +152,14 @@ namespace hal::tiva
 
         ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
 
-        while((ssiArray[ssiIndex]->SR & SSI_SR_RNE))
+        while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE))
         {
         }
     }
 
     SynchronousSpiMaster::~SynchronousSpiMaster()
     {
-        ssiArray[ssiIndex]->CR1 &=~ SSI_CR1_SSE; /* Disable SPI */
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE; /* Disable SPI */
         DisableClock();
     }
 
@@ -183,7 +183,7 @@ namespace hal::tiva
 
     void SynchronousSpiMaster::Send(uint8_t data)
     {
-        while(!(ssiArray[ssiIndex]->SR & SSI_SR_TNF))
+        while (!(ssiArray[ssiIndex]->SR & SSI_SR_TNF))
         {
         }
 
@@ -192,10 +192,10 @@ namespace hal::tiva
 
     uint8_t SynchronousSpiMaster::Receive()
     {
-        while(!(ssiArray[ssiIndex]->SR & SSI_SR_RNE))
+        while (!(ssiArray[ssiIndex]->SR & SSI_SR_RNE))
         {
         }
-        
+
         return ssiArray[ssiIndex]->DR;
     }
 

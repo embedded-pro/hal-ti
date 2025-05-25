@@ -3,9 +3,9 @@
 
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-
 #include "services/tracer/StreamWriterOnSynchronousSerialCommunication.hpp"
 #include "services/tracer/TracerWithDateTime.hpp"
+
 
 namespace instantiations
 {

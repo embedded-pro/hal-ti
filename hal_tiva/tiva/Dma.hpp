@@ -96,15 +96,15 @@ namespace hal::tiva
 
         explicit DmaChannel(const Channel& channel);
         void ConfigureChannel(const Configuration& configuration) const;
-        void ConfigureTransfer(Type type, Transfer transfer, volatile void * sourceAddress, volatile void * destinationAddress, std::size_t size) const;
+        void ConfigureTransfer(Type type, Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const;
         void StartTransfer() const;
         Transfer Mode(Type type) const;
 
     private:
         struct Control
         {
-            volatile void * sourceEndAddress;
-            volatile void * destinationEndAddress;
+            volatile void* sourceEndAddress;
+            volatile void* destinationEndAddress;
             volatile uint32_t channelControl;
             volatile uint32_t reserved;
         };

@@ -1,10 +1,11 @@
 #ifndef HAL_TI_LAUNCH_PAD_EK_TM4C1294_HPP
 #define HAL_TI_LAUNCH_PAD_EK_TM4C1294_HPP
 
+#include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "hal_tiva/tiva/ClockTm4c129.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "services/util/Terminal.hpp"
+
 
 namespace instantiations
 {
