@@ -432,7 +432,7 @@ namespace hal::tiva
         : pwmIndex(aPwmIndex)
         , config(config)
     {
-        really_assert(!channels.empty() && channels.size() <= generators.size());
+        really_assert(!channels.empty() && channels.size() <= generators.max_size());
 
         for (auto& channel : channels)
             generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator);
