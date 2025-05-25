@@ -6,7 +6,6 @@
 #include "lwip/lwip_cpp/LightweightIpOverEthernet.hpp"
 #include "services/network/LlmnrResponder.hpp"
 
-
 namespace
 {
     services::LightweightIpOverEthernetFactory::Config ConvertConfig(infra::BoundedString hostName)

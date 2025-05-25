@@ -120,6 +120,9 @@ namespace hal
 
     private:
         infra::Function<void()> onInvoke;
+        // Indicates whether an interrupt is currently being processed.
+        // Used to prevent reentrant interrupt handling by ensuring that
+        // an interrupt is not processed again while it is already being handled.
         std::atomic<bool> processingInterrupt{ false };
     };
 }

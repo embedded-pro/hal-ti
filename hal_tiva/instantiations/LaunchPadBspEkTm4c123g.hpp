@@ -6,7 +6,6 @@
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "services/util/Terminal.hpp"
 
-
 namespace instantiations
 {
     struct LaunchPadClock

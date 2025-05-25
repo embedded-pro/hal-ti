@@ -6,7 +6,6 @@
 #include "services/tracer/StreamWriterOnSynchronousSerialCommunication.hpp"
 #include "services/tracer/TracerWithDateTime.hpp"
 
-
 namespace instantiations
 {
     struct TracerInfrastructure
