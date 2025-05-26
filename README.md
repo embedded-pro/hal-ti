@@ -1,6 +1,6 @@
 # embedded-hal-ti
 
-[![Linting & Formatting](https://github.com/gabrielfrasantos/embedded-hal-ti/actions/workflows/linting-formatting.yml/badge.svg)](https://github.com/gabrielfrasantos/embedded-hal-ti/actions/workflows/linting-formatting.yml) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/gabrielfrasantos/embedded-hal-ti/badge)](https://api.securityscorecards.dev/projects/github.com/gabrielfrasantos/embedded-hal-ti)
+[![Linting & Formatting](https://github.com/embedded-pro/hal-ti/actions/workflows/linting-formatting.yml/badge.svg)](https://github.com/embedded-pro/hal-ti/actions/workflows/linting-formatting.yml)
 
 **Description**: embedded-hal-ti is a HAL (Hardware Abstraction Layer) implementation for a range of [Texas Instruments](https://ti.com) ARM Cortex-based micro-controllers. embedded-hal-ti implements the interfaces defined as part of [embedded-infra-lib].
 
@@ -24,13 +24,13 @@ include(FetchContent)
 
 FetchContent_Declare(
     emil
-    GIT_REPOSITORY https://github.com/gabrielfrasantos/embedded-infra-lib.git
+    GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
     GIT_TAG        embedded
 )
 
 FetchContent_Declare(
     halst
-    GIT_REPOSITORY https://github.com/gabrielfrasantos/embedded-hal-ti.git
+    GIT_REPOSITORY https://github.com/embedded-pro/embedded-hal-ti.git
     GIT_TAG        embedded
 )
 
@@ -56,10 +56,6 @@ Due to the nature of embedded-hal-ti: a HAL implementation, there are no include
 
 This project uses a [code-of-conduct](CODE_OF_CONDUCT.md) to define expected conduct in our community. Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting a project [maintainer](.github/CODEOWNERS)
 
-## Changelog
-
-See the [changelog](CHANGELOG.md) for more info on what's been changed.
-
 ## Contributing
 
 Please refer to our [contributing](CONTRIBUTING.md) guide when you want to contribute to this project.
@@ -72,4 +68,4 @@ In order to run the examples, please check the document [EK-TM4C123GXL](doc/EK-T
 
 embedded-hal-ti is licensed under the [MIT](https://choosealicense.com/licenses/mit/) [license](LICENSE) except the files and/or directories named in the [notice](NOTICE) file.
 
-[embedded-infra-lib]: https://github.com/gabrielfrasantos/embedded-infra-lib.git
+[embedded-infra-lib]: https://github.com/embedded-pro/embedded-infra-lib.git

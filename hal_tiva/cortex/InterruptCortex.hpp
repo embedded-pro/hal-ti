@@ -7,13 +7,30 @@
 #include "infra/util/MemoryRange.hpp"
 #include "infra/util/WithStorage.hpp"
 #include <array>
+#include <atomic>
 
 namespace hal
 {
     enum class InterruptPriority : uint8_t
     {
-        High = 1,
-        Normal = 2
+        // Critical system priorities
+        Highest = 0,  // Highest priority, use sparingly for critical real-time tasks
+        VeryHigh = 1, // Very high priority for urgent time-critical tasks
+        High = 2,     // High priority for important but not critical tasks
+
+        // Normal application priorities
+        AboveNormal = 3, // Above normal priority
+        Normal = 4,      // Default priority for most interrupts
+        BelowNormal = 5, // Below normal priority
+
+        // Background task priorities
+        Low = 6,     // Low priority for non-urgent interrupts
+        VeryLow = 7, // Very low priority for background processing
+        Lowest = 15, // Lowest possible priority
+
+        // Aliases for backward compatibility
+        Default = Normal,
+        Background = Low
     };
 
     IRQn_Type ActiveInterrupt();
@@ -103,6 +120,10 @@ namespace hal
 
     private:
         infra::Function<void()> onInvoke;
+        // Indicates whether an interrupt is currently being processed.
+        // Used to prevent reentrant interrupt handling by ensuring that
+        // an interrupt is not processed again while it is already being handled.
+        std::atomic<bool> processingInterrupt{ false };
     };
 }
 

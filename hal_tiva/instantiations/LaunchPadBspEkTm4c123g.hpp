@@ -1,9 +1,9 @@
 #ifndef HAL_TI_LAUNCH_PAD_EK_TM4C123G_HPP
 #define HAL_TI_LAUNCH_PAD_EK_TM4C123G_HPP
 
+#include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "hal_tiva/tiva/ClockTm4c123.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "services/util/Terminal.hpp"
 
 namespace instantiations
@@ -12,7 +12,7 @@ namespace instantiations
     {
         hal::tiva::crystalFrequency crystal = hal::tiva::crystalFrequency::_16_MHz;
         hal::tiva::oscillatorSource oscSource = hal::tiva::oscillatorSource::main;
-        hal::tiva::systemClockDivider systemClockDivisor{ 2,5 };
+        hal::tiva::systemClockDivider systemClockDivisor{ 2, 5 };
         bool usesPll = true;
     };
 

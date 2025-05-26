@@ -8,30 +8,30 @@ namespace hal::tiva
     namespace
     {
         // NOLINTBEGIN
-        constexpr const uint32_t UART_O_DR = 0x00000000; // UART Data
-        constexpr const uint32_t UART_O_RSR = 0x00000004; // UART Receive Status/Error Clear
-        constexpr const uint32_t UART_O_ECR = 0x00000004; // UART Receive Status/Error Clear
-        constexpr const uint32_t UART_O_FR = 0x00000018; // UART Flag
-        constexpr const uint32_t UART_O_ILPR = 0x00000020; // UART IrDA Low-Power Register
-        constexpr const uint32_t UART_O_IBRD = 0x00000024; // UART Integer Baud-Rate Divisor
-        constexpr const uint32_t UART_O_FBRD = 0x00000028; // UART Fractional Baud-Rate Divisor
-        constexpr const uint32_t UART_O_LCRH = 0x0000002C; // UART Line Control
-        constexpr const uint32_t UART_O_CTL = 0x00000030; // UART Control
-        constexpr const uint32_t UART_O_IFLS = 0x00000034; // UART Interrupt FIFO Level Select
-        constexpr const uint32_t UART_O_IM = 0x00000038; // UART Interrupt Mask
-        constexpr const uint32_t UART_O_RIS = 0x0000003C; // UART Raw Interrupt Status
-        constexpr const uint32_t UART_O_MIS = 0x00000040; // UART Masked Interrupt Status
-        constexpr const uint32_t UART_O_ICR = 0x00000044; // UART Interrupt Clear
-        constexpr const uint32_t UART_O_DMACTL = 0x00000048; // UART DMA Control
-        constexpr const uint32_t UART_O_9BITADDR = 0x000000A4; // UART 9-Bit Self Address
+        constexpr const uint32_t UART_O_DR = 0x00000000;        // UART Data
+        constexpr const uint32_t UART_O_RSR = 0x00000004;       // UART Receive Status/Error Clear
+        constexpr const uint32_t UART_O_ECR = 0x00000004;       // UART Receive Status/Error Clear
+        constexpr const uint32_t UART_O_FR = 0x00000018;        // UART Flag
+        constexpr const uint32_t UART_O_ILPR = 0x00000020;      // UART IrDA Low-Power Register
+        constexpr const uint32_t UART_O_IBRD = 0x00000024;      // UART Integer Baud-Rate Divisor
+        constexpr const uint32_t UART_O_FBRD = 0x00000028;      // UART Fractional Baud-Rate Divisor
+        constexpr const uint32_t UART_O_LCRH = 0x0000002C;      // UART Line Control
+        constexpr const uint32_t UART_O_CTL = 0x00000030;       // UART Control
+        constexpr const uint32_t UART_O_IFLS = 0x00000034;      // UART Interrupt FIFO Level Select
+        constexpr const uint32_t UART_O_IM = 0x00000038;        // UART Interrupt Mask
+        constexpr const uint32_t UART_O_RIS = 0x0000003C;       // UART Raw Interrupt Status
+        constexpr const uint32_t UART_O_MIS = 0x00000040;       // UART Masked Interrupt Status
+        constexpr const uint32_t UART_O_ICR = 0x00000044;       // UART Interrupt Clear
+        constexpr const uint32_t UART_O_DMACTL = 0x00000048;    // UART DMA Control
+        constexpr const uint32_t UART_O_9BITADDR = 0x000000A4;  // UART 9-Bit Self Address
         constexpr const uint32_t UART_O_9BITAMASK = 0x000000A8; // UART 9-Bit Self Address Mask
-        constexpr const uint32_t UART_O_PP = 0x00000FC0; // UART Peripheral Properties
-        constexpr const uint32_t UART_O_CC = 0x00000FC8; // UART Clock Configuration
+        constexpr const uint32_t UART_O_PP = 0x00000FC0;        // UART Peripheral Properties
+        constexpr const uint32_t UART_O_CC = 0x00000FC8;        // UART Clock Configuration
 
-        constexpr const uint32_t UART_DR_OE = 0x00000800; // UART Overrun Error
-        constexpr const uint32_t UART_DR_BE = 0x00000400; // UART Break Error
-        constexpr const uint32_t UART_DR_PE = 0x00000200; // UART Parity Error
-        constexpr const uint32_t UART_DR_FE = 0x00000100; // UART Framing Error
+        constexpr const uint32_t UART_DR_OE = 0x00000800;     // UART Overrun Error
+        constexpr const uint32_t UART_DR_BE = 0x00000400;     // UART Break Error
+        constexpr const uint32_t UART_DR_PE = 0x00000200;     // UART Parity Error
+        constexpr const uint32_t UART_DR_FE = 0x00000100;     // UART Framing Error
         constexpr const uint32_t UART_DR_DATA_M = 0x000000FF; // Data Transmitted or Received
         constexpr const uint32_t UART_DR_DATA_S = 0;
 
@@ -49,9 +49,9 @@ namespace hal::tiva
         constexpr const uint32_t UART_FR_TXFF = 0x00000020; // UART Transmit FIFO Full
         constexpr const uint32_t UART_FR_RXFE = 0x00000010; // UART Receive FIFO Empty
         constexpr const uint32_t UART_FR_BUSY = 0x00000008; // UART Busy
-        constexpr const uint32_t UART_FR_DCD = 0x00000004; // Data Carrier Detect
-        constexpr const uint32_t UART_FR_DSR = 0x00000002; // Data Set Ready
-        constexpr const uint32_t UART_FR_CTS = 0x00000001; // Clear To Send
+        constexpr const uint32_t UART_FR_DCD = 0x00000004;  // Data Carrier Detect
+        constexpr const uint32_t UART_FR_DSR = 0x00000002;  // Data Set Ready
+        constexpr const uint32_t UART_FR_CTS = 0x00000001;  // Clear To Send
 
         constexpr const uint32_t UART_ILPR_ILPDVSR_M = 0x000000FF; // IrDA Low-Power Divisor
         constexpr const uint32_t UART_ILPR_ILPDVSR_S = 0;
@@ -119,51 +119,51 @@ namespace hal::tiva
 
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMARXRIS = 0x00010000; // Receive DMA Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_9BITRIS = 0x00001000; // 9-Bit Mode Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_EOTRIS = 0x00000800; // End of Transmission Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_OERIS = 0x00000400; // UART Overrun Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_BERIS = 0x00000200; // UART Break Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_PERIS = 0x00000100; // UART Parity Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_FERIS = 0x00000080; // UART Framing Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_RTRIS = 0x00000040; // UART Receive Time-Out Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_TXRIS = 0x00000020; // UART Transmit Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_RXRIS = 0x00000010; // UART Receive Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_DSRRIS = 0x00000008; // UART Data Set Ready Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_DCDRIS = 0x00000004; // UART Data Carrier Detect Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_CTSRIS = 0x00000002; // UART Clear to Send Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_RIRIS = 0x00000001; // UART Ring Indicator Modem Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_9BITRIS = 0x00001000;  // 9-Bit Mode Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_EOTRIS = 0x00000800;   // End of Transmission Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_OERIS = 0x00000400;    // UART Overrun Error Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_BERIS = 0x00000200;    // UART Break Error Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_PERIS = 0x00000100;    // UART Parity Error Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_FERIS = 0x00000080;    // UART Framing Error Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_RTRIS = 0x00000040;    // UART Receive Time-Out Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_TXRIS = 0x00000020;    // UART Transmit Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_RXRIS = 0x00000010;    // UART Receive Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_DSRRIS = 0x00000008;   // UART Data Set Ready Modem Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_DCDRIS = 0x00000004;   // UART Data Carrier Detect Modem Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_CTSRIS = 0x00000002;   // UART Clear to Send Modem Raw Interrupt Status
+        constexpr const uint32_t UART_RIS_RIRIS = 0x00000001;    // UART Ring Indicator Modem Raw Interrupt Status
 
         constexpr const uint32_t UART_MIS_DMATXMIS = 0x00020000; // Transmit DMA Masked Interrupt Status
         constexpr const uint32_t UART_MIS_DMARXMIS = 0x00010000; // Receive DMA Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_9BITMIS = 0x00001000; // 9-Bit Mode Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_EOTMIS = 0x00000800; // End of Transmission Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_OEMIS = 0x00000400; // UART Overrun Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_BEMIS = 0x00000200; // UART Break Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_PEMIS = 0x00000100; // UART Parity Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_FEMIS = 0x00000080; // UART Framing Error Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RTMIS = 0x00000040; // UART Receive Time-Out Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_TXMIS = 0x00000020; // UART Transmit Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RXMIS = 0x00000010; // UART Receive Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_DSRMIS = 0x00000008; // UART Data Set Ready Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_DCDMIS = 0x00000004; // UART Data Carrier Detect Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_CTSMIS = 0x00000002; // UART Clear to Send Modem Masked Interrupt Status
-        constexpr const uint32_t UART_MIS_RIMIS = 0x00000001; // UART Ring Indicator Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_9BITMIS = 0x00001000;  // 9-Bit Mode Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_EOTMIS = 0x00000800;   // End of Transmission Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_OEMIS = 0x00000400;    // UART Overrun Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_BEMIS = 0x00000200;    // UART Break Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_PEMIS = 0x00000100;    // UART Parity Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_FEMIS = 0x00000080;    // UART Framing Error Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RTMIS = 0x00000040;    // UART Receive Time-Out Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_TXMIS = 0x00000020;    // UART Transmit Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RXMIS = 0x00000010;    // UART Receive Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_DSRMIS = 0x00000008;   // UART Data Set Ready Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_DCDMIS = 0x00000004;   // UART Data Carrier Detect Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_CTSMIS = 0x00000002;   // UART Clear to Send Modem Masked Interrupt Status
+        constexpr const uint32_t UART_MIS_RIMIS = 0x00000001;    // UART Ring Indicator Modem Masked Interrupt Status
 
         constexpr const uint32_t UART_ICR_DMATXIC = 0x00020000; // Transmit DMA Interrupt Clear
         constexpr const uint32_t UART_ICR_DMARXIC = 0x00010000; // Receive DMA Interrupt Clear
-        constexpr const uint32_t UART_ICR_9BITIC = 0x00001000; // 9-Bit Mode Interrupt Clear
-        constexpr const uint32_t UART_ICR_EOTIC = 0x00000800; // End of Transmission Interrupt Clear
-        constexpr const uint32_t UART_ICR_OEIC = 0x00000400; // Overrun Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_BEIC = 0x00000200; // Break Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_PEIC = 0x00000100; // Parity Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_FEIC = 0x00000080; // Framing Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_RTIC = 0x00000040; // Receive Time-Out Interrupt Clear
-        constexpr const uint32_t UART_ICR_TXIC = 0x00000020; // Transmit Interrupt Clear
-        constexpr const uint32_t UART_ICR_RXIC = 0x00000010; // Receive Interrupt Clear
-        constexpr const uint32_t UART_ICR_DSRMIC = 0x00000008; // UART Data Set Ready Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_DCDMIC = 0x00000004; // UART Data Carrier Detect Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_CTSMIC = 0x00000002; // UART Clear to Send Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_RIMIC = 0x00000001; // UART Ring Indicator Modem Interrupt Clear
+        constexpr const uint32_t UART_ICR_9BITIC = 0x00001000;  // 9-Bit Mode Interrupt Clear
+        constexpr const uint32_t UART_ICR_EOTIC = 0x00000800;   // End of Transmission Interrupt Clear
+        constexpr const uint32_t UART_ICR_OEIC = 0x00000400;    // Overrun Error Interrupt Clear
+        constexpr const uint32_t UART_ICR_BEIC = 0x00000200;    // Break Error Interrupt Clear
+        constexpr const uint32_t UART_ICR_PEIC = 0x00000100;    // Parity Error Interrupt Clear
+        constexpr const uint32_t UART_ICR_FEIC = 0x00000080;    // Framing Error Interrupt Clear
+        constexpr const uint32_t UART_ICR_RTIC = 0x00000040;    // Receive Time-Out Interrupt Clear
+        constexpr const uint32_t UART_ICR_TXIC = 0x00000020;    // Transmit Interrupt Clear
+        constexpr const uint32_t UART_ICR_RXIC = 0x00000010;    // Receive Interrupt Clear
+        constexpr const uint32_t UART_ICR_DSRMIC = 0x00000008;  // UART Data Set Ready Modem Interrupt Clear
+        constexpr const uint32_t UART_ICR_DCDMIC = 0x00000004;  // UART Data Carrier Detect Modem Interrupt Clear
+        constexpr const uint32_t UART_ICR_CTSMIC = 0x00000002;  // UART Clear to Send Modem Interrupt Clear
+        constexpr const uint32_t UART_ICR_RIMIC = 0x00000001;   // UART Ring Indicator Modem Interrupt Clear
 
         constexpr const uint32_t UART_DMACTL_DMAERR = 0x00000004; // DMA on Error
         constexpr const uint32_t UART_DMACTL_TXDMAE = 0x00000002; // Transmit DMA Enable
@@ -177,13 +177,13 @@ namespace hal::tiva
         constexpr const uint32_t UART_9BITAMASK_MASK_S = 0;
 
         constexpr const uint32_t UART_PP_MSE = 0x00000008; // Modem Support Extended
-        constexpr const uint32_t UART_PP_MS = 0x00000004; // Modem Support
-        constexpr const uint32_t UART_PP_NB = 0x00000002; // 9-Bit Support
-        constexpr const uint32_t UART_PP_SC = 0x00000001; // Smart Card Support
+        constexpr const uint32_t UART_PP_MS = 0x00000004;  // Modem Support
+        constexpr const uint32_t UART_PP_NB = 0x00000002;  // 9-Bit Support
+        constexpr const uint32_t UART_PP_SC = 0x00000001;  // Smart Card Support
 
         constexpr const uint32_t UART_CC_CS_M = 0x0000000F;      // UART Baud Clock Source
         constexpr const uint32_t UART_CC_CS_SYSCLK = 0x00000000; // System clock (based on clock source and divisor factor)
-        constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005; // PIOSC
+        constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005;  // PIOSC
         // NOLINTEND
 
         const std::array<uint32_t, 13> baudRateTiva{ {
@@ -205,8 +205,7 @@ namespace hal::tiva
 
         const std::array<uint32_t, 2> stopBitsTiva{ { 0x0, 0x8 } };
 
-        constexpr std::array<uint32_t, 8> peripheralUartArray =
-        {{
+        constexpr std::array<uint32_t, 8> peripheralUartArray = { {
             UART0_BASE,
             UART1_BASE,
             UART2_BASE,
@@ -215,7 +214,7 @@ namespace hal::tiva
             UART5_BASE,
             UART6_BASE,
             UART7_BASE,
-        }};
+        } };
 
         constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray = { { UART0_IRQn,
             UART1_IRQn,
