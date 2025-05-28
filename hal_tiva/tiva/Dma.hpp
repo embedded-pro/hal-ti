@@ -2,10 +2,8 @@
 #define HAL_DMA_STM_HPP
 
 #include "infra/util/InterfaceConnector.hpp"
-#include "infra/util/Optional.hpp"
 #include DEVICE_HEADER
 #include "hal_tiva/cortex/InterruptCortex.hpp"
-#include <cstdint>
 
 namespace hal::tiva
 {
@@ -16,11 +14,15 @@ namespace hal::tiva
     public:
         explicit Dma(const infra::Function<void()>& onError);
         virtual ~Dma();
+
+        bool IsEnabled() const;
+
+        // Implementation of InterruptHandler
         void Invoke() override;
 
     private:
         void EnableClock() const;
-        void Initialize() const;
+        void DisableClock() const;
 
         infra::Function<void()> onError;
         static std::array<uint8_t, 1024> controlTable alignas(1024);
@@ -29,31 +31,19 @@ namespace hal::tiva
     class DmaChannel
     {
     public:
-        enum class Type : uint8_t
+        enum class Transfer : uint32_t
         {
-            primary = 0x00,
-            secondary = 0x20,
+            stop = 0x00,
+            basic = 0x01,
+            automatic = 0x02,
+            pingPong = 0x03,
         };
 
-        enum class Priority : uint8_t
+        enum class DataSize : uint32_t
         {
-            standard = 0,
-            high,
-        };
-
-        enum class Transfer : uint8_t
-        {
-            stop,
-            basic,
-            automatic,
-            pingPong,
-        };
-
-        enum class DataSize : uint8_t
-        {
-            _8_bits,
-            _16_bits,
-            _32_bits,
+            _8_bits = 0x00000000,
+            _16_bits = 0x11000000,
+            _32_bits = 0x22000000,
         };
 
         enum class Increment : uint8_t
@@ -64,28 +54,43 @@ namespace hal::tiva
             none,
         };
 
-        enum class ArbitrationSize : uint8_t
+        enum class ArbitrationSize : uint32_t
         {
-            _1_item,
-            _2_items,
-            _4_items,
-            _8_items,
-            _16_items,
-            _32_items,
-            _64_items,
-            _128_items,
-            _256_items,
-            _512_items,
-            _1024_items,
+            _1_item = 0x00000000,
+            _2_items = 0x00004000,
+            _4_items = 0x00008000,
+            _8_items = 0x0000c000,
+            _16_items = 0x00010000,
+            _32_items = 0x00014000,
+            _64_items = 0x00018000,
+            _128_items = 0x0001c000,
+            _256_items = 0x00020000,
+            _512_items = 0x00024000,
+            _1024_items = 0x00028000,
         };
 
-        struct Configuration
+        struct Attributes
         {
-            Type type;
+            bool useBurst;
+            bool alternate;
+            bool highPriority;
+            bool requestMask;
+        };
+
+        struct ControlBlock
+        {
             Increment sourceIncrement;
             Increment destinationIncrement;
             DataSize dataSize;
             ArbitrationSize arbitrationSize;
+
+            uint32_t Read() const;
+        };
+
+        struct Configuration
+        {
+            Attributes attributes;
+            ControlBlock controlBlock;
         };
 
         struct Channel
@@ -94,29 +99,13 @@ namespace hal::tiva
             uint8_t mapping;
         };
 
-        explicit DmaChannel(const Channel& channel);
-        void ConfigureChannel(const Configuration& configuration) const;
-        void ConfigureTransfer(Type type, Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const;
-        void StartTransfer() const;
-        Transfer Mode(Type type) const;
+        DmaChannel(Dma& dma, const Channel& channel, const Configuration& configuration);
+        ~DmaChannel();
 
-    private:
-        struct Control
-        {
-            volatile void* sourceEndAddress;
-            volatile void* destinationEndAddress;
-            volatile uint32_t channelControl;
-            volatile uint32_t reserved;
-        };
-
-        void EnableClock() const;
-        void Initialize() const;
-        void DisableAllAttributes() const;
-        void SetChannel() const;
+        void StartTransfer(Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const;
 
     private:
         const Channel& channel;
-        static std::array<uint8_t, 1024> controlTable alignas(1024);
     };
 }
 

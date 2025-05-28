@@ -1,84 +1,57 @@
 #include "hal_tiva/tiva/Dma.hpp"
-#include "infra/util/BitLogic.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 namespace hal::tiva
 {
     namespace
     {
-        constexpr static uint32_t CHCTL_DSTINC_M = 0xC0000000;          // Destination Address Increment
-        constexpr static uint32_t CHCTL_DSTINC_8 = 0x00000000;          // Byte
-        constexpr static uint32_t CHCTL_DSTINC_16 = 0x40000000;         // Half-word
-        constexpr static uint32_t CHCTL_DSTINC_32 = 0x80000000;         // Word
-        constexpr static uint32_t CHCTL_DSTINC_NONE = 0xC0000000;       // No increment
-        constexpr static uint32_t CHCTL_DSTSIZE_M = 0x30000000;         // Destination Data Size
-        constexpr static uint32_t CHCTL_DSTSIZE_8 = 0x00000000;         // Byte
-        constexpr static uint32_t CHCTL_DSTSIZE_16 = 0x10000000;        // Half-word
-        constexpr static uint32_t CHCTL_DSTSIZE_32 = 0x20000000;        // Word
-        constexpr static uint32_t CHCTL_SRCINC_M = 0x0C000000;          // Source Address Increment
-        constexpr static uint32_t CHCTL_SRCINC_8 = 0x00000000;          // Byte
-        constexpr static uint32_t CHCTL_SRCINC_16 = 0x04000000;         // Half-word
-        constexpr static uint32_t CHCTL_SRCINC_32 = 0x08000000;         // Word
-        constexpr static uint32_t CHCTL_SRCINC_NONE = 0x0C000000;       // No increment
-        constexpr static uint32_t CHCTL_SRCSIZE_M = 0x03000000;         // Source Data Size
-        constexpr static uint32_t CHCTL_SRCSIZE_8 = 0x00000000;         // Byte
-        constexpr static uint32_t CHCTL_SRCSIZE_16 = 0x01000000;        // Half-word
-        constexpr static uint32_t CHCTL_SRCSIZE_32 = 0x02000000;        // Word
-        constexpr static uint32_t CHCTL_DSTPROT0 = 0x00200000;          // Destination Privilege Access
-        constexpr static uint32_t CHCTL_SRCPROT0 = 0x00040000;          // Source Privilege Access
-        constexpr static uint32_t CHCTL_ARBSIZE_M = 0x0003C000;         // Arbitration Size
-        constexpr static uint32_t CHCTL_ARBSIZE_1 = 0x00000000;         // 1 Transfer
-        constexpr static uint32_t CHCTL_ARBSIZE_2 = 0x00004000;         // 2 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_4 = 0x00008000;         // 4 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_8 = 0x0000C000;         // 8 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_16 = 0x00010000;        // 16 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_32 = 0x00014000;        // 32 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_64 = 0x00018000;        // 64 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_128 = 0x0001C000;       // 128 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_256 = 0x00020000;       // 256 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_512 = 0x00024000;       // 512 Transfers
-        constexpr static uint32_t CHCTL_ARBSIZE_1024 = 0x00028000;      // 1024 Transfers
-        constexpr static uint32_t CHCTL_XFERSIZE_M = 0x00003FF0;        // Transfer Size (minus 1)
-        constexpr static uint32_t CHCTL_NXTUSEBURST = 0x00000008;       // Next Useburst
-        constexpr static uint32_t CHCTL_XFERMODE_M = 0x00000007;        // uDMA Transfer Mode
-        constexpr static uint32_t CHCTL_XFERMODE_STOP = 0x00000000;     // Stop
-        constexpr static uint32_t CHCTL_XFERMODE_BASIC = 0x00000001;    // Basic
-        constexpr static uint32_t CHCTL_XFERMODE_AUTO = 0x00000002;     // Auto-Request
-        constexpr static uint32_t CHCTL_XFERMODE_PINGPONG = 0x00000003; // Ping-Pong
-        constexpr static uint32_t CHCTL_XFERMODE_MEM_SG = 0x00000004;   // Memory Scatter-Gather
-        constexpr static uint32_t CHCTL_XFERMODE_MEM_SGA = 0x00000005;  // Alternate Memory Scatter-Gather
-        constexpr static uint32_t CHCTL_XFERMODE_PER_SG = 0x00000006;   // Peripheral Scatter-Gather
-        constexpr static uint32_t CHCTL_XFERMODE_PER_SGA = 0x00000007;  // Alternate Peripheral Scatter-Gather
-        constexpr static uint32_t CHCTL_XFERSIZE_S = 4;
+        constexpr uint32_t SYSCTL_PERIPH_UDMA = 0x00000001;
+        constexpr uint32_t UDMA_CFG_MASTEN = 0x00000001;
+        constexpr uint32_t UDMA_CHCTL_XFERSIZE_M = 0x00003FF0;
+        constexpr uint32_t UDMA_CHCTL_XFERMODE_M = 0x00000007;
+        constexpr uint32_t UDMA_CHCTL_SRCINC_M = 0x0C000000;
+        constexpr uint32_t UDMA_CHCTL_DSTINC_M = 0xC0000000;
+        constexpr uint32_t UDMA_CHCTL_DSTSIZE_M = 0x30000000;
+        constexpr uint32_t UDMA_CHCTL_SRCSIZE_M = 0x03000000;
+        constexpr uint32_t UDMA_CHCTL_ARBSIZE_M = 0x0003C000;
+        constexpr uint32_t UDMA_CHCTL_NXTUSEBURST = 0x00000008;
+        constexpr uint32_t UDMA_CHMAP0 = 0x400FF510;
 
-        volatile uint32_t& HardwareRegister(uint32_t reg)
+        struct Control
+        {
+            volatile void* sourceEndAddress;
+            volatile void* destinationEndAddress;
+            volatile uint32_t channelControl;
+            volatile uint32_t reserved;
+        };
+
+        constexpr std::array<uint32_t, 4> udmaDstInc = { {
+            0x00000000,
+            0x40000000,
+            0x80000000,
+            0xc0000000,
+        } };
+
+        constexpr std::array<uint32_t, 4> udmaSrcInc = { {
+            0x00000000,
+            0x04000000,
+            0x08000000,
+            0x0c000000,
+        } };
+
+        constexpr DmaChannel::Attributes allAttributes{ true, true, true, true };
+
+        volatile uint32_t& Reg(uint32_t reg)
         {
             return *reinterpret_cast<volatile uint32_t*>(reg);
         }
 
-        uint32_t ChannelControlMask()
+        uint32_t ControlSetMask()
         {
-            return CHCTL_DSTINC_M | CHCTL_DSTSIZE_M | CHCTL_SRCINC_M | CHCTL_SRCSIZE_M | CHCTL_ARBSIZE_M | CHCTL_NXTUSEBURST;
+            return UDMA_CHCTL_DSTINC_M | UDMA_CHCTL_DSTSIZE_M | UDMA_CHCTL_SRCINC_M | UDMA_CHCTL_SRCSIZE_M | UDMA_CHCTL_ARBSIZE_M | UDMA_CHCTL_NXTUSEBURST;
         }
 
-        template<class T>
-        uint32_t ConvertEnumToUint32(const T& data, std::size_t offset)
-        {
-            return static_cast<uint32_t>(data) << offset;
-        }
-
-        uint32_t ChannelControlSet(const DmaChannel::Configuration& config)
-        {
-            auto data = ConvertEnumToUint32(config.destinationIncrement, 30);
-            data |= ConvertEnumToUint32(config.dataSize, 28);
-            data |= ConvertEnumToUint32(config.sourceIncrement, 26);
-            data |= ConvertEnumToUint32(config.dataSize, 24);
-            data |= ConvertEnumToUint32(config.arbitrationSize, 14);
-
-            return data;
-        }
-
-        volatile void* GoToEndAddress(volatile void* address, const DmaChannel::Increment& increment, std::size_t size)
+        volatile void* GoToEndAddress(volatile void* address, DmaChannel::Increment increment, std::size_t size)
         {
             uint32_t bufferAddress = 0;
 
@@ -87,117 +60,214 @@ namespace hal::tiva
 
             return static_cast<volatile void*>(reinterpret_cast<volatile uint32_t*>(address) + bufferAddress);
         }
+
+        void Enable()
+        {
+            UDMA->CFG = UDMA_CFG_MASTEN;
+        }
+
+        void Disable()
+        {
+            UDMA->CFG &= ~UDMA_CFG_MASTEN;
+        }
+
+        bool ErrorStatusGet()
+        {
+            return UDMA->ERRCLR;
+        }
+
+        void ErrorStatusClear()
+        {
+            UDMA->ERRCLR = 1;
+        }
+
+        void ChannelEnable(uint8_t channelNumber)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+            UDMA->ENASET = mask;
+        }
+
+        void ChannelDisable(uint8_t channelNumber)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+            UDMA->ENACLR = mask;
+        }
+
+        bool IsChannelEnabled(uint8_t channelNumber)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+            return (UDMA->ENASET & mask) != 0;
+        }
+
+        void SetControlBase(const uint32_t& address)
+        {
+            really_assert((address & ~0x3FF) == address);
+            really_assert(address >= 0x2000000);
+
+            UDMA->CTLBASE = address;
+        }
+
+        void ChannelRequest(uint8_t channelNumber)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+            UDMA->SWREQ = mask;
+        }
+
+        void ChannelAttributeEnable(uint8_t channelNumber, DmaChannel::Attributes attributes)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+
+            if (attributes.useBurst)
+                UDMA->USEBURSTSET |= mask;
+
+            if (attributes.alternate)
+                UDMA->ALTSET |= mask;
+
+            if (attributes.highPriority)
+                UDMA->PRIOSET |= mask;
+
+            if (attributes.requestMask)
+                UDMA->REQMASKSET |= mask;
+        }
+
+        void ChannelAttributeDisable(uint8_t channelNumber, DmaChannel::Attributes attributes)
+        {
+            really_assert(channelNumber < 32);
+            auto mask = 1 << channelNumber;
+
+            if (attributes.useBurst)
+                UDMA->USEBURSTCLR |= mask;
+
+            if (attributes.alternate)
+                UDMA->ALTCLR |= mask;
+
+            if (attributes.highPriority)
+                UDMA->PRIOCLR |= mask;
+
+            if (attributes.requestMask)
+                UDMA->REQMASKCLR |= mask;
+        }
+
+        void ChannelControlSet(uint8_t channelNumber, const DmaChannel::ControlBlock& control)
+        {
+            really_assert(channelNumber < 32);
+            auto controlArray = reinterpret_cast<Control*>(UDMA->CTLBASE);
+            controlArray[channelNumber].channelControl = (controlArray[channelNumber].channelControl & ~(ControlSetMask())) | control.Read();
+        }
+
+        void ChannelSetTransfer(uint8_t channelNumber, DmaChannel::Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size)
+        {
+            really_assert(size > 0 && size <= 1024);
+            really_assert(channelNumber < 32);
+
+            auto index = channelNumber * sizeof(Control) / sizeof(uint32_t);
+            auto controlArray = reinterpret_cast<Control*>(UDMA->CTLBASE);
+            auto control = &controlArray[index];
+
+            auto localControl = (control->channelControl & ~(UDMA_CHCTL_XFERSIZE_M | UDMA_CHCTL_XFERMODE_M));
+            localControl |= (size - 1) << 4;
+            localControl |= static_cast<uint32_t>(transfer);
+
+            control->sourceEndAddress = GoToEndAddress(sourceAddress, static_cast<DmaChannel::Increment>((localControl & UDMA_CHCTL_SRCINC_M) >> 26), size);
+            control->destinationEndAddress = GoToEndAddress(destinationAddress, static_cast<DmaChannel::Increment>((localControl & UDMA_CHCTL_DSTINC_M) >> 30), size);
+            control->channelControl = localControl;
+        }
+
+        void ChannelAssignMapping(uint8_t channelNumber, uint8_t mapping)
+        {
+            really_assert(channelNumber < 32);
+            really_assert(mapping < 16);
+
+            auto mapRegister = UDMA_CHMAP0 + static_cast<uint32_t>((channelNumber / 8) * 4);
+            auto mapShift = (channelNumber % 8) * 4;
+
+            Reg(mapRegister) = (Reg(mapRegister) & ~(0xf << mapShift)) | mapping << mapShift;
+        }
     }
 
     std::array<uint8_t, 1024> Dma::controlTable alignas(1024);
+
+    uint32_t DmaChannel::ControlBlock::Read() const
+    {
+        return (udmaDstInc[static_cast<uint32_t>(destinationIncrement)]) |
+               (udmaSrcInc[static_cast<uint32_t>(sourceIncrement)]) |
+               (static_cast<uint32_t>(dataSize)) |
+               (static_cast<uint32_t>(arbitrationSize));
+    }
 
     Dma::Dma(const infra::Function<void()>& onError)
         : onError(onError)
     {
         EnableClock();
-        Initialize();
+        Enable();
+        SetControlBase(reinterpret_cast<uint32_t>(Dma::controlTable.data()));
 
         Register(UDMAERR_IRQn);
     }
 
     Dma::~Dma()
     {
+        Disable();
+        DisableClock();
+    }
+
+    bool Dma::IsEnabled() const
+    {
+        return (UDMA->CFG & UDMA_CFG_MASTEN) != 0;
     }
 
     void Dma::Invoke()
     {
-        if (auto status = UDMA->ERRCLR; status != 0)
+        if (ErrorStatusGet())
         {
-            UDMA->ERRCLR = 1;
-            this->onError();
+            ErrorStatusClear();
+            onError();
         }
     }
 
     void Dma::EnableClock() const
     {
-        SYSCTL->RCGCDMA |= 1;
+        SYSCTL->RCGCDMA |= SYSCTL_PERIPH_UDMA;
+
+        while (!(SYSCTL->PRDMA & SYSCTL_PERIPH_UDMA))
+        {
+            // Wait for the DMA module to be ready
+        }
     }
 
-    void Dma::Initialize() const
+    void Dma::DisableClock() const
     {
-        auto startAddreses = reinterpret_cast<uint32_t>(&controlTable[0]);
-
-        really_assert((startAddreses & ~0x3FF) == startAddreses);
-        really_assert(startAddreses >= 0x2000000);
-
-        UDMA->CFG |= 1;
-        UDMA->CTLBASE = startAddreses;
+        SYSCTL->RCGCDMA &= ~SYSCTL_PERIPH_UDMA;
     }
 
-    DmaChannel::DmaChannel(const Channel& channel)
+    DmaChannel::DmaChannel(Dma& dma, const Channel& channel, const Configuration& configuration)
         : channel(channel)
     {
-        really_assert(Dma::InstanceSet());
+        really_assert(dma.IsEnabled());
 
-        SetChannel();
+        ChannelAttributeDisable(channel.number, allAttributes);
+        ChannelAssignMapping(channel.number, channel.mapping);
+        ChannelControlSet(channel.number, configuration.controlBlock);
+        ChannelAttributeEnable(channel.number, configuration.attributes);
     }
 
-    void DmaChannel::ConfigureChannel(const Configuration& configuration) const
+    DmaChannel::~DmaChannel()
     {
-        DisableAllAttributes();
+        if (IsChannelEnabled(channel.number))
+            ChannelDisable(channel.number);
 
-        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
-        auto index = channel.number + static_cast<uint32_t>(configuration.type);
-        auto control = &controlArray[index];
-
-        control->channelControl = (control->channelControl & ~ChannelControlMask()) | ChannelControlSet(configuration);
+        ChannelAttributeDisable(channel.number, allAttributes);
     }
 
-    void DmaChannel::StartTransfer() const
+    void DmaChannel::StartTransfer(Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const
     {
-        UDMA->ENASET = 1 << channel.number;
-    }
-
-    DmaChannel::Transfer DmaChannel::Mode(Type type) const
-    {
-        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
-        auto index = channel.number + static_cast<uint32_t>(type);
-        auto control = &controlArray[index];
-
-        return static_cast<DmaChannel::Transfer>(control->channelControl & CHCTL_XFERMODE_M);
-    }
-
-    void DmaChannel::DisableAllAttributes() const
-    {
-        UDMA->USEBURSTCLR |= 1 << channel.number;
-        UDMA->ALTCLR |= 1 << channel.number;
-        UDMA->PRIOCLR |= 1 << channel.number;
-        UDMA->REQMASKCLR |= 1 << channel.number;
-    }
-
-    void DmaChannel::SetChannel() const
-    {
-        const uint32_t channelMapSelect0 = 0x400FF510;
-
-        auto mapEncodingRegister = channelMapSelect0 + static_cast<uint32_t>((channel.number / 8) * 4);
-        auto shift = (channel.number % 8) * 4;
-
-        HardwareRegister(mapEncodingRegister) = HardwareRegister(mapEncodingRegister) & ~(0xf << shift) | channel.mapping << shift;
-    }
-
-    void DmaChannel::ConfigureTransfer(Type type, Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const
-    {
-        really_assert(size <= 1024);
-        really_assert(reinterpret_cast<uint32_t>(sourceAddress) >= 0x20000000);
-        really_assert(reinterpret_cast<uint32_t>(destinationAddress) >= 0x20000000);
-
-        auto controlArray = reinterpret_cast<DmaChannel::Control*>(UDMA->CTLBASE);
-        auto index = channel.number + static_cast<uint32_t>(type);
-        auto control = &controlArray[index];
-
-        UDMA->USEBURSTSET |= 1 << channel.number;
-
-        auto localControl = (control->channelControl & ~(CHCTL_XFERSIZE_M | CHCTL_XFERMODE_M));
-        localControl |= (size - 1) << 4;
-        localControl |= static_cast<uint32_t>(transfer);
-
-        control->sourceEndAddress = GoToEndAddress(sourceAddress, static_cast<Increment>((localControl & CHCTL_SRCINC_M) >> 26), size);
-        control->destinationEndAddress = GoToEndAddress(destinationAddress, static_cast<Increment>((localControl & CHCTL_DSTINC_M) >> 30), size);
-        control->channelControl = localControl;
+        ChannelSetTransfer(channel.number, transfer, sourceAddress, destinationAddress, size);
+        ChannelEnable(channel.number);
+        ChannelRequest(channel.number);
     }
 }
