@@ -1,8 +1,5 @@
 #include "hal_tiva/tiva/UartWithDma.hpp"
 #include "hal_tiva/tiva/Dma.hpp"
-#include "infra/event/EventDispatcher.hpp"
-#include "infra/util/BitLogic.hpp"
-#include "infra/util/BoundedVector.hpp"
 #include "infra/util/MemoryRange.hpp"
 
 namespace hal::tiva
@@ -40,43 +37,55 @@ namespace hal::tiva
         constexpr const uint32_t UART_ICR_DCDMIC = 0x00000004;  // UART Data Carrier Detect Modem Interrupt Clear
         constexpr const uint32_t UART_ICR_CTSMIC = 0x00000002;  // UART Clear to Send Modem Interrupt Clear
         constexpr const uint32_t UART_ICR_RIMIC = 0x00000001;   // UART Ring Indicator Modem Interrupt Clear
+
+        struct UartDma
+        {
+            DmaChannel::Channel tx;
+            DmaChannel::Channel rx;
+        };
+
+        constexpr const std::array<UartDma, 8> uartDmaChannels = { {
+            { { 9, 0 }, { 8, 0 } },
+            { { 23, 0 }, { 22, 0 } },
+            { { 1, 1 }, { 0, 1 } },
+            { { 17, 2 }, { 16, 2 } },
+            { { 19, 2 }, { 18, 2 } },
+            { { 7, 2 }, { 6, 2 } },
+            { { 11, 2 }, { 10, 2 } },
+            { { 21, 2 }, { 20, 2 } },
+        } };
     }
 
-    UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer1, infra::MemoryRange<uint8_t> rxBuffer2, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, DmaChannel& dmaTx, DmaChannel& dmaRx, const Config& config)
+    UartWithDma::UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
         : Uart(aUartIndex, uartTx, uartRx, config)
-        , rxBuffer1(rxBuffer1)
-        , rxBuffer2(rxBuffer2)
-        , dmaTx(dmaTx)
-        , dmaRx(dmaRx)
+        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ allAttributes, controlBlockTx } }
+        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ allAttributes, controlBlockRx } }
     {
         Initialize();
     }
 
-    UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer1, infra::MemoryRange<uint8_t> rxBuffer2, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, DmaChannel& dmaTx, DmaChannel& dmaRx, const Config& config)
-        : Uart(aUartIndex, uartTx, uartRx, uartRts, uartCts, config)
-        , rxBuffer1(rxBuffer1)
-        , rxBuffer2(rxBuffer2)
-        , dmaTx(dmaTx)
-        , dmaRx(dmaRx)
+    UartWithDma::UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, Dma& dma, const Config& config)
+        : Uart{ aUartIndex, uartTx, uartRx, uartRts, uartCts, config }
+        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ allAttributes, controlBlockTx } }
+        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ allAttributes, controlBlockRx } }
     {
         Initialize();
     }
 
     UartWithDma::~UartWithDma()
     {
-        // Disable AND/OR stop DMA....
+        DisableTxDma();
+        DisableRxDma();
+        DisableUart();
     }
 
     void UartWithDma::Initialize() const
     {
         DisableUart();
-        SetFifo(Uart::Fifo::_4_8, Uart::Fifo::_4_8);
-        EnableDma();
+        SetFifo(Uart::Fifo::_1_8, Uart::Fifo::_4_8);
+        EnableRxDma();
+        EnableTxDma();
         EnableUart();
-
-        dmaTx.ConfigureChannel(configTx);
-        dmaRx.ConfigureChannel(configRxPrimary);
-        dmaRx.ConfigureChannel(configRxSecondary);
     }
 
     void UartWithDma::SendData(infra::MemoryRange<const uint8_t> data, infra::Function<void()> actionOnCompletion)
@@ -84,7 +93,7 @@ namespace hal::tiva
         transferDataComplete = actionOnCompletion;
         sendData = data;
         sending = true;
-        bytesSent = sendData.size() <= maxTransferSize ? sendData.size() : maxTransferSize;
+        bytesSent = sendData.size() < dmaTx.MaxTransferSize() ? sendData.size() : dmaTx.MaxTransferSize();
 
         SendData();
     }
@@ -98,35 +107,23 @@ namespace hal::tiva
 
     void UartWithDma::ReceiveData() const
     {
-        dmaRx.ConfigureTransfer(DmaChannel::Type::primary, DmaChannel::Transfer::pingPong, &uartArray[uartIndex]->DR, rxBuffer1.begin(), rxBuffer1.size());
-        dmaRx.ConfigureTransfer(DmaChannel::Type::secondary, DmaChannel::Transfer::pingPong, &uartArray[uartIndex]->DR, rxBuffer2.begin(), rxBuffer2.size());
-        dmaRx.StartTransfer();
     }
 
     void UartWithDma::SendData() const
     {
-        dmaTx.ConfigureTransfer(DmaChannel::Type::primary, DmaChannel::Transfer::basic, infra::ConstCastMemoryRange(sendData).begin(), &uartArray[uartIndex]->DR, bytesSent);
-        dmaTx.StartTransfer();
+        dmaTx.StartTransfer(DmaChannel::Transfer::basic, infra::ConstCastMemoryRange(sendData).begin(), &uartArray[uartIndex]->DR, bytesSent);
     }
 
     void UartWithDma::Invoke()
     {
-        volatile uint32_t status = uartArray[uartIndex]->RIS;
-        uartArray[uartIndex]->ICR |= status;
+        auto status = InterruptStatus();
 
-        if (status & UART_RIS_DMARXRIS) // Data received
-            ProcessDmaRxInterrupt();
-
-#if 0
-        if (status & UART_RIS_DMATXRIS) // Data transfered to UART fifo
-
-        if (status & UART_RIS_RTRIS) // Rx timeout
-#endif
-
-        if (status & UART_RIS_EOTRIS && sending) // End of transmission
+        if (status & UART_RIS_DMATXRIS)
         {
+            InterruptClear(UART_ICR_DMATXIC);
+
             sendData.shrink_from_front_to(sendData.size() - bytesSent);
-            bytesSent = sendData.size() <= maxTransferSize ? sendData.size() : maxTransferSize;
+            bytesSent = sendData.size() <= dmaTx.MaxTransferSize() ? sendData.size() : dmaTx.MaxTransferSize();
 
             if (!sendData.empty())
                 SendData();
@@ -137,21 +134,6 @@ namespace hal::tiva
                 infra::EventDispatcher::Instance().Schedule(transferDataComplete);
                 transferDataComplete = nullptr;
             }
-        }
-    }
-
-    void UartWithDma::ProcessDmaRxInterrupt() const
-    {
-        if (dmaRx.Mode(DmaChannel::Type::primary) == DmaChannel::Transfer::stop)
-        {
-            this->dataReceived(rxBuffer1);
-            dmaRx.ConfigureTransfer(DmaChannel::Type::primary, DmaChannel::Transfer::pingPong, &uartArray[uartIndex]->DR, rxBuffer1.begin(), rxBuffer1.size());
-        }
-
-        if (dmaRx.Mode(DmaChannel::Type::secondary) == DmaChannel::Transfer::stop)
-        {
-            this->dataReceived(rxBuffer2);
-            dmaRx.ConfigureTransfer(DmaChannel::Type::secondary, DmaChannel::Transfer::pingPong, &uartArray[uartIndex]->DR, rxBuffer2.begin(), rxBuffer2.size());
         }
     }
 }

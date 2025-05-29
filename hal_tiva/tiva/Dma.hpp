@@ -103,6 +103,7 @@ namespace hal::tiva
         ~DmaChannel();
 
         void StartTransfer(Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const;
+        std::size_t MaxTransferSize() const;
 
     private:
         const Channel& channel;

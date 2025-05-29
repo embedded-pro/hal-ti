@@ -268,6 +268,13 @@ namespace hal::tiva
     {
         ChannelSetTransfer(channel.number, transfer, sourceAddress, destinationAddress, size);
         ChannelEnable(channel.number);
-        ChannelRequest(channel.number);
+        // ChannelRequest(channel.number);
+    }
+
+    std::size_t DmaChannel::MaxTransferSize() const
+    {
+        constexpr static std::size_t maxTransferSize = 1024;
+
+        return maxTransferSize;
     }
 }

@@ -11,12 +11,9 @@ namespace hal::tiva
         : public Uart
     {
     public:
-        template<std::size_t RxBufferSize>
-        using WithRxBuffer = infra::WithStorage<infra::WithStorage<UartWithDma, std::array<uint8_t, RxBufferSize / 2>>, std::array<uint8_t, RxBufferSize / 2>>;
-
-        UartWithDma(infra::MemoryRange<uint8_t> rxBuffer1, infra::MemoryRange<uint8_t> rxBuffer2, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, DmaChannel& dmaTx, DmaChannel& dmaRx, const Config& config = Config(true, true));
-        UartWithDma(infra::MemoryRange<uint8_t> rxBuffer1, infra::MemoryRange<uint8_t> rxBuffer2, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, DmaChannel& dmaTx, DmaChannel& dmaRx, const Config& config = Config(true, true));
-        virtual ~UartWithDma();
+        UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config = Config(true, true));
+        UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, Dma& dma, const Config& config = Config(true, true));
+        ~UartWithDma();
 
         void SendData(infra::MemoryRange<const uint8_t> data, infra::Function<void()> actionOnCompletion = infra::emptyFunction) override;
         void ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived) override;
@@ -26,21 +23,13 @@ namespace hal::tiva
         void SendData() const;
         void ReceiveData() const;
         void Invoke() override;
-        void ProcessDmaRxInterrupt() const;
 
     private:
-        const DmaChannel::Increment inc8Bits = DmaChannel::Increment::_8_bits;
-        const DmaChannel::Increment incNone = DmaChannel::Increment::none;
-        const DmaChannel::DataSize dataSize = DmaChannel::DataSize::_8_bits;
-        const DmaChannel::ArbitrationSize arbSize = DmaChannel::ArbitrationSize::_4_items;
-        const DmaChannel::Configuration configTx{ DmaChannel::Type::primary, inc8Bits, incNone, dataSize, arbSize };
-        const DmaChannel::Configuration configRxPrimary{ DmaChannel::Type::primary, incNone, inc8Bits, dataSize, arbSize };
-        const DmaChannel::Configuration configRxSecondary{ DmaChannel::Type::secondary, incNone, inc8Bits, dataSize, arbSize };
-        const std::size_t maxTransferSize = 128;
-        infra::MemoryRange<uint8_t> rxBuffer1;
-        infra::MemoryRange<uint8_t> rxBuffer2;
-        DmaChannel& dmaTx;
-        DmaChannel& dmaRx;
+        const DmaChannel::Attributes allAttributes{ false, true, true, true };
+        const DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        const DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        DmaChannel dmaTx;
+        DmaChannel dmaRx;
         std::size_t bytesSent = 0;
     };
 }
