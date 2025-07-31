@@ -99,10 +99,22 @@ namespace hal::tiva
             uint8_t mapping;
         };
 
+        struct Buffers
+        {
+            volatile void* sourceAddress;
+            volatile void* destinationAddress;
+            std::size_t size;
+        };
+
         DmaChannel(Dma& dma, const Channel& channel, const Configuration& configuration);
         ~DmaChannel();
 
-        void StartTransfer(Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const;
+        void StartTransfer(Transfer transfer, const Buffers& buffer) const;
+        void StartPingPongTransfer(const Buffers& primaryBuffer, const Buffers& alternateBuffer) const;
+        bool IsPrimaryTransferCompleted() const;
+        bool IsAlternateTransferCompleted() const;
+        void StopTransfer() const;
+        void ForceRequest() const;
         std::size_t MaxTransferSize() const;
 
     private:

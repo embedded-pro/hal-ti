@@ -56,18 +56,22 @@ namespace hal::tiva
         } };
     }
 
-    UartWithDma::UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
+    UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
         : Uart(aUartIndex, uartTx, uartRx, config)
-        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ allAttributes, controlBlockTx } }
-        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ allAttributes, controlBlockRx } }
+        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ txAttributes, controlBlockTx } }
+        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ rxAttributes, controlBlockRx } }
+        , rxBufferPrimary{ rxBuffer.begin(), rxBuffer.begin() + rxBuffer.size() / 2 }
+        , rxBufferAlternate{ rxBuffer.begin() + rxBuffer.size() / 2, rxBuffer.end() }
     {
         Initialize();
     }
 
-    UartWithDma::UartWithDma(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, Dma& dma, const Config& config)
+    UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, Dma& dma, const Config& config)
         : Uart{ aUartIndex, uartTx, uartRx, uartRts, uartCts, config }
-        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ allAttributes, controlBlockTx } }
-        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ allAttributes, controlBlockRx } }
+        , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ txAttributes, controlBlockTx } }
+        , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ rxAttributes, controlBlockRx } }
+        , rxBufferPrimary{ rxBuffer.begin(), rxBuffer.begin() + rxBuffer.size() / 2 }
+        , rxBufferAlternate{ rxBuffer.begin() + rxBuffer.size() / 2, rxBuffer.end() }
     {
         Initialize();
     }
@@ -107,11 +111,83 @@ namespace hal::tiva
 
     void UartWithDma::ReceiveData() const
     {
+        DmaChannel::Buffers primaryBuffers{ reinterpret_cast<volatile void*>(&(uartArray[uartIndex]->DR)), rxBufferPrimary.begin(), rxBufferPrimary.size() };
+        DmaChannel::Buffers alternateBuffers{ reinterpret_cast<volatile void*>(&(uartArray[uartIndex]->DR)), rxBufferAlternate.begin(), rxBufferAlternate.size() };
+
+        dmaRx.StartPingPongTransfer(primaryBuffers, alternateBuffers);
     }
 
     void UartWithDma::SendData() const
     {
-        dmaTx.StartTransfer(DmaChannel::Transfer::basic, infra::ConstCastMemoryRange(sendData).begin(), &uartArray[uartIndex]->DR, bytesSent);
+        dmaTx.StartTransfer(DmaChannel::Transfer::basic, DmaChannel::Buffers{ infra::ConstCastMemoryRange(sendData).begin(), &uartArray[uartIndex]->DR, bytesSent });
+    }
+
+    void UartWithDma::ProcessDmaTx()
+    {
+        sendData.shrink_from_front_to(sendData.size() - bytesSent);
+        bytesSent = sendData.size() <= dmaTx.MaxTransferSize() ? sendData.size() : dmaTx.MaxTransferSize();
+
+        if (!sendData.empty())
+            SendData();
+
+        if (sendData.empty())
+        {
+            sending = false;
+            infra::EventDispatcher::Instance().Schedule(transferDataComplete);
+            transferDataComplete = nullptr;
+        }
+    }
+
+    void UartWithDma::ProcessDmaRx() const
+    {
+        if (dmaRx.IsPrimaryTransferCompleted())
+            dataReceived(rxBufferPrimary);
+        else
+            dataReceived(rxBufferAlternate);
+    }
+
+    void UartWithDma::ProcessRxTimeout()
+    {
+        // Timeout handling in ping-pong mode is complex
+        // Simple approach: stop ping-pong, process partial data, restart
+        auto channelNumber = uartDmaChannels[uartIndex].rx.number;
+
+        // Disable the channel to stop transfers
+        UDMA->ENACLR = (1 << channelNumber);
+
+        // Check which buffer was being filled and how much data is there
+        auto controlArray = reinterpret_cast<volatile Control*>(UDMA->CTLBASE);
+        bool wasUsingAlternate = (UDMA->ALTSET & (1 << channelNumber)) != 0;
+
+        dmaRx.StopTransfer();
+
+        if (wasUsingAlternate)
+        {
+            // Was filling alternate buffer
+            auto alternateControl = &controlArray[channelNumber + 32];
+            auto remainingTransfers = ((alternateControl->channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
+            auto bytesReceived = rxBufferAlternate.size() - remainingTransfers;
+
+            if (bytesReceived > 0 && dataReceived != nullptr)
+            {
+                dataReceived(infra::MakeRange(rxBufferAlternate.begin(), rxBufferAlternate.begin() + bytesReceived));
+            }
+        }
+        else
+        {
+            // Was filling primary buffer
+            auto primaryControl = &controlArray[channelNumber];
+            auto remainingTransfers = ((primaryControl->channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
+            auto bytesReceived = rxBufferPrimary.size() - remainingTransfers;
+
+            if (bytesReceived > 0 && dataReceived != nullptr)
+            {
+                dataReceived(infra::MakeRange(rxBufferPrimary.begin(), rxBufferPrimary.begin() + bytesReceived));
+            }
+        }
+
+        // Restart the ping-pong operation
+        ReceiveData();
     }
 
     void UartWithDma::Invoke()
@@ -121,19 +197,19 @@ namespace hal::tiva
         if (status & UART_RIS_DMATXRIS)
         {
             InterruptClear(UART_ICR_DMATXIC);
+            ProcessDmaTx();
+        }
 
-            sendData.shrink_from_front_to(sendData.size() - bytesSent);
-            bytesSent = sendData.size() <= dmaTx.MaxTransferSize() ? sendData.size() : dmaTx.MaxTransferSize();
+        if (status & UART_RIS_DMARXRIS)
+        {
+            InterruptClear(UART_ICR_DMARXIC);
+            ProcessDmaRx();
+        }
 
-            if (!sendData.empty())
-                SendData();
-
-            if (sendData.empty())
-            {
-                sending = false;
-                infra::EventDispatcher::Instance().Schedule(transferDataComplete);
-                transferDataComplete = nullptr;
-            }
+        if (status & UART_RIS_RTRIS)
+        {
+            InterruptClear(UART_ICR_RTIC);
+            ProcessRxTimeout();
         }
     }
 }

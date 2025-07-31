@@ -17,6 +17,12 @@ namespace hal::tiva
         constexpr uint32_t UDMA_CHCTL_NXTUSEBURST = 0x00000008;
         constexpr uint32_t UDMA_CHMAP0 = 0x400FF510;
 
+        enum class ChannelType : uint8_t
+        {
+            primary,
+            alternate,
+        };
+
         struct Control
         {
             volatile void* sourceEndAddress;
@@ -160,14 +166,15 @@ namespace hal::tiva
             controlArray[channelNumber].channelControl = (controlArray[channelNumber].channelControl & ~(ControlSetMask())) | control.Read();
         }
 
-        void ChannelSetTransfer(uint8_t channelNumber, DmaChannel::Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size)
+        void ChannelSetTransfer(uint8_t channelNumber, ChannelType channelType, DmaChannel::Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size)
         {
             really_assert(size > 0 && size <= 1024);
+            really_assert(sourceAddress);
+            really_assert(destinationAddress);
             really_assert(channelNumber < 32);
 
-            auto index = channelNumber * sizeof(Control) / sizeof(uint32_t);
             auto controlArray = reinterpret_cast<Control*>(UDMA->CTLBASE);
-            auto control = &controlArray[index];
+            auto control = &controlArray[channelType == ChannelType::primary ? channelNumber : channelNumber + 32];
 
             auto localControl = (control->channelControl & ~(UDMA_CHCTL_XFERSIZE_M | UDMA_CHCTL_XFERMODE_M));
             localControl |= (size - 1) << 4;
@@ -187,6 +194,16 @@ namespace hal::tiva
             auto mapShift = (channelNumber % 8) * 4;
 
             Reg(mapRegister) = (Reg(mapRegister) & ~(0xf << mapShift)) | mapping << mapShift;
+        }
+
+        DmaChannel::Transfer ChannelGetMode(uint8_t channelNumber, ChannelType channelType)
+        {
+            really_assert(channelNumber < 32);
+
+            auto controlArray = reinterpret_cast<Control*>(UDMA->CTLBASE);
+            auto control = &controlArray[channelType == ChannelType::primary ? channelNumber : channelNumber + 32];
+
+            return static_cast<DmaChannel::Transfer>(control->channelControl & UDMA_CHCTL_XFERMODE_M);
         }
     }
 
@@ -264,11 +281,33 @@ namespace hal::tiva
         ChannelAttributeDisable(channel.number, allAttributes);
     }
 
-    void DmaChannel::StartTransfer(Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size) const
+    void DmaChannel::ForceRequest() const
     {
-        ChannelSetTransfer(channel.number, transfer, sourceAddress, destinationAddress, size);
+        ChannelRequest(channel.number);
+    }
+
+    void DmaChannel::StartTransfer(Transfer transfer, const Buffers& buffer) const
+    {
+        really_assert(transfer != Transfer::pingPong);
+        ChannelSetTransfer(channel.number, ChannelType::primary, transfer, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
         ChannelEnable(channel.number);
-        // ChannelRequest(channel.number);
+    }
+
+    void DmaChannel::StartPingPongTransfer(const Buffers& primaryBuffer, const Buffers& alternateBuffer) const
+    {
+        ChannelSetTransfer(channel.number, ChannelType::primary, Transfer::pingPong, primaryBuffer.sourceAddress, primaryBuffer.destinationAddress, primaryBuffer.size);
+        ChannelSetTransfer(channel.number, ChannelType::alternate, Transfer::pingPong, alternateBuffer.sourceAddress, alternateBuffer.destinationAddress, alternateBuffer.size);
+        ChannelEnable(channel.number);
+    }
+
+    bool DmaChannel::IsPrimaryTransferCompleted() const
+    {
+        return ChannelGetMode(channel.number, ChannelType::primary) == Transfer::stop;
+    }
+
+    bool DmaChannel::IsAlternateTransferCompleted() const
+    {
+        return ChannelGetMode(channel.number, ChannelType::alternate) == Transfer::stop;
     }
 
     std::size_t DmaChannel::MaxTransferSize() const
