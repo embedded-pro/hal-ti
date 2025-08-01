@@ -351,13 +351,18 @@ namespace
         else
             return 1U << ((result >> 1) + 1);
 #else
-        auto result = pwmBase->CC & (PWM_CC_USEPWMDIV | PWM_CC_PWMDIV_M);
+        auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
 
         if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
             return 1;
         else
             return 1U << (result + 1);
 #endif
+    }
+
+    float GetSystemCoreClock()
+    {
+        return static_cast<float>(SystemCoreClock);
     }
 
     uint32_t ToPeriod(PWM0_Type* const pwmBase, hal::Hertz& baseFrequency)
@@ -471,7 +476,7 @@ namespace hal::tiva
     {
         auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
-        really_assert((load & 0xffff) == 0);
+        really_assert(load < 0xffff);
 
         for (auto& generator : generators)
         {
@@ -561,7 +566,7 @@ namespace hal::tiva
 
     void SynchronousPwm::SetComparator(Generator& generator, hal::Percent& dutyCycle)
     {
-        really_assert(dutyCycle.Value() < 100);
+        really_assert(dutyCycle.Value() <= 100);
 
         auto comparator = GetLoad(generator) * dutyCycle.Value() / 100;
 
@@ -599,5 +604,19 @@ namespace hal::tiva
     void SynchronousPwm::DisableClock()
     {
         SYSCTL->RCGCPWM &= ~(1 << pwmIndex);
+    }
+
+    uint16_t SynchronousPwm::CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor)
+    {
+        static constexpr std::array<uint32_t, 7> divisorValues = { { 1, 2, 4, 8, 16, 32, 64 } };
+
+        auto divisorValue = divisorValues[static_cast<uint32_t>(divisor)];
+        auto pwmClockFreq = GetSystemCoreClock() / static_cast<float>(divisorValue);
+        auto deadTimeNs = static_cast<float>(deadTime.count());
+        auto cycles = static_cast<uint32_t>(deadTimeNs * pwmClockFreq / 1e9);
+
+        really_assert(cycles <= 4095);
+
+        return static_cast<uint16_t>(cycles);
     }
 }
