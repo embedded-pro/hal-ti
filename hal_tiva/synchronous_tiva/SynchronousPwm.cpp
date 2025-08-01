@@ -476,7 +476,7 @@ namespace hal::tiva
     {
         auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
-        really_assert(load < 0xffff);
+        really_assert(load <= 0xffff);
 
         for (auto& generator : generators)
         {
