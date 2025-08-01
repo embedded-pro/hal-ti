@@ -5,6 +5,7 @@
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
+#include <chrono>
 #include <optional>
 
 namespace hal::tiva
@@ -41,8 +42,8 @@ namespace hal::tiva
 
             struct DeadTime
             {
-                uint8_t fallInClockCycles = 0xff;
-                uint8_t riseInClockCycles = 0xff;
+                uint16_t fallInClockCycles = 0xffff;
+                uint16_t riseInClockCycles = 0xffff;
             };
 
             enum class ClockDivisor
@@ -102,6 +103,8 @@ namespace hal::tiva
         void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3) override;
         void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4) override;
         void Stop() override;
+
+        static uint16_t CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor);
 
     private:
         struct PwmChannelType
