@@ -5,9 +5,16 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 option(CMAKE_COMPILE_WARNING_AS_ERROR "Enable warnings-as-error" ON)
+option(HAL_TI_BUILD_TESTS "Enable building the tests" Off)
 option(HAL_TI_INCLUDE_DEFAULT_INIT "Include default initialization code; turn off when providing custom initialization" ON)
 option(HAL_TI_BUILD_EXAMPLES "Enable build of the examples" OFF)
 option(HAL_TI_BUILD_EXAMPLES_FREERTOS "Enable build of the FreeRTOS example" OFF)
+
+if (HAL_TI_BUILD_TESTS)
+    # CTest cannot be included before the first project() statement, but amp-embedded-infa-lib
+    # needs to see that test utilities need to be built.
+    set(BUILD_TESTING On)
+endif()
 
 if (HAL_TI_STANDALONE)
     set(EMIL_INCLUDE_FREERTOS ${HAL_TI_BUILD_EXAMPLES_FREERTOS})
@@ -36,6 +43,11 @@ if (HAL_TI_STANDALONE)
     set(HAL_TI_EXCLUDE_FROM_ALL "")
 else()
     set(HAL_TI_EXCLUDE_FROM_ALL "EXCLUDE_FROM_ALL")
+endif()
+
+if (HALST_BUILD_TESTS)
+    include(CTest)
+    emil_enable_testing()
 endif()
 
 add_subdirectory(tiva)
