@@ -10,4 +10,4 @@ ignore:
   - .vscode
   - hal_ti/tiva/Clock*
   - megalinter-reports
-  - ti
+  - tiva
