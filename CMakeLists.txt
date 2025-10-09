@@ -41,6 +41,9 @@ endif()
 add_subdirectory(tiva)
 add_subdirectory(hal_tiva)
 add_subdirectory(examples)
+if (HAL_TI_STANDALONE)
+    add_subdirectory(integration_test)
+endif()
 
 emil_clangformat_directories(hal_tiva DIRECTORIES .)
 
