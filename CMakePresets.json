@@ -18,7 +18,8 @@
       "description": "Build required tools for host",
       "inherits": "defaults",
       "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel"
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release;RelWithDebInfo;MinSizeRel",
+        "HAL_TI_BUILD_TESTS": true
       },
       "generator": "Ninja Multi-Config"
     },
