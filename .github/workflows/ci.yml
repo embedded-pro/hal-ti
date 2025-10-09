@@ -32,13 +32,13 @@ jobs:
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: "host"
-          buildPreset: "host-Debug-WithPackage"
+          buildPreset: "host-Debug"
           testPreset: "host"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: hal_st
-          path: build/host/hal_st-*-Linux.tar.gz
+          name: hal_ti
+          path: build/host/hal_ti-*-Linux.tar.gz
           if-no-files-found: error
       - name: Upload test logs
         if: ${{ failure() }}
@@ -108,9 +108,9 @@ jobs:
           save: ${{ github.ref == 'refs/heads/main' }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          name: hal_st
-      - run: tar -zxvf hal_st-*.tar.gz
-      - run: mkdir install && mv hal_st-*/* install/
+          name: hal_ti
+      - run: tar -zxvf hal_ti-*.tar.gz
+      - run: mkdir install && mv hal_ti-*/* install/
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
           configurePreset: ${{ matrix.target }}

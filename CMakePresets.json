@@ -70,6 +70,11 @@
       "configuration": "RelWithDebInfo",
       "configurePreset": "host"
     },
+        {
+      "name": "host-Debug",
+      "configuration": "Debug",
+      "configurePreset": "host"
+    },
     {
       "name": "tm4c123gh6pm-RelWithDebInfo",
       "configuration": "RelWithDebInfo",
