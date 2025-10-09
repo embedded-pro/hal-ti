@@ -1,17 +1,17 @@
-# embedded-hal-ti
+# hal-ti
 
 [![Linting & Formatting](https://github.com/embedded-pro/hal-ti/actions/workflows/linting-formatting.yml/badge.svg)](https://github.com/embedded-pro/hal-ti/actions/workflows/linting-formatting.yml)
 
-**Description**: embedded-hal-ti is a HAL (Hardware Abstraction Layer) implementation for a range of [Texas Instruments](https://ti.com) ARM Cortex-based micro-controllers. embedded-hal-ti implements the interfaces defined as part of [embedded-infra-lib].
+**Description**: hal-ti is a HAL (Hardware Abstraction Layer) implementation for a range of [Texas Instruments](https://ti.com) ARM Cortex-based micro-controllers. hal-ti implements the interfaces defined as part of [embedded-infra-lib].
 
 ## Dependencies
 
-embedded-hal-ti requires:
+hal-ti requires:
 - [embedded-infra-lib].
 
 ## How to build the software
 
-embedded-hal-ti cannot be built by-itself, it must be built as part of a larger project. This paragraph describes how to add embedded-hal-ti to a CMake build-system, using [embedded-infra-lib].
+hal-ti cannot be built by-itself, it must be built as part of a larger project. This paragraph describes how to add hal-ti to a CMake build-system, using [embedded-infra-lib].
 
 > CMakeLists.txt
 
@@ -25,13 +25,13 @@ include(FetchContent)
 FetchContent_Declare(
     emil
     GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
-    GIT_TAG        embedded
+    GIT_TAG        main
 )
 
 FetchContent_Declare(
     halst
-    GIT_REPOSITORY https://github.com/embedded-pro/embedded-hal-ti.git
-    GIT_TAG        embedded
+    GIT_REPOSITORY https://github.com/embedded-pro/hal-ti.git
+    GIT_TAG        main
 )
 
 FetchContent_MakeAvailable(emil halst)
@@ -50,7 +50,7 @@ hal_ti_target_default_init(myprogram)
 
 ## How to test the software
 
-Due to the nature of embedded-hal-ti: a HAL implementation, there are no included automated tests. Testing should be done in-context on the target hardware.
+Due to the nature of hal-ti: a HAL implementation, there are no included automated tests. Testing should be done in-context on the target hardware.
 
 ## Community
 
@@ -66,6 +66,6 @@ In order to run the examples, please check the document [EK-TM4C123GXL](doc/EK-T
 
 ## License
 
-embedded-hal-ti is licensed under the [MIT](https://choosealicense.com/licenses/mit/) [license](LICENSE) except the files and/or directories named in the [notice](NOTICE) file.
+hal-ti is licensed under the [MIT](https://choosealicense.com/licenses/mit/) [license](LICENSE) except the files and/or directories named in the [notice](NOTICE) file.
 
 [embedded-infra-lib]: https://github.com/embedded-pro/embedded-infra-lib.git
