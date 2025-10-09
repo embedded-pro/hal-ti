@@ -7,6 +7,7 @@ ignore:
   - .devcontainer
   - .git
   - .github
+  - .gitlab
   - .vscode
   - hal_ti/tiva/Clock*
   - megalinter-reports
