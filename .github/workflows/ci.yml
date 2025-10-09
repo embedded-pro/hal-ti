@@ -66,9 +66,9 @@ jobs:
           save: ${{ github.ref == 'refs/heads/main' }}
       - uses: lukka/run-cmake@af1be47fd7c933593f687731bc6fdbee024d3ff4 # v10.8
         with:
-          configurePreset: "host-single-Debug"
-          buildPreset: "host-single-Debug"
-          testPreset: "host-single-Debug"
+          configurePreset: "host-Debug"
+          buildPreset: "host-Debug"
+          testPreset: "host-Debug"
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
       - name: Upload test logs
         if: ${{ failure() }}
