@@ -4,8 +4,6 @@ emil_add_test(integration_test.test)
 
 target_link_libraries(integration_test.test PUBLIC
     gmock_main
-    integration_test.logic
-    protobuf.test_doubles
 )
 
 target_sources(integration_test.test PRIVATE
