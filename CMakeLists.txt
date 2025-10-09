@@ -30,9 +30,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED On)
 
 set_directory_properties(PROPERTY USE_FOLDERS ON)
 
-# When building HalSt by itself do not exclude any targets from all
-# Libraries will only be excluded from all when HalSt is a consumed as a dependency.
-if (HAL_TI_STANDALONE AND NOT EMIL_HOST_BUILD)
+# When building hal-ti by itself do not exclude any targets from all
+# Libraries will only be excluded from all when hal-ti is a consumed as a dependency.
+if (HAL_TI_STANDALONE)
     set(HAL_TI_EXCLUDE_FROM_ALL "")
 else()
     set(HAL_TI_EXCLUDE_FROM_ALL "EXCLUDE_FROM_ALL")
