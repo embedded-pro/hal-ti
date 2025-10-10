@@ -22,7 +22,7 @@
       },
       "generator": "Ninja Multi-Config"
     },
-        {
+    {
       "name": "host-single-Debug",
       "displayName": "Configuration for Host Tooling and Tests, Single Config Generator, Debug",
       "inherits": "defaults",
@@ -40,7 +40,7 @@
         "HAL_TI_BUILD_TESTS": true
       }
     },
-        {
+    {
       "name": "Windows",
       "inherits": "defaults",
       "toolchainFile": "${sourceDir}/build/${presetName}/_deps/emil-src/cmake/toolchain-clang-x86_64-pc-windows-msvc.cmake",
