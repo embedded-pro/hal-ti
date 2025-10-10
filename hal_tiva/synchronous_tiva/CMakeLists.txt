@@ -1,5 +1,5 @@
-add_library(hal_tiva.synchronous_tiva ${HAL_TI_EXCLUDE_FROM_ALL} STATIC)
-install(TARGETS hal_tiva.synchronous_tiva EXPORT halTivaTargets)
+add_library(hal_tiva.synchronous_tiva STATIC)
+emil_build_for(hal_tiva.synchronous_tiva TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
 target_include_directories(hal_tiva.synchronous_tiva PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"

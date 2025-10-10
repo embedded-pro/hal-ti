@@ -1,0 +1,14 @@
+ls:
+  .dir: snake_case
+  .hpp: PascalCase
+  .cpp: PascalCase
+
+ignore:
+  - .devcontainer
+  - .git
+  - .github
+  - .gitlab
+  - .vscode
+  - hal_ti/tiva/Clock*
+  - megalinter-reports
+  - tiva

@@ -1,5 +1,5 @@
-add_library(hal_tiva.instantiations ${HAL_TI_EXCLUDE_FROM_ALL} STATIC)
-install(TARGETS hal_tiva.instantiations EXPORT halTivaTargets)
+add_library(hal_tiva.instantiations STATIC)
+emil_build_for(hal_tiva.instantiations TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
 if (TARGET_MCU_FAMILY STREQUAL "TM4C129")
     add_subdirectory(lwip)

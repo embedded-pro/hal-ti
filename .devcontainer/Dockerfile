@@ -1,10 +1,3 @@
-FROM gabrielfrasantos/embedded-devcontainer:latest@sha256:259aa0e8fb47d3f216dc244202045bad6046af8408ff0eb60af4b53d9d144849
-
-RUN groupadd --gid 1000 devuser \
-    && useradd --uid 1000 --gid devuser --shell /bin/bash --create-home devuser
-
-USER devuser
-
-WORKDIR /home/devuser
+FROM gabrielfrasantos/embedded-devcontainer-cpp:latest@sha256:bd4f1eb7556fad821b0a2f5ba7326fed5c19c88b4ee8475ae8f8db21e7c09b64
 
 HEALTHCHECK NONE

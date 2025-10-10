@@ -1,7 +1,11 @@
 ---
 name: Social Interaction
 
-on: [pull_request, issues]
+on:
+  pull_request:
+    types: [opened]
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
@@ -14,7 +18,7 @@ jobs:
       pull-requests: write
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
-      - uses: actions/first-interaction@1d8459ca65b335265f1285568221e229d45a995e
+      - uses: actions/first-interaction@2d4393e6bc0e2efb2e48fba7e06819c3bf61ffc9
         continue-on-error: true
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
