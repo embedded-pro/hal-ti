@@ -37,8 +37,8 @@ jobs:
           configurePresetAdditionalArgs: "['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: hal_tiva
-          path: build/host/hal_tiva-*-Linux.tar.gz
+          name: hal_ti
+          path: build/host/hal_ti-*-Linux.tar.gz
           if-no-files-found: error
       - name: Upload test logs
         if: ${{ failure() }}
