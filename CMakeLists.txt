@@ -55,7 +55,7 @@ else()
     set(HAL_TI_EXCLUDE_FROM_ALL "EXCLUDE_FROM_ALL")
 endif()
 
-if (HALST_BUILD_TESTS)
+if (HAL_TI_BUILD_TESTS)
     include(CTest)
     emil_enable_testing()
 endif()
