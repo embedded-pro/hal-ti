@@ -236,6 +236,12 @@ namespace hal::tiva
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
+    void Adc::Stop()
+    {
+        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
+        InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
+    }
+
     void Adc::EnableClock()
     {
         SYSCTL->RCGCADC |= 1 << adcIndex;
