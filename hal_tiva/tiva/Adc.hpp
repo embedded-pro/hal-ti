@@ -57,6 +57,7 @@ namespace hal::tiva
         ~Adc();
 
         void Measure(const infra::Function<void(Samples)>& onDone) override;
+        void Stop() override;
 
     private:
         void EnableClock();
