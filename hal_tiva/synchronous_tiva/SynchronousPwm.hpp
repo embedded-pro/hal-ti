@@ -134,9 +134,9 @@ namespace hal::tiva
             0x00000100, /* Channel 3 */
         } };
 
-        static PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
+        static volatile PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
         {
-            return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
+            return reinterpret_cast<volatile PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
         struct Generator
@@ -145,8 +145,9 @@ namespace hal::tiva
 
             infra::Optional<PeripheralPin> a;
             infra::Optional<PeripheralPin> b;
-            PwmChannelType* const address;
+            volatile PwmChannelType* const address;
             uint32_t enable = 0;
+            uint32_t generatorId = 0;
         };
 
         uint8_t pwmIndex;
@@ -156,12 +157,17 @@ namespace hal::tiva
 
     private:
         void Initialize();
-        void GeneratorConfiguration(Generator& generator);
-        void SetComparator(Generator& generator, hal::Percent& dutyCycle);
-        void Sync();
-        uint32_t GetLoad(Generator& generator);
-        void EnableClock();
-        void DisableClock();
+        void GeneratorConfiguration(Generator& generator) const;
+        void EnableDeadBand(Generator& generator) const;
+        void EnableGenerator(Generator& generator) const;
+        void DisableGenerator(Generator& generator) const;
+        void EnableOutput(const Generator& generator) const;
+        void DisableOutput(const Generator& generator) const;
+        void SetComparator(Generator& generator, const hal::Percent& dutyCycle) const;
+        void Sync() const;
+        uint32_t GetLoad(const Generator& generator) const;
+        void EnableClock() const;
+        void DisableClock() const;
     };
 }
 
