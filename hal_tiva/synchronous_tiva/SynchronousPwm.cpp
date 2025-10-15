@@ -555,8 +555,8 @@ namespace hal::tiva
 
         if (generator.a)
             generator.address->CMPA = load - width;
-        // if (generator.b)
-        //     generator.address->CMPB = load - width;
+        if (generator.b)
+            generator.address->CMPB = load - width;
 
         EnableOutput(generator);
         EnableGenerator(generator);
