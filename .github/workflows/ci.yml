@@ -20,7 +20,7 @@ jobs:
           git config --global url."https://${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global --add safe.directory '*'
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
@@ -56,7 +56,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global url."https://${{ secrets.PRIVATE_REPO_TOKEN  }}@github.com/".insteadOf "https://github.com/"
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
@@ -89,11 +89,11 @@ jobs:
       - name: Configure Git
         run: |
           git config --global url."https://${{ secrets.PRIVATE_REPO_TOKEN  }}@github.com/".insteadOf "https://github.com/"
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - name: Install GNU Arm Embedded Toolchain ${{ matrix.gcc }}
-        uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
+        uses: carlosperate/arm-none-eabi-gcc-action@8fef7ef8d847a80ae13af8dc08690d1dda844874 # v1.11.0
         with:
           release: ${{ matrix.gcc }}
       - run: sudo apt-get update && sudo apt-get install ninja-build xsltproc
