@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2.20
         with:
           key: ${{ github.job }}-ubuntu-latest
           max-size: 2G
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2.20
         with:
           key: ${{ github.job }}-${{ matrix.os }}
           max-size: 2G
@@ -93,11 +93,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Install GNU Arm Embedded Toolchain ${{ matrix.gcc }}
-        uses: carlosperate/arm-none-eabi-gcc-action@a532c97fbfff58385beb2247ae1464dc4cc71724 # v1.10.1
+        uses: carlosperate/arm-none-eabi-gcc-action@8fef7ef8d847a80ae13af8dc08690d1dda844874 # v1.11.0
         with:
           release: ${{ matrix.gcc }}
       - run: sudo apt-get update && sudo apt-get install ninja-build xsltproc
-      - uses: hendrikmuhs/ccache-action@bfa03e1de4d7f7c3e80ad9109feedd05c4f5a716 # v1.2.19
+      - uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2.20
         with:
           key: ${{ matrix.gcc }}-${{ matrix.configuration }}-${{ matrix.target }}
           max-size: 2G
