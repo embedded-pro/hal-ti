@@ -71,5 +71,6 @@ namespace hal::tiva
         uint8_t adcSequencer;
         infra::Function<void(Samples)> callback;
         infra::BoundedVector<uint16_t>::WithMaxSize<maxSamples> buffer;
+        std::size_t numberOfChannels;
     };
 }
