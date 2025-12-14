@@ -5,24 +5,44 @@
 
 namespace
 {
-    extern "C" void AdcSequence0_Handler()
+    extern "C" void Adc0Sequence0_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS0_IRQn);
     }
 
-    extern "C" void AdcSequence1_Handler()
+    extern "C" void Adc0Sequence1_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS1_IRQn);
     }
 
-    extern "C" void AdcSequence2_Handler()
+    extern "C" void Adc0Sequence2_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS2_IRQn);
     }
 
-    extern "C" void AdcSequence3_Handler()
+    extern "C" void Adc0Sequence3_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS3_IRQn);
+    }
+
+    extern "C" void Adc1Sequence0_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS0_IRQn);
+    }
+
+    extern "C" void Adc1Sequence1_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS1_IRQn);
+    }
+
+    extern "C" void Adc1Sequence2_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS2_IRQn);
+    }
+
+    extern "C" void Adc1Sequence3_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS3_IRQn);
     }
 
     constexpr static uint32_t ADC_SSFSTAT0_FULL = 0x00001000;
@@ -123,15 +143,15 @@ namespace
 
     void SequenceConfigure(ADC0_Type& adc, uint8_t sequencer, hal::tiva::Adc::Trigger trigger, uint8_t priority)
     {
-        auto triggerParsed = (triggerFields.at(infra::enum_cast(trigger)) & 0xf);
-        auto generator = (triggerParsed - ADC_TRIGGER_PWM0) * 8;
-        sequencer *= 4;
+        auto triggerParsed = triggerFields.at(infra::enum_cast(trigger)) & 0xf;
+        auto sequencerShift = sequencer * 4;
+        auto tsselShift = 4 + (sequencer * 8);
 
-        adc.EMUX = (adc.EMUX & ~(0xf << sequencer)) | (triggerParsed << sequencer);
-        adc.SSPRI = (adc.SSPRI & ~(0xf << sequencer)) | ((priority & 0x3) << sequencer);
+        adc.EMUX = (adc.EMUX & ~(0xf << sequencerShift)) | (triggerParsed << sequencerShift);
+        adc.SSPRI = (adc.SSPRI & ~(0xf << sequencerShift)) | ((priority & 0x3) << sequencerShift);
 
         if (IsPwmTrigger(trigger))
-            adc.TSSEL = (adc.TSSEL & ~(0x30 << generator)) | ((triggerParsed & 0x30) << generator);
+            adc.TSSEL = (adc.TSSEL & ~(0x3 << tsselShift)) | (ADC_TRIGGER_PWM_MOD0 << tsselShift);
     }
 
     void SequenceStepConfigure(ADC0_Type& adc, uint8_t sequencer, uint8_t step, uint32_t config)
@@ -177,14 +197,14 @@ namespace
         adc.ISC = 1 << sequencer;
     }
 
-    void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples)
+    void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
     {
         volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * 4);
         volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * 4);
 
         samples.clear();
 
-        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && (samples.size() < 8))
+        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && numberOfSamples--)
             samples.push_back(static_cast<uint16_t>(*SSFIFO));
     }
 }
@@ -197,11 +217,14 @@ namespace hal::tiva
                   if (IsInterruptTriggered(*peripheralAdc[this->adcIndex], this->adcSequencer))
                   {
                       InterruptClear(*peripheralAdc[this->adcIndex], this->adcSequencer);
-                      DataGet(*peripheralAdc[this->adcIndex], this->adcSequencer, buffer);
+                      DataGet(*peripheralAdc[this->adcIndex], this->adcSequencer, buffer, numberOfChannels);
+                      if (callback)
+                          callback(infra::MakeRange(buffer));
                   }
               })
         , adcIndex(adcIndex)
         , adcSequencer(adcSequencer)
+        , numberOfChannels(inputs.size())
     {
         really_assert(inputs.size() > 0);
 

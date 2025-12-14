@@ -411,9 +411,10 @@ namespace hal::tiva
         return value & 0x7fffe;
     }
 
-    SynchronousPwm::Generator::Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex generator)
+    SynchronousPwm::Generator::Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex generator, std::optional<PinChannel::Trigger> trigger)
         : address(PwmChannel(pwmOffset, generator))
         , generatorId(1 << static_cast<uint32_t>(generator))
+        , trigger(trigger)
     {
         auto index = static_cast<uint8_t>(generator) * 2;
         auto pinConfig = pinConfigPeripheral.at(infra::enum_cast(generator));
@@ -438,7 +439,7 @@ namespace hal::tiva
         really_assert(!channels.empty() && channels.size() <= generators.max_size());
 
         for (auto& channel : channels)
-            generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator);
+            generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator, channel.trigger);
 
         Initialize();
     }
@@ -530,8 +531,8 @@ namespace hal::tiva
             generator.address->GENA = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENA_ACTCMPAU_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO) : (PWM_CHANNEL_GENA_ACTLOAD_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO);
             generator.address->GENB = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO) : (PWM_CHANNEL_GENB_ACTLOAD_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
 
-            if (config.trigger)
-                generator.address->INTEN |= triggerType[static_cast<uint32_t>(*config.trigger)];
+            if (generator.trigger)
+                generator.address->INTEN |= triggerType[static_cast<uint32_t>(*generator.trigger)];
 
             if (config.deadTime)
                 EnableDeadBand(generator);

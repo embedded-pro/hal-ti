@@ -57,22 +57,11 @@ namespace hal::tiva
                 divisor64,
             };
 
-            enum class Trigger
-            {
-                countZero,
-                countLoad,
-                countComparatorAUp,
-                countComparatorADown,
-                countComparatorBUp,
-                countComparatorBDown,
-            };
-
             bool channelAInverted = false;
             bool channelBInverted = false;
             Control control;
             ClockDivisor clockDivisor = ClockDivisor::divisor64;
             std::optional<DeadTime> deadTime;
-            std::optional<Trigger> trigger;
         };
 
         enum class GeneratorIndex : uint8_t
@@ -85,6 +74,16 @@ namespace hal::tiva
 
         struct PinChannel
         {
+            enum class Trigger
+            {
+                countZero,
+                countLoad,
+                countComparatorAUp,
+                countComparatorADown,
+                countComparatorBUp,
+                countComparatorBDown,
+            };
+
             GeneratorIndex generator;
 
             GpioPin& pinA = dummyPin;
@@ -92,6 +91,8 @@ namespace hal::tiva
 
             bool usesChannelA = false;
             bool usesChannelB = false;
+
+            std::optional<Trigger> trigger;
         };
 
         SynchronousPwm(uint8_t aPwmIndex, infra::MemoryRange<PinChannel> channels, const Config& config);
@@ -141,13 +142,14 @@ namespace hal::tiva
 
         struct Generator
         {
-            Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index);
+            Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index, std::optional<PinChannel::Trigger> trigger);
 
             infra::Optional<PeripheralPin> a;
             infra::Optional<PeripheralPin> b;
             volatile PwmChannelType* const address;
             uint32_t enable = 0;
             uint32_t generatorId = 0;
+            std::optional<PinChannel::Trigger> trigger;
         };
 
         uint8_t pwmIndex;
