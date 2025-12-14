@@ -149,9 +149,9 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< UDMA_Handler,              uDMA Software Transfer */
     Default_Handler,       /*!< UDMAERR_Handler,           uDMA Error */
     Adc1Sequence0_Handler, /*!< ADC1SS0_Handler,           ADC1 Sequence 0 */
-    Adc1Sequence0_Handler, /*!< ADC1SS1_Handler,           ADC1 Sequence 1 */
-    Adc1Sequence0_Handler, /*!< ADC1SS2_Handler,           ADC1 Sequence 2 */
-    Adc1Sequence0_Handler, /*!< ADC1SS3_Handler,           ADC1 Sequence 3 */
+    Adc1Sequence1_Handler, /*!< ADC1SS1_Handler,           ADC1 Sequence 1 */
+    Adc1Sequence2_Handler, /*!< ADC1SS2_Handler,           ADC1 Sequence 2 */
+    Adc1Sequence3_Handler, /*!< ADC1SS3_Handler,           ADC1 Sequence 3 */
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
