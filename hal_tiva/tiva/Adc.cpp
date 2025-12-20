@@ -45,6 +45,8 @@ namespace
         hal::InterruptTable::Instance().Invoke(ADC1SS3_IRQn);
     }
 
+    constexpr static size_t sequencerOffset = 8;
+
     constexpr static uint32_t ADC_SSFSTAT0_FULL = 0x00001000;
     constexpr static uint32_t ADC_SSFSTAT0_EMPTY = 0x00000100;
     constexpr static uint32_t ADC_SSFSTAT0_HPTR_M = 0x000000F0;
@@ -145,7 +147,7 @@ namespace
     {
         auto triggerParsed = triggerFields.at(infra::enum_cast(trigger)) & 0xf;
         auto sequencerShift = sequencer * 4;
-        auto tsselShift = 4 + (sequencer * 8);
+        auto tsselShift = 4 + (sequencer * sequencerOffset);
 
         adc.EMUX = (adc.EMUX & ~(0xf << sequencerShift)) | (triggerParsed << sequencerShift);
         adc.SSPRI = (adc.SSPRI & ~(0xf << sequencerShift)) | ((priority & 0x3) << sequencerShift);
@@ -158,11 +160,11 @@ namespace
     {
         uint32_t stepOffset = step * 4;
 
-        volatile uint32_t* SSMUX = &adc.SSMUX0 + (sequencer * 4);
-        volatile uint32_t* SSCTL = &adc.SSCTL0 + (sequencer * 4);
-        volatile uint32_t* SSEMUX = &adc.SSEMUX0 + (sequencer * 4);
-        volatile uint32_t* SSTSH = &adc.SSTSH0 + (sequencer * 4);
-        volatile uint32_t* SSOP = &adc.SSOP0 + (sequencer * 4);
+        volatile uint32_t* SSMUX = &adc.SSMUX0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSCTL = &adc.SSCTL0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSEMUX = &adc.SSEMUX0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSTSH = &adc.SSTSH0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSOP = &adc.SSOP0 + (sequencer * sequencerOffset);
 
         *SSMUX = ((*SSMUX & ~(0x0000000f << stepOffset)) | ((config & 0x0f) << stepOffset));
         *SSEMUX = ((*SSEMUX & ~(0x0000000f << stepOffset)) | (((config & 0xf00) >> 8) << stepOffset));
@@ -199,8 +201,8 @@ namespace
 
     void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
     {
-        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * 4);
-        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * 4);
+        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
 
         samples.clear();
 
