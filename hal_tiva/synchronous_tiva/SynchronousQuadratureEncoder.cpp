@@ -1,6 +1,4 @@
 #include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
-#include "infra/event/EventDispatcher.hpp"
-#include "infra/util/BitLogic.hpp"
 
 #if defined(TM4C129)
 #define NUMBER_OF_QEI 1
@@ -87,6 +85,14 @@ namespace hal::tiva
         const infra::MemoryRange<QEI0_Type* const> peripheralQei = infra::ReinterpretCastMemoryRange<QEI0_Type* const>(infra::MakeRange(peripheralQeiArray));
 
         extern "C" uint32_t SystemCoreClock;
+
+        void SetRegister(bool condition, volatile uint32_t& reg, uint32_t mask)
+        {
+            if (condition)
+                reg |= mask;
+            else
+                reg &= ~mask;
+        }
     }
 
     QuadratureEncoder::QuadratureEncoder(uint8_t aQeiIndex, GpioPin& phaseA, GpioPin& phaseB, GpioPin& index, const Config& config)
@@ -100,18 +106,27 @@ namespace hal::tiva
 
         EnableClock();
 
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;                                   /* Disable QEi */
-        qeiArray[qeiIndex]->CTL |= QEI_CTL_RESMODE | QEI_CTL_CAPMODE | QEI_CTL_VELEN; /* Capture mode is enabled and also reset mode, velocity enabled */
-        qeiArray[qeiIndex]->MAXPOS = config.resolution;                               /* max position is 1024 (encoder resolution) */
-        qeiArray[qeiIndex]->POS = 0x7FFFFFFF;                                         /* Configure position */
-        qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;                                    /* Enable QEi */
+        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
+        qeiArray[qeiIndex]->CTL |= QEI_CTL_VELEN;
+
+        SetRegister(config.invertPhaseA, qeiArray[qeiIndex]->CTL, QEI_CTL_INVA);
+        SetRegister(config.invertPhaseB, qeiArray[qeiIndex]->CTL, QEI_CTL_INVB);
+        SetRegister(config.invertIndex, qeiArray[qeiIndex]->CTL, QEI_CTL_INVI);
+
+        SetRegister(config.resetMode == Config::ResetMode::onIndexPulse, qeiArray[qeiIndex]->CTL, QEI_CTL_RESMODE);
+        SetRegister(config.captureMode == Config::CaptureMode::phaseAandPhaseB, qeiArray[qeiIndex]->CTL, QEI_CTL_CAPMODE);
+        SetRegister(config.signalMode == Config::SignalMode::clockAndDirection, qeiArray[qeiIndex]->CTL, QEI_CTL_SIGMODE);
+
+        qeiArray[qeiIndex]->MAXPOS = config.resolution - 1;
+        qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
+        qeiArray[qeiIndex]->POS = config.offset;
     }
 
     QuadratureEncoder::~QuadratureEncoder()
     {
         qeiArray[qeiIndex]->INTEN &= ~QEI_INTEN_DIR;
         qeiInterruptRegistration = infra::none;
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE; /* Disable QEi */
+        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
         DisableClock();
     }
 
@@ -135,28 +150,17 @@ namespace hal::tiva
         return qeiArray[qeiIndex]->SPEED;
     }
 
-    void QuadratureEncoder::HandleInterrupt()
-    {
-        if (qeiArray[qeiIndex]->RIS & QEI_RIS_DIR)
-        {
-            qeiArray[qeiIndex]->ISC |= QEI_ISC_DIR;
-
-            if (this->onDirectionChange)
-                this->onDirectionChange(Direction());
-        }
-    }
-
     void QuadratureEncoder::EnableClock()
     {
-        infra::ReplaceBit(SYSCTL->RCGCQEI, true, qeiIndex);
+        SYSCTL->RCGCQEI |= (1 << qeiIndex);
 
-        while (!infra::IsBitSet(SYSCTL->PRQEI, qeiIndex))
+        while (!(SYSCTL->PRQEI & (1 << qeiIndex)))
         {
         }
     }
 
     void QuadratureEncoder::DisableClock()
     {
-        infra::ReplaceBit(SYSCTL->RCGCQEI, false, qeiIndex);
+        SYSCTL->RCGCQEI &= ~(1 << qeiIndex);
     }
 }
