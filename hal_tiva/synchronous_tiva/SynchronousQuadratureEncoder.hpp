@@ -46,7 +46,7 @@ namespace hal::tiva
                 , signalMode(aSignalMode)
             {}
 
-            uint32_t resolution = 1;
+            uint32_t resolution = 1024;
             uint32_t offset = 0;
             bool invertPhaseA = false;
             bool invertPhaseB = false;
