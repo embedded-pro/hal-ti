@@ -6,28 +6,7 @@ namespace
 {
     constexpr static size_t sequencerOffset = 8;
 
-    constexpr static uint32_t ADC_SSFSTAT0_FULL = 0x00001000;
     constexpr static uint32_t ADC_SSFSTAT0_EMPTY = 0x00000100;
-    constexpr static uint32_t ADC_SSFSTAT0_HPTR_M = 0x000000F0;
-    constexpr static uint32_t ADC_SSFSTAT0_TPTR_M = 0x0000000F;
-    constexpr static uint32_t ADC_SSFSTAT0_HPTR_S = 4;
-    constexpr static uint32_t ADC_SSFSTAT0_TPTR_S = 0;
-
-    constexpr static uint32_t ADC_TRIGGER_PROCESSOR = 0x00000000;
-    constexpr static uint32_t ADC_TRIGGER_COMP0 = 0x00000001;
-    constexpr static uint32_t ADC_TRIGGER_COMP1 = 0x00000002;
-    constexpr static uint32_t ADC_TRIGGER_COMP2 = 0x00000003;
-    constexpr static uint32_t ADC_TRIGGER_EXTERNAL = 0x00000004;
-    constexpr static uint32_t ADC_TRIGGER_TIMER = 0x00000005;
-    constexpr static uint32_t ADC_TRIGGER_PWM0 = 0x00000006;
-    constexpr static uint32_t ADC_TRIGGER_PWM1 = 0x00000007;
-    constexpr static uint32_t ADC_TRIGGER_PWM2 = 0x00000008;
-    constexpr static uint32_t ADC_TRIGGER_PWM3 = 0x00000009;
-    constexpr static uint32_t ADC_TRIGGER_NEVER = 0x0000000E;
-    constexpr static uint32_t ADC_TRIGGER_ALWAYS = 0x0000000F;
-    constexpr static uint32_t ADC_TRIGGER_PWM_MOD0 = 0x00000000;
-    constexpr static uint32_t ADC_TRIGGER_PWM_MOD1 = 0x00000010;
-
     constexpr static uint32_t ADC_CTL_IE = 0x00000040;
     constexpr static uint32_t ADC_CTL_END = 0x00000020;
 
@@ -72,7 +51,6 @@ namespace
 
         auto triggerParsed = processorTrigger & 0xf;
         auto sequencerShift = sequencer * 4;
-        auto tsselShift = 4 + (sequencer * sequencerOffset);
 
         adc.EMUX = (adc.EMUX & ~(0xf << sequencerShift)) | (triggerParsed << sequencerShift);
         adc.SSPRI = (adc.SSPRI & ~(0xf << sequencerShift)) | ((priority & 0x3) << sequencerShift);
@@ -98,11 +76,6 @@ namespace
     void SequenceOversampling(ADC0_Type& adc, uint8_t oversampling)
     {
         adc.SAC = oversampling;
-    }
-
-    void GenerateProcessorTrigger(ADC0_Type& adc, uint8_t sequencer)
-    {
-        adc.PSSI = (1 << sequencer);
     }
 
     bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
@@ -135,6 +108,7 @@ namespace hal::tiva
         , numberOfInputs(inputs.size())
     {
         really_assert(inputs.size() > 0);
+        really_assert(adcIndex < peripheralAdc.size());
 
         EnableClock();
 

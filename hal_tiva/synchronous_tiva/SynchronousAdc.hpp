@@ -1,5 +1,5 @@
-#ifndef HAL_ADC_TIVA_HPP
-#define HAL_ADC_TIVA_HPP
+#ifndef HAL_SYNCHRONOUS_ADC_TIVA_HPP
+#define HAL_SYNCHRONOUS_ADC_TIVA_HPP
 
 #include "hal/synchronous_interfaces/SynchronousAdc.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -44,7 +44,6 @@ namespace hal::tiva
 
         struct Config
         {
-            bool externalReference;
             SampleAndHold sampleAndHold;
             Priority priority;
             std::optional<Oversampling> oversampling;
@@ -56,13 +55,11 @@ namespace hal::tiva
         Samples Measure(std::size_t numberOfSamples) override;
 
     private:
-        void Initialize();
         void EnableClock() const;
         void DisableClock() const;
 
     private:
         constexpr static uint32_t maxSamples = 23;
-        constexpr static uint32_t numberOfSequencers = 4;
 
         uint8_t adcIndex;
         uint8_t adcSequencer;
