@@ -54,7 +54,7 @@ namespace hal::tiva
 
             uint32_t Value() const
             {
-                return *reinterpret_cast<const uint32_t*>(this);
+                return static_cast<uint32_t>(delayInAdcClocks);
             }
 
         private:

@@ -2,7 +2,6 @@
 #include "hal/interfaces/AdcMultiChannel.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
-#include "services/tracer/GlobalTracer.hpp"
 
 namespace
 {
@@ -217,7 +216,7 @@ namespace
     void SetPhaseDelay(uint8_t adcIndex, uint32_t delay)
     {
         ADC0_Type& adc = *peripheralAdc[adcIndex];
-        adc.SPC |= delay & 0x0F;
+        adc.SPC = (adc.SPC & ~0x0F) | (delay & 0x0F);
     }
 }
 
