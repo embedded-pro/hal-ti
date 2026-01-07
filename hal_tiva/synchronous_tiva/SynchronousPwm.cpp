@@ -518,7 +518,10 @@ namespace hal::tiva
     void SynchronousPwm::Stop()
     {
         for (auto& generator : generators)
+        {
             DisableGenerator(generator);
+            DisableOutput(generator);
+        }
 
         Sync();
     }

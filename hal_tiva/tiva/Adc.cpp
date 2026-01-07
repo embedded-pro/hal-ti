@@ -158,19 +158,19 @@ namespace
 
     void SequenceStepConfigure(ADC0_Type& adc, uint8_t sequencer, uint8_t step, uint32_t config)
     {
-        uint32_t stepOffset = step * 4;
-
         volatile uint32_t* SSMUX = &adc.SSMUX0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSCTL = &adc.SSCTL0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSEMUX = &adc.SSEMUX0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSTSH = &adc.SSTSH0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSOP = &adc.SSOP0 + (sequencer * sequencerOffset);
 
-        *SSMUX = ((*SSMUX & ~(0x0000000f << stepOffset)) | ((config & 0x0f) << stepOffset));
-        *SSEMUX = ((*SSEMUX & ~(0x0000000f << stepOffset)) | (((config & 0xf00) >> 8) << stepOffset));
-        *SSCTL = ((*SSCTL & ~(0x0000000f << stepOffset)) | (((config & 0xf0) >> 4) << stepOffset));
-        *SSTSH = ((*SSTSH & ~(0x0000000f << stepOffset)) | (((config & 0xf00000) >> 20) << stepOffset));
-        *SSOP &= ~(1 << stepOffset);
+        step *= 4;
+
+        *SSMUX = ((*SSMUX & ~(0x0000000f << step)) | ((config & 0x0f) << step));
+        *SSEMUX = ((*SSEMUX & ~(0x0000000f << step)) | (((config & 0xf00) >> 8) << step));
+        *SSCTL = ((*SSCTL & ~(0x0000000f << step)) | (((config & 0xf0) >> 4) << step));
+        *SSTSH = ((*SSTSH & ~(0x0000000f << step)) | (((config & 0xf00000) >> 20) << step));
+        *SSOP &= ~(1 << step);
     }
 
     void SequenceOversampling(ADC0_Type& adc, uint8_t oversampling)
@@ -207,7 +207,16 @@ namespace
         samples.clear();
 
         while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && numberOfSamples--)
-            samples.push_back(static_cast<uint16_t>(*SSFIFO));
+        {
+            auto data = *SSFIFO;
+            samples.push_back(static_cast<uint16_t>(data));
+        }
+    }
+
+    void SetPhaseDelay(uint8_t adcIndex, uint32_t delay)
+    {
+        ADC0_Type& adc = *peripheralAdc[adcIndex];
+        adc.SPC = (adc.SPC & ~0x0F) | (delay & 0x0F);
     }
 }
 
@@ -245,6 +254,9 @@ namespace hal::tiva
 
         if (config.oversampling)
             SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
+
+        if (config.samplingDelay)
+            SetPhaseDelay(adcIndex, config.samplingDelay->Value());
     }
 
     Adc::~Adc()

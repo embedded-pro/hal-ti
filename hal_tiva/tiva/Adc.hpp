@@ -44,6 +44,24 @@ namespace hal::tiva
             oversampling64,
         };
 
+        class SamplingDelay
+        {
+        public:
+            explicit constexpr SamplingDelay(uint8_t clocks)
+                : delayInAdcClocks(clocks & 0x0F)
+                , reserved(0)
+            {}
+
+            uint32_t Value() const
+            {
+                return static_cast<uint32_t>(delayInAdcClocks);
+            }
+
+        private:
+            uint32_t delayInAdcClocks : 4;
+            uint32_t reserved : 28;
+        };
+
         struct Config
         {
             bool externalReference;
@@ -51,6 +69,7 @@ namespace hal::tiva
             Trigger trigger;
             SampleAndHold sampleAndHold;
             std::optional<Oversampling> oversampling;
+            std::optional<SamplingDelay> samplingDelay;
         };
 
         Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config);
@@ -64,7 +83,7 @@ namespace hal::tiva
         void DisableClock();
 
     private:
-        constexpr static uint32_t maxSamples = 23;
+        constexpr static uint32_t maxSamples = 8;
         constexpr static uint32_t numberOfSequencers = 4;
 
         uint8_t adcIndex;
