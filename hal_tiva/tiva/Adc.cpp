@@ -114,7 +114,11 @@ namespace
         ADC_CTL_SHOLD_256,
     } };
 
-    const infra::MemoryRange<ADC0_Type* const> peripheralAdc = infra::ReinterpretCastMemoryRange<ADC0_Type* const>(infra::MakeRange(peripheralAdcArray));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast) - hardware register access
+    const std::array<ADC0_Type*, 2> peripheralAdc = { {
+        reinterpret_cast<ADC0_Type*>(ADC0_BASE),
+        reinterpret_cast<ADC0_Type*>(ADC1_BASE),
+    } };
 
     bool IsPwmTrigger(hal::tiva::Adc::Trigger trigger)
     {
@@ -189,17 +193,17 @@ namespace
         adc.IM &= ~(1 << sequencer);
     }
 
-    bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
+    [[gnu::always_inline]] inline bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
     {
         return (adc.RIS) & (0x10000 | (1 << sequencer));
     }
 
-    void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
+    [[gnu::always_inline]] inline void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
     {
         adc.ISC = 1 << sequencer;
     }
 
-    void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
+    [[gnu::always_inline]] inline void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
     {
         volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
@@ -223,12 +227,13 @@ namespace
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray.at(numberOfSequencers * adcIndex + adcSequencer), [this]()
+        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], [this]()
               {
-                  if (IsInterruptTriggered(*peripheralAdc[this->adcIndex], this->adcSequencer))
+                  auto& adc = *peripheralAdc[this->adcIndex];
+                  if (IsInterruptTriggered(adc, this->adcSequencer))
                   {
-                      InterruptClear(*peripheralAdc[this->adcIndex], this->adcSequencer);
-                      DataGet(*peripheralAdc[this->adcIndex], this->adcSequencer, buffer, numberOfChannels);
+                      InterruptClear(adc, this->adcSequencer);
+                      DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
                       if (callback)
                           callback(infra::MakeRange(buffer));
                   }
