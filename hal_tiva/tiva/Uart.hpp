@@ -109,8 +109,13 @@ namespace hal::tiva
         void TransferComplete();
         void DisableUart() const;
         void EnableUart() const;
-        void EnableDma() const;
+        void EnableRxDma() const;
+        void EnableTxDma() const;
+        void DisableRxDma() const;
+        void DisableTxDma() const;
         void SetFifo(Fifo fifoRx, Fifo fifoTx) const;
+        uint32_t InterruptStatus() const;
+        void InterruptClear(uint32_t mask) const;
         void Invoke() override;
 
     protected:

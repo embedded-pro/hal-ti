@@ -306,10 +306,39 @@ namespace hal::tiva
         uartArray[uartIndex]->IFLS = (static_cast<uint32_t>(fifoRx) << 3) | static_cast<uint32_t>(fifoTx);
     }
 
-    void Uart::EnableDma() const
+    uint32_t Uart::InterruptStatus() const
     {
-        uartArray[uartIndex]->IM |= UART_IM_RXIM | UART_IM_TXIM | UART_IM_DMARXIM | UART_IM_DMATXIM | UART_IM_RTIM;
-        uartArray[uartIndex]->DMACTL |= UART_DMACTL_RXDMAE | UART_DMACTL_TXDMAE;
+        return uartArray[uartIndex]->RIS;
+    }
+
+    void Uart::InterruptClear(uint32_t mask) const
+    {
+        really_assert(!(mask & (UART_MIS_DMATXMIS | UART_MIS_DMARXMIS)));
+        uartArray[uartIndex]->ICR = mask & (UART_ICR_OEIC | UART_ICR_BEIC | UART_ICR_PEIC | UART_ICR_FEIC | UART_ICR_RTIC | UART_ICR_TXIC | UART_ICR_RXIC | UART_ICR_DSRMIC | UART_ICR_DCDMIC | UART_ICR_CTSMIC | UART_ICR_RIMIC);
+    }
+
+    void Uart::EnableRxDma() const
+    {
+        uartArray[uartIndex]->IM |= UART_IM_DMARXIM | UART_IM_RTIM;
+        uartArray[uartIndex]->DMACTL |= UART_DMACTL_RXDMAE;
+    }
+
+    void Uart::EnableTxDma() const
+    {
+        uartArray[uartIndex]->IM |= UART_IM_DMATXIM;
+        uartArray[uartIndex]->DMACTL |= UART_DMACTL_TXDMAE;
+    }
+
+    void Uart::DisableRxDma() const
+    {
+        uartArray[uartIndex]->IM &= ~(UART_IM_DMARXIM | UART_IM_RTIM);
+        uartArray[uartIndex]->DMACTL &= ~UART_DMACTL_RXDMAE;
+    }
+
+    void Uart::DisableTxDma() const
+    {
+        uartArray[uartIndex]->IM &= ~(UART_IM_DMATXIM);
+        uartArray[uartIndex]->DMACTL &= ~UART_DMACTL_TXDMAE;
     }
 
     void Uart::SendData(infra::MemoryRange<const uint8_t> data, infra::Function<void()> actionOnCompletion)
