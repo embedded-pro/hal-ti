@@ -36,6 +36,7 @@ namespace
     constexpr uint32_t CAN_STS_TXOK = 1 << 3;
     constexpr uint32_t CAN_STS_RXOK = 1 << 4;
     constexpr uint32_t CAN_STS_EPASS = 1 << 5;
+    constexpr uint32_t CAN_STS_EWARN = 1 << 6;
     constexpr uint32_t CAN_STS_BOFF = 1 << 7;
 
     constexpr uint32_t CAN_STS_LEC_STUFF = 1;
@@ -372,6 +373,12 @@ namespace hal::tiva
         if (status & CAN_STS_EPASS)
         {
             ScheduleError(Error::errorPassive);
+            return;
+        }
+
+        if (status & CAN_STS_EWARN)
+        {
+            ScheduleError(Error::errorWarning);
             return;
         }
 

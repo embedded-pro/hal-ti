@@ -27,6 +27,7 @@ namespace hal::tiva
             bit0Error,
             crcError,
             busOff,
+            errorWarning,
             errorPassive,
             messageLost,
         };
