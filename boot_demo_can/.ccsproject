@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?ccsproject version="1.0"?>
+<projectOptions>
+	<deviceVariant value="Cortex M.TM4C123GH6PGE"/>
+	<deviceFamily value="TMS470"/>
+	<deviceEndianness value="little"/>
+	<codegenToolVersion value="5.2.6"/>
+	<isElfFormat value="true"/>
+	<rts value="libc.a"/>
+	<createSlaveProjects value=""/>
+	<origin value="C:/Users/a0319960/TM4C123_CANv9/boot_demo_can"/>
+	<isTargetManual value="true"/>
+</projectOptions>
