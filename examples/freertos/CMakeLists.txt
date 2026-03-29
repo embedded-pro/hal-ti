@@ -3,6 +3,7 @@ emil_build_for(hal_tiva.freertos TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_B
 
 target_link_libraries(hal_tiva.freertos PRIVATE
     #hal_tiva.instantiations
+    services.peripheral
     osal.thread
     osal.freertos_system_time
 )
