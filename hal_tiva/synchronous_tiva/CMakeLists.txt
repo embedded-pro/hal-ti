@@ -9,7 +9,6 @@ target_include_directories(hal_tiva.synchronous_tiva PUBLIC
 target_link_libraries(hal_tiva.synchronous_tiva PUBLIC
     hal.synchronous_interfaces
     hal_tiva.tiva
-    services.util
 )
 
 target_sources(hal_tiva.synchronous_tiva PRIVATE
