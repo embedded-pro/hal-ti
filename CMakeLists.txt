@@ -57,7 +57,7 @@ endif()
 
 add_subdirectory(tiva)
 add_subdirectory(hal_tiva)
-if (HAL_TI_BUILD_EXAMPLES)
+if (HAL_TI_BUILD_EXAMPLES OR HAL_TI_BUILD_EXAMPLES_FREERTOS)
     add_subdirectory(examples)
 endif()
 if (HAL_TI_STANDALONE)
