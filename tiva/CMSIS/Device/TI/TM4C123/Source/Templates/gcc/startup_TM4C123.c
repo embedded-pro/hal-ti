@@ -48,6 +48,8 @@ void Adc1Sequence0_Handler() __attribute__((weak, alias("Default_Handler")));
 void Adc1Sequence1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Adc1Sequence2_Handler() __attribute__((weak, alias("Default_Handler")));
 void Adc1Sequence3_Handler() __attribute__((weak, alias("Default_Handler")));
+void Can0_Handler() __attribute__((weak, alias("Default_Handler")));
+void Can1_Handler() __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -139,8 +141,8 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< TIMER3B_Handler,           Timer 3 subtimer B */
     Default_Handler,       /*!< I2C1_Handler,              I2C1 Master and Slave */
     Default_Handler,       /*!< QEI1_Handler,              Quadrature Encoder 1 */
-    Default_Handler,       /*!< CAN0_Handler,              CAN0 */
-    Default_Handler,       /*!< CAN1_Handler,              CAN1 */
+    Can0_Handler,          /*!< CAN0_Handler,              CAN0 */
+    Can1_Handler,          /*!< CAN1_Handler,              CAN1 */
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
     Default_Handler,       /*!< HIB_Handler,               Hibernate */

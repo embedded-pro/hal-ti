@@ -8,7 +8,8 @@
       "installDir": "${sourceDir}/install",
       "cacheVariables": {
         "HAL_TI_BUILD_EXAMPLES": true,
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "On"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "On",
+        "EMIL_INCLUDE_MBEDTLS": false
       }
     },
     {
@@ -97,7 +98,10 @@
       "name": "host-Debug-WithPackage",
       "configuration": "Debug",
       "configurePreset": "host",
-      "targets": ["all", "package"]
+      "targets": [
+        "all",
+        "package"
+      ]
     },
     {
       "name": "host-RelWithDebInfo",
@@ -113,7 +117,9 @@
       "name": "release-package",
       "configuration": "MinSizeRel",
       "configurePreset": "host-single-MinSizeRel",
-      "targets": ["package"]
+      "targets": [
+        "package"
+      ]
     },
     {
       "name": "tm4c123gh6pm-RelWithDebInfo",
