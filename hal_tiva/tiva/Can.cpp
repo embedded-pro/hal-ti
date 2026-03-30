@@ -202,9 +202,12 @@ namespace
 
     void ApplyManualBitTiming(CAN0_Type& can, const hal::tiva::Can::BitTiming& timing)
     {
-        uint32_t brp = timing.baudratePrescaler;
+        uint32_t brp = timing.baudratePrescaler - 1;
+        uint32_t sjw = timing.synchronizationJumpWidth - 1;
+        uint32_t tseg1 = timing.phaseSegment1 - 1;
+        uint32_t tseg2 = timing.phaseSegment2 - 1;
 
-        can.BIT = BuildBitReg(brp, timing.synchronizationJumpWidth, timing.phaseSegment1, timing.phaseSegment2);
+        can.BIT = BuildBitReg(brp, sjw, tseg1, tseg2);
         can.BRPE = (brp >> 6) & 0x0F;
     }
 
@@ -264,15 +267,15 @@ namespace
 
 namespace hal::tiva
 {
-    Can::Can(infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer, uint8_t canIndex, GpioPin& rx, GpioPin& tx, const Config& config, const infra::Function<void(Error)>& onError)
+    Can::Can(infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer, uint8_t canIndex, GpioPin& high, GpioPin& low, const Config& config, const infra::Function<void(Error)>& onError)
         : ImmediateInterruptHandler(peripheralIrqCanArray[canIndex], [this]()
               {
                   HandleInterrupt();
               })
         , rxBuffer(rxBuffer)
         , canIndex(canIndex)
-        , rx(rx, PinConfigPeripheral::canRx)
-        , tx(tx, PinConfigPeripheral::canTx)
+        , high(high, PinConfigPeripheral::canRx)
+        , low(low, PinConfigPeripheral::canTx)
         , config(config)
         , onError(onError)
     {
@@ -423,6 +426,8 @@ namespace hal::tiva
 
         if (!rxBuffer.full())
             rxBuffer.push_back(std::make_pair(receivedId, data));
+        else
+            ScheduleError(Error::messageLost);
 
         infra::EventDispatcher::Instance().Schedule([this]()
             {

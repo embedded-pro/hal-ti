@@ -74,8 +74,8 @@ namespace hal::tiva
 
         infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer;
         uint8_t canIndex;
-        PeripheralPin rx;
-        PeripheralPin tx;
+        PeripheralPin high;
+        PeripheralPin low;
         Config config;
         infra::Function<void(bool success)> onSendComplete;
         infra::Function<void(Id id, const Message& data)> onReceive;
