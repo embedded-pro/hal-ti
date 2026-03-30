@@ -13,6 +13,7 @@ namespace hal
             if (irq >= 0)
             {
                 NVIC_SetPriority(irq, static_cast<uint32_t>(priority));
+                NVIC_ClearPendingIRQ(irq);
                 NVIC_EnableIRQ(irq);
             }
             else if (irq == -13 /*HardFault_IRQn*/)

@@ -202,6 +202,11 @@ namespace
 
     void ApplyManualBitTiming(CAN0_Type& can, const hal::tiva::Can::BitTiming& timing)
     {
+        really_assert(timing.baudratePrescaler >= 1);
+        really_assert(timing.phaseSegment1 >= 1);
+        really_assert(timing.phaseSegment2 >= 1);
+        really_assert(timing.synchronizationJumpWidth >= 1);
+
         uint32_t brp = timing.baudratePrescaler - 1;
         uint32_t sjw = timing.synchronizationJumpWidth - 1;
         uint32_t tseg1 = timing.phaseSegment1 - 1;
@@ -245,6 +250,9 @@ namespace
 
         for (uint32_t prescaler = 1; prescaler <= maxPrescaler; ++prescaler)
         {
+            if (bitClocks % prescaler != 0)
+                continue;
+
             uint32_t tq = bitClocks / prescaler;
 
             if (tq < minTimeQuanta || tq > maxTimeQuanta)
@@ -267,15 +275,18 @@ namespace
 
 namespace hal::tiva
 {
-    Can::Can(infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer, uint8_t canIndex, GpioPin& high, GpioPin& low, const Config& config, const infra::Function<void(Error)>& onError)
+    Can::Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError)
         : ImmediateInterruptHandler(peripheralIrqCanArray[canIndex], [this]()
               {
                   HandleInterrupt();
               })
-        , rxBuffer(rxBuffer)
+        , rxQueue(rxStorage, [this]()
+              {
+                  ProcessRxBuffer();
+              })
         , canIndex(canIndex)
-        , high(high, PinConfigPeripheral::canRx)
-        , low(low, PinConfigPeripheral::canTx)
+        , rxPin(rxPin, PinConfigPeripheral::canRx)
+        , txPin(txPin, PinConfigPeripheral::canTx)
         , config(config)
         , onError(onError)
     {
@@ -307,6 +318,7 @@ namespace hal::tiva
         can.CTL |= CAN_CTL_INIT;
         can.CTL &= ~(CAN_CTL_IE | CAN_CTL_SIE | CAN_CTL_EIE);
 
+        NVIC_DisableIRQ(peripheralIrqCanArray[canIndex]);
         DisableClock();
     }
 
@@ -363,9 +375,10 @@ namespace hal::tiva
             });
     }
 
-    void Can::HandleStatusInterrupt(const CAN0_Type& can) const
+    void Can::HandleStatusInterrupt(CAN0_Type& can) const
     {
         uint32_t status = can.STS;
+        can.STS = status & ~(CAN_STS_TXOK | CAN_STS_RXOK | CAN_STS_LEC_M);
 
         if (status & CAN_STS_BOFF)
         {
@@ -419,28 +432,49 @@ namespace hal::tiva
 
         uint8_t dlc = can.IF2MCTL & CAN_IFMCTL_DLC_M;
 
-        Message data;
-        ReadData(can, data, dlc);
+        CanRxEntry entry{};
+        entry.length = dlc;
+        entry.is29Bit = (can.IF2ARB2 & CAN_IFARB2_XTD) != 0;
 
-        Id receivedId = ReadArbitration(can);
+        if (entry.is29Bit)
+            entry.id = ((can.IF2ARB2 & 0x1FFF) << 16) | can.IF2ARB1;
+        else
+            entry.id = (can.IF2ARB2 >> 2) & 0x7FF;
 
-        if (!rxBuffer.full())
-            rxBuffer.push_back(std::make_pair(receivedId, data));
+        if (dlc > 0)
+            entry.data[0] = static_cast<uint8_t>(can.IF2DA1 & 0xFF);
+        if (dlc > 1)
+            entry.data[1] = static_cast<uint8_t>((can.IF2DA1 >> 8) & 0xFF);
+        if (dlc > 2)
+            entry.data[2] = static_cast<uint8_t>(can.IF2DA2 & 0xFF);
+        if (dlc > 3)
+            entry.data[3] = static_cast<uint8_t>((can.IF2DA2 >> 8) & 0xFF);
+        if (dlc > 4)
+            entry.data[4] = static_cast<uint8_t>(can.IF2DB1 & 0xFF);
+        if (dlc > 5)
+            entry.data[5] = static_cast<uint8_t>((can.IF2DB1 >> 8) & 0xFF);
+        if (dlc > 6)
+            entry.data[6] = static_cast<uint8_t>(can.IF2DB2 & 0xFF);
+        if (dlc > 7)
+            entry.data[7] = static_cast<uint8_t>((can.IF2DB2 >> 8) & 0xFF);
+
+        if (!rxQueue.Full())
+            rxQueue.AddFromInterrupt(entry);
         else
             ScheduleError(Error::messageLost);
-
-        infra::EventDispatcher::Instance().Schedule([this]()
-            {
-                ProcessRxBuffer();
-            });
     }
 
     void Can::ProcessRxBuffer()
     {
-        while (!rxBuffer.empty())
+        while (!rxQueue.Empty())
         {
-            auto [id, data] = rxBuffer.front();
-            rxBuffer.pop_front();
+            CanRxEntry entry = rxQueue.Get();
+
+            Id id = entry.is29Bit ? Id::Create29BitId(entry.id) : Id::Create11BitId(entry.id);
+
+            Message data;
+            for (uint8_t i = 0; i < entry.length && i < 8; ++i)
+                data.push_back(entry.data[i]);
 
             if (onReceive)
                 onReceive(id, data);

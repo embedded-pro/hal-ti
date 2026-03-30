@@ -3,20 +3,28 @@
 #include "hal/interfaces/Can.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "infra/util/BoundedDeque.hpp"
+#include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
 #include <cstdint>
 #include <optional>
 #include DEVICE_HEADER
 
 namespace hal::tiva
 {
+    struct CanRxEntry
+    {
+        uint32_t id;
+        uint8_t data[8];
+        uint8_t length;
+        bool is29Bit;
+    };
+
     class Can
         : public hal::Can
         , private hal::ImmediateInterruptHandler
     {
     public:
         template<std::size_t StorageSize>
-        using WithMaxRxBuffer = infra::WithStorage<Can, infra::BoundedDeque<std::pair<Id, Message>>::WithMaxSize<StorageSize>>;
+        using WithMaxRxBuffer = infra::WithStorage<Can, std::array<CanRxEntry, StorageSize + 1>>;
 
         enum class Error : uint8_t
         {
@@ -50,7 +58,7 @@ namespace hal::tiva
             std::optional<BitTiming> bitTiming = std::nullopt;
         };
 
-        Can(infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer, uint8_t canIndex, GpioPin& high, GpioPin& low, const Config& config, const infra::Function<void(Error)>& onError);
+        Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError);
         ~Can();
 
         void SendData(Id id, const Message& data, const infra::Function<void(bool success)>& actionOnCompletion) override;
@@ -61,7 +69,7 @@ namespace hal::tiva
         void DisableClock() const;
         void HandleInterrupt();
         void ScheduleError(Error error) const;
-        void HandleStatusInterrupt(const CAN0_Type& can) const;
+        void HandleStatusInterrupt(CAN0_Type& can) const;
         void HandleTxInterrupt(CAN0_Type& can);
         void HandleRxInterrupt(CAN0_Type& can);
         void ProcessRxBuffer();
@@ -72,14 +80,14 @@ namespace hal::tiva
         static constexpr uint8_t txMessageObject = 1;
         static constexpr uint8_t rxMessageObject = 2;
 
-        infra::BoundedDeque<std::pair<Id, Message>>& rxBuffer;
+        infra::QueueForOneReaderOneIrqWriter<CanRxEntry> rxQueue;
         uint8_t canIndex;
-        PeripheralPin high;
-        PeripheralPin low;
+        PeripheralPin rxPin;
+        PeripheralPin txPin;
         Config config;
         infra::Function<void(bool success)> onSendComplete;
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
-        bool sending = false;
+        volatile bool sending = false;
     };
 }
