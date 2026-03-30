@@ -24,20 +24,15 @@ if (HAL_TI_STANDALONE)
     FetchContent_Declare(
         emil
         GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
-        GIT_TAG        81a7c1d503d68e2ee48f00769bcea4975c0849b1 # Unreleased
+        GIT_TAG        06931dbb0464cd357833ac95c35d9f03c13e3ada # Unreleased
     )
 
+    add_definitions(-DEMIL_ENABLE_TRACING=1)
+
+    set(EMIL_INCLUDE_MBEDTLS Off CACHE BOOL "" FORCE)
+    set(EMIL_ENABLE_DOCKER_TOOLS Off CACHE BOOL "" FORCE)
+
     FetchContent_MakeAvailable(emil)
-
-    if (EMIL_HOST_BUILD)
-        FetchContent_Declare(
-            cucumber-cpp-runner
-            GIT_REPOSITORY https://github.com/philips-software/amp-cucumber-cpp-runner.git
-            GIT_TAG        752b9f6f82b1f2f35bc01a4ae19aff4fd43ad97f # v1.1.0
-        )
-
-        FetchContent_MakeAvailable(cucumber-cpp-runner)
-    endif()
 endif()
 
 project(hal_ti LANGUAGES C CXX ASM VERSION 2.0.0) # x-release-please-version
@@ -62,7 +57,9 @@ endif()
 
 add_subdirectory(tiva)
 add_subdirectory(hal_tiva)
-add_subdirectory(examples)
+if (HAL_TI_BUILD_EXAMPLES OR HAL_TI_BUILD_EXAMPLES_FREERTOS)
+    add_subdirectory(examples)
+endif()
 if (HAL_TI_STANDALONE)
     add_subdirectory(integration_test)
 endif()
