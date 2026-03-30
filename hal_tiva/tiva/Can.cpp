@@ -159,42 +159,6 @@ namespace
         can.IF1DB2 = db2;
     }
 
-    void ReadData(const CAN0_Type& can, hal::Can::Message& data, uint8_t dlc)
-    {
-        data.clear();
-
-        if (dlc > 0)
-            data.push_back(static_cast<uint8_t>(can.IF2DA1 & 0xFF));
-        if (dlc > 1)
-            data.push_back(static_cast<uint8_t>((can.IF2DA1 >> 8) & 0xFF));
-        if (dlc > 2)
-            data.push_back(static_cast<uint8_t>(can.IF2DA2 & 0xFF));
-        if (dlc > 3)
-            data.push_back(static_cast<uint8_t>((can.IF2DA2 >> 8) & 0xFF));
-        if (dlc > 4)
-            data.push_back(static_cast<uint8_t>(can.IF2DB1 & 0xFF));
-        if (dlc > 5)
-            data.push_back(static_cast<uint8_t>((can.IF2DB1 >> 8) & 0xFF));
-        if (dlc > 6)
-            data.push_back(static_cast<uint8_t>(can.IF2DB2 & 0xFF));
-        if (dlc > 7)
-            data.push_back(static_cast<uint8_t>((can.IF2DB2 >> 8) & 0xFF));
-    }
-
-    hal::Can::Id ReadArbitration(const CAN0_Type& can)
-    {
-        if (can.IF2ARB2 & CAN_IFARB2_XTD)
-        {
-            uint32_t id = ((can.IF2ARB2 & 0x1FFF) << 16) | can.IF2ARB1;
-            return hal::Can::Id::Create29BitId(id);
-        }
-        else
-        {
-            uint32_t id = (can.IF2ARB2 >> 2) & 0x7FF;
-            return hal::Can::Id::Create11BitId(id);
-        }
-    }
-
     uint32_t BuildBitReg(uint32_t brp, uint32_t sjw, uint32_t tseg1, uint32_t tseg2)
     {
         return (brp & CAN_BIT_BRP_M) | ((sjw & 0x3) << CAN_BIT_SJW_S) | ((tseg1 & 0xF) << CAN_BIT_TSEG1_S) | ((tseg2 & 0x7) << CAN_BIT_TSEG2_S);
