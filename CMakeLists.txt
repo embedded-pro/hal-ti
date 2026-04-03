@@ -32,6 +32,7 @@ if (HAL_TI_STANDALONE)
     set(EMIL_INCLUDE_MBEDTLS Off CACHE BOOL "" FORCE)
     set(EMIL_ENABLE_DOCKER_TOOLS Off CACHE BOOL "" FORCE)
     set(EMIL_INCLUDE_ECHO Off CACHE BOOL "" FORCE)
+    set(EMIL_INCLUDE_LWIP Off CACHE BOOL "" FORCE)
 
     FetchContent_MakeAvailable(emil)
 endif()
