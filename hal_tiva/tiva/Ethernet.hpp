@@ -6,7 +6,7 @@
 #include "hal/interfaces/MacAddress.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -139,8 +139,8 @@ namespace hal::tiva
         uint8_t phyId = 0;
         volatile bool EEELinkActive = false;
         DispatchedInterruptHandler interrupt;
-        infra::Optional<ReceiveDescriptors> receiveDescriptors;
-        infra::Optional<SendDescriptors> sendDescriptors;
+        std::optional<ReceiveDescriptors> receiveDescriptors;
+        std::optional<SendDescriptors> sendDescriptors;
     };
 }
 

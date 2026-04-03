@@ -188,7 +188,7 @@ namespace hal::tiva
             dummyToReceive = sendData.size();
 
         really_assert(!spiInterruptRegistration);
-        spiInterruptRegistration.Emplace(irqArray[ssiIndex], [this]()
+        spiInterruptRegistration.emplace(irqArray[ssiIndex], [this]()
             {
                 HandleInterrupt();
             });
@@ -269,7 +269,7 @@ namespace hal::tiva
 
         if (!sending && !receiving && dummyToSend == 0 && dummyToReceive == 0)
         {
-            spiInterruptRegistration = infra::none;
+            spiInterruptRegistration = std::nullopt;
             if (chipSelectConfigurator && !continuedSession)
                 chipSelectConfigurator->EndSession();
             infra::EventDispatcher::Instance().Schedule([this]()

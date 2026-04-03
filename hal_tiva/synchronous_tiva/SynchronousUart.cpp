@@ -232,9 +232,9 @@ namespace hal::tiva
         , contentsEnd(readBuffer.begin())
     {
         if (flowControl.rtsEnable)
-            this->uartRts.Emplace(uartRts, PinConfigPeripheral::uartRts);
+            this->uartRts.emplace(uartRts, PinConfigPeripheral::uartRts);
         if (flowControl.ctsEnable)
-            this->uartCts.Emplace(uartCts, PinConfigPeripheral::uartCts);
+            this->uartCts.emplace(uartCts, PinConfigPeripheral::uartCts);
     }
 
     SynchronousUart::~SynchronousUart()

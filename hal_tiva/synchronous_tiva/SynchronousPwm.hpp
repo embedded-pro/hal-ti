@@ -144,8 +144,8 @@ namespace hal::tiva
         {
             Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index, std::optional<PinChannel::Trigger> trigger);
 
-            infra::Optional<PeripheralPin> a;
-            infra::Optional<PeripheralPin> b;
+            std::optional<PeripheralPin> a;
+            std::optional<PeripheralPin> b;
             volatile PwmChannelType* const address;
             uint32_t enable = 0;
             uint32_t generatorId = 0;

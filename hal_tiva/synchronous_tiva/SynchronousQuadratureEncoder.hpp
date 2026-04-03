@@ -5,6 +5,7 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Function.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -78,7 +79,7 @@ namespace hal::tiva
         infra::MemoryRange<IRQn_Type const> irqArray;
 
         infra::Function<void(MotionDirection)> onDirectionChange;
-        infra::Optional<ImmediateInterruptHandler> qeiInterruptRegistration;
+        std::optional<ImmediateInterruptHandler> qeiInterruptRegistration;
     };
 }
 

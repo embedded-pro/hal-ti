@@ -14,7 +14,7 @@ target_link_libraries(hal_tiva.instantiations.lwip PUBLIC
     infra.timer
     services.tracer
     lwip.lwip_cpp
-    services.network.dns
+    $<$<BOOL:${EMIL_INCLUDE_ECHO}>:services.network.dns>
 )
 
 target_sources(hal_tiva.instantiations.lwip PRIVATE

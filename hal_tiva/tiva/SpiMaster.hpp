@@ -5,6 +5,7 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/AutoResetFunction.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -48,7 +49,7 @@ namespace hal::tiva
         infra::AutoResetFunction<void()> onDone;
         ChipSelectConfigurator* chipSelectConfigurator = nullptr;
         CommunicationConfigurator* communicationConfigurator = nullptr;
-        infra::Optional<ImmediateInterruptHandler> spiInterruptRegistration;
+        std::optional<ImmediateInterruptHandler> spiInterruptRegistration;
         infra::ConstByteRange sendData;
         infra::ByteRange receiveData;
         bool sending;
