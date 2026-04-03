@@ -421,13 +421,13 @@ namespace hal::tiva
 
         if (pins.usesChannelA)
         {
-            a.Emplace(pins.pinA, pinConfig.first);
+            a.emplace(pins.pinA, pinConfig.first);
             enable |= 1 << index;
         }
 
         if (pins.usesChannelB)
         {
-            b.Emplace(pins.pinB, pinConfig.second);
+            b.emplace(pins.pinB, pinConfig.second);
             enable |= 1 << (index + 1);
         }
     }

@@ -7,6 +7,7 @@
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/WithStorage.hpp"
 #include <atomic>
+#include <optional>
 
 namespace hal::tiva
 {
@@ -43,8 +44,8 @@ namespace hal::tiva
         uint8_t uartIndex;
         PeripheralPin uartTx;
         PeripheralPin uartRx;
-        infra::Optional<PeripheralPin> uartRts;
-        infra::Optional<PeripheralPin> uartCts;
+        std::optional<PeripheralPin> uartRts;
+        std::optional<PeripheralPin> uartCts;
         TimeKeeper& timeKeeper;
         infra::ByteRange readBuffer;
         std::atomic<uint8_t*> contentsBegin;
@@ -124,7 +125,7 @@ namespace hal::tiva
 
         uint8_t uartIndex;
         PeripheralPin uartTx;
-        infra::Optional<PeripheralPin> uartRts;
+        std::optional<PeripheralPin> uartRts;
         infra::MemoryRange<UART0_Type* const> uartArray;
     };
 }

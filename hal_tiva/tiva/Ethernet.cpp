@@ -687,8 +687,8 @@ namespace hal::tiva
 
     void Ethernet::Initialize()
     {
-        receiveDescriptors.Emplace(*this);
-        sendDescriptors.Emplace(*this);
+        receiveDescriptors.emplace(*this);
+        sendDescriptors.emplace(*this);
 
         SetMacFilter(EMAC_FRMFILTER_HASH_AND_PERFECT | EMAC_FRMFILTER_PASS_MULTICAST);
 

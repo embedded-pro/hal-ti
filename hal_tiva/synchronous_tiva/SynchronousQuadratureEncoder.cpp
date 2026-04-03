@@ -125,7 +125,7 @@ namespace hal::tiva
     QuadratureEncoder::~QuadratureEncoder()
     {
         qeiArray[qeiIndex]->INTEN &= ~QEI_INTEN_DIR;
-        qeiInterruptRegistration = infra::none;
+        qeiInterruptRegistration = std::nullopt;
         qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
         DisableClock();
     }
