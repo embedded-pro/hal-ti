@@ -39,7 +39,7 @@ For each file reviewed, produce findings in this format:
 - [C1] Description of critical issue (e.g., clock disabled before NVIC, non-trivial type in ISR queue)
 
 **WARNING** — Should fix:
-- [W1] Description of warning (e.g., missing NOP delay after clock enable)
+- [W1] Description of warning (e.g., missing PRxxx peripheral-ready poll after clock enable)
 
 **SUGGESTION** — Nice to have:
 - [S1] Description of suggestion (e.g., extract bit constant to `constexpr`)
@@ -73,16 +73,17 @@ End with a summary: total criticals, warnings, suggestions, and overall verdict 
 
 ### 3. Peripheral Lifecycle — Constructor Order (CRITICAL)
 
-Constructor order MUST be:
-1. `EnableClock()` (`SYSCTL->RCGCxxx |= bit` + 3 NOPs)
-2. `PeripheralPin` construction (GPIO mux RAII)
-3. Peripheral register configuration
-4. `NVIC_ClearPendingIRQ` + `NVIC_EnableIRQ`
+Constructor structure MUST follow the established driver pattern:
+- `PeripheralPin` members are **class member variables** initialized in the **C++ initializer list** — they are constructed before the constructor body executes (not via explicit calls in the body)
+- `EnableClock()` is the **first call in the constructor body**: sets `SYSCTL->RCGCxxx` bit, then polls `SYSCTL->PRxxx` until the peripheral-ready bit is set — no `__asm("nop")` pattern
+- Peripheral register configuration follows `EnableClock()` in the constructor body
+- NVIC enabled last (`NVIC_ClearPendingIRQ` then `NVIC_EnableIRQ`, or equivalent via `ImmediateInterruptHandler`)
 
-- [ ] Clock enabled first in constructor
-- [ ] 3 NOP instructions (`__asm("nop")`) present immediately after every `SYSCTL->RCGCxxx |=`
+- [ ] `PeripheralPin` members are class member variables initialized in the C++ initializer list — not constructed via explicit calls in the constructor body
+- [ ] `EnableClock()` is the first call in the constructor body
+- [ ] `EnableClock()` polls `SYSCTL->PRxxx` ready bit — not a fixed `__asm("nop")` delay
 - [ ] `NVIC_ClearPendingIRQ` called before `NVIC_EnableIRQ`
-- [ ] NVIC enabled last in constructor
+- [ ] NVIC management is the last action in the constructor body
 
 ### 4. Peripheral Lifecycle — Destructor Order (CRITICAL)
 

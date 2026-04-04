@@ -24,8 +24,8 @@ You produce detailed, actionable implementation plans. You MUST NOT write or edi
 Before planning, thoroughly investigate:
 
 - **TM4C datasheet**: Identify the correct register sequence for initializing the peripheral:
-  1. Enable clock gate (`SYSCTL->RCGCxxx |= bit`) + 3 NOP delay
-  2. Configure GPIO alternate function (AFSEL, PCTL, DEN/AMSEL)
+  1. Enable clock gate (`SYSCTL->RCGCxxx |= bit`), then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set — follow existing drivers (Can, Uart, SpiMaster all use this approach; no `__asm("nop")` pattern)
+  2. `PeripheralPin` members handle GPIO alternate function (AFSEL, PCTL, DEN/AMSEL) via RAII in the C++ initializer list — they are constructed before `EnableClock()` is called in the constructor body
   3. Set peripheral control registers (baud rate, mode, FIFO size)
   4. Register ISR via `ImmediateInterruptHandler`
   5. `NVIC_ClearPendingIRQ` then `NVIC_EnableIRQ`
@@ -51,7 +51,7 @@ Every plan MUST include these sections:
 - Exact initialization order (clock gate → GPIO mux → peripheral config → NVIC)
 - Register names from the TM4C datasheet (e.g., `UART0->CTL`, `SYSCTL->RCGCUART`)
 - Bit-timing calculation where applicable (UART baud rate divisor, CAN prescaler, SPI clock divider)
-- Critical timing requirements (NOP count after clock enable, propagation delays)
+- Critical timing requirements (PRxxx peripheral-ready polling after clock enable — poll `SYSCTL->PRxxx` (e.g., `PRCAN`, `PRUART`, `PRSSI`) until the ready bit is set, not a fixed NOP count)
 - Destructor teardown order: **NVIC disable → clock gate disable → PeripheralPin teardown**
 
 #### Interrupt Handling Plan
@@ -96,7 +96,7 @@ Before finalizing, verify the plan against these constraints:
 - **ISR-safe queue**: Type passed to `QueueForOneReaderOneIrqWriter<T>` satisfies `std::is_trivial<T>`
 - **Both startup files updated**: Any new ISR handler has weak aliases and vector table entries in `startup_TM4C123.c` AND `startup_TM4C129.c`
 - **Destructor order correct**: NVIC disabled before clock gate disabled
-- **3 NOP delay**: After every `SYSCTL->RCGCxxx` enable
+- **PRxxx readiness poll**: `EnableClock()` polls `SYSCTL->PRxxx` (e.g., `PRCAN`, `PRUART`, `PRSSI`) until the ready bit is set after every `SYSCTL->RCGCxxx |=` enable
 - **NVIC_ClearPendingIRQ before NVIC_EnableIRQ**: Prevents stale-interrupt spurious fire
 
 ---
@@ -126,10 +126,11 @@ Before finalizing, verify the plan against these constraints:
 - [ ] `extern "C"` handler placed in anonymous namespace in driver `.cpp`
 
 ### Peripheral Lifecycle — DESTRUCTOR ORDER
+- [ ] `PeripheralPin` members are class member variables initialized in the C++ initializer list — not constructed via explicit calls in the constructor body
+- [ ] `EnableClock()` is the first call in the constructor body; it polls `SYSCTL->PRxxx` for readiness — no fixed NOP delay
 - [ ] `NVIC_DisableIRQ` called **before** `DisableClock()`
-- [ ] `DisableClock()` called **before** `PeripheralPin` destructors run
+- [ ] `DisableClock()` called **before** `PeripheralPin` destructors run (handled automatically by member destruction order)
 - [ ] `ImmediateInterruptHandler` destructor auto-unregisters — no manual unregister needed
-- [ ] 3 NOP delay present after every `SYSCTL->RCGCxxx |=` enable
 
 ### Design — SOLID + DRY
 - [ ] Single Responsibility: one class = one peripheral / one concern
