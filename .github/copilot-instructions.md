@@ -49,11 +49,11 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 Every peripheral driver follows this initialization order:
 
 **Constructor:**
-1. Save parameters (index, config)
-2. Create `PeripheralPin` objects (RAII GPIO multiplexing)
-3. `EnableClock()` — set SYSCTL `RCGCxxx` bit with NOP delay for clock propagation
+1. Save parameters (index, config) and register base class (`ImmediateInterruptHandler`) — all in the initializer list
+2. `PeripheralPin` members constructed in the **initializer list** — RAII GPIO multiplexing completes before the constructor body runs
+3. `EnableClock()` — **first call in the constructor body**: set `SYSCTL->RCGCxxx` bit, then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set (e.g., `while ((SYSCTL->PRCAN & (1 << index)) == 0) {}`)
 4. Configure hardware registers (baud rate, mode, control bits)
-5. Register interrupt handler via `ImmediateInterruptHandler` base class
+5. NVIC: `NVIC_ClearPendingIRQ` then `NVIC_EnableIRQ` (if not handled by the `ImmediateInterruptHandler` base)
 6. Enable peripheral in control register
 
 **Destructor (reverse order):**
@@ -68,7 +68,10 @@ Every peripheral driver follows this initialization order:
 void EnableClock() const
 {
     SYSCTL->RCGCxxx |= (1 << peripheralIndex);
-    __asm("nop"); __asm("nop"); __asm("nop"); // Propagation delay
+    while ((SYSCTL->PRxxx & (1 << peripheralIndex)) == 0)
+    {
+        // Wait until peripheral is ready
+    }
 }
 
 void DisableClock() const
@@ -77,7 +80,7 @@ void DisableClock() const
 }
 ```
 
-Always wait for clock propagation after enabling. The three NOP instructions are the minimum required by the TM4C datasheet.
+Always poll the peripheral-ready bit after enabling the clock gate. Use the corresponding `SYSCTL->PRxxx` register (e.g., `PRCAN`, `PRUART`, `PRSSI`) and wait until the bit for the peripheral index is set — do not rely on a fixed NOP delay.
 
 ### Interrupt Handling
 
@@ -196,4 +199,4 @@ Both `startup_TM4C123.c` and `startup_TM4C129.c` define the Cortex-M vector tabl
 4. **Inexact bit timing division** — CAN prescaler must divide bitClocks exactly; remainder produces wrong baud rate silently
 5. **Stale pending interrupts** — Always `NVIC_ClearPendingIRQ` before `NVIC_EnableIRQ`
 6. **infra::Function capture size** — Default capacity is `2 * sizeof(void*)` (8 bytes on ARM). Capturing `[this]` (1 pointer) fits; capturing more may exceed capacity silently
-7. **Missing NOP delay after clock enable** — SYSCTL requires 3+ clock cycles after setting RCGCxxx before accessing peripheral registers
+7. **Missing peripheral-ready poll after clock enable** — After `SYSCTL->RCGCxxx |= bit`, poll `SYSCTL->PRxxx` until the ready bit for that peripheral index is set before accessing any peripheral registers; the hardware does not guarantee immediate availability

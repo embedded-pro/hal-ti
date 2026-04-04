@@ -1,6 +1,6 @@
 ---
 description: "hal-ti C++ coding rules: no heap allocation, ISR safety with QueueForOneReaderOneIrqWriter (trivial types only), TI Tiva C peripheral register sequences, ARM Cortex-M NVIC and vector table hygiene (both startup files), peripheral lifecycle order (NVIC disable before clock disable), embedded-infra-lib patterns, Allman brace style, PascalCase naming, SOLID principles, const correctness."
-applyTo: "**/*.{hpp,cpp,h,c}"
+applyTo: "**/*.{hpp,cpp}"
 ---
 
 # hal-ti C++ Rules
@@ -32,8 +32,8 @@ Replace standard containers:
 ## Peripheral Lifecycle — ORDER IS MANDATORY
 
 **Constructor** (this order only):
-1. `EnableClock()` — `SYSCTL->RCGCxxx |= bit` + `__asm("nop"); __asm("nop"); __asm("nop");`
-2. `PeripheralPin` construction (RAII GPIO mux)
+1. `PeripheralPin` members are **class member variables** initialized in the C++ initializer list — they are constructed before the constructor body runs, so before `EnableClock()` is called
+2. `EnableClock()` — **first call in the constructor body**: `SYSCTL->RCGCxxx |= bit`, then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set (e.g., `while ((SYSCTL->PRCAN & (1 << index)) == 0) {}`) — no `__asm("nop")` pattern
 3. Peripheral register configuration
 4. `NVIC_ClearPendingIRQ` + `NVIC_EnableIRQ`
 
