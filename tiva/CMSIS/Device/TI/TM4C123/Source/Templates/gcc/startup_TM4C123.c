@@ -50,6 +50,7 @@ void Adc1Sequence2_Handler() __attribute__((weak, alias("Default_Handler")));
 void Adc1Sequence3_Handler() __attribute__((weak, alias("Default_Handler")));
 void Can0_Handler() __attribute__((weak, alias("Default_Handler")));
 void Can1_Handler() __attribute__((weak, alias("Default_Handler")));
+void Eeprom_Handler() __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -131,7 +132,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< COMP1_Handler,             Analog Comparator 1 */
     0,                     /*!< Reserved */
     Default_Handler,       /*!< SYSCTL_Handler,            System Control (PLL, OSC, BO) */
-    Default_Handler,       /*!< FLASH_Handler,             FLASH Control */
+    Eeprom_Handler,        /*!< Eeprom_Handler,            FLASH/EEPROM Control */
     Default_Handler,       /*!< GPIOF_Handler,             GPIO Port F */
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
