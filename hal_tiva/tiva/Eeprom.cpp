@@ -2,13 +2,13 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
+extern "C" void Eeprom_Handler()
+{
+    hal::InterruptTable::Instance().Invoke(FLASH_CTRL_IRQn);
+}
+
 namespace
 {
-    extern "C" void Eeprom_Handler()
-    {
-        hal::InterruptTable::Instance().Invoke(FLASH_CTRL_IRQn);
-    }
-
     constexpr uint32_t EedoneWorking     = 1u << 0;
     constexpr uint32_t EesuppPretry      = 1u << 1;
     constexpr uint32_t EesuppEretry      = 1u << 2;
@@ -18,6 +18,20 @@ namespace
     constexpr uint32_t BytesPerBlock     = 16u;
     constexpr uint32_t WordsPerBlock     = 4u;
     constexpr uint32_t BytesPerWord      = 4u;
+
+    class FlashControlInterruptGuard
+    {
+    public:
+        FlashControlInterruptGuard()
+        {
+            NVIC_DisableIRQ(FLASH_CTRL_IRQn);
+        }
+
+        ~FlashControlInterruptGuard()
+        {
+            NVIC_EnableIRQ(FLASH_CTRL_IRQn);
+        }
+    };
 }
 
 namespace hal::tiva
@@ -26,10 +40,14 @@ namespace hal::tiva
     {
         SYSCTL->RCGCEEPROM |= 1u;
         while ((SYSCTL->PREEPROM & 1u) == 0)
-        {}
+        {
+            // Wait for peripheral clock to be ready
+        }
 
         while ((EEPROM->EEDONE & EedoneWorking) != 0)
-        {}
+        {
+            // Wait for EEPROM to be idle
+        }
 
         really_assert((EEPROM->EESUPP & (EesuppPretry | EesuppEretry)) == 0);
 
@@ -37,10 +55,14 @@ namespace hal::tiva
         SYSCTL->SREEPROM &= ~1u;
 
         while ((SYSCTL->PREEPROM & 1u) == 0)
-        {}
+        {
+            // Wait for peripheral clock to be ready after reset
+        }
 
         while ((EEPROM->EEDONE & EedoneWorking) != 0)
-        {}
+        {
+            // Wait for EEPROM to be idle after reset
+        }
 
         return (EEPROM->EESIZE >> EesizeShiftBlocks) & 0xFFFFu;
     }
@@ -76,29 +98,39 @@ namespace hal::tiva
 
     void Eeprom::ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
-        uint32_t currentByteAddr = address;
-        uint32_t bufferIndex     = 0;
+        const uint32_t totalSize = Size();
 
-        while (bufferIndex < buffer.size())
+        really_assert(currentOperation == Operation::Idle);
+        really_assert(address <= totalSize);
+        really_assert(buffer.size() <= totalSize - address);
+
         {
-            uint32_t wordByteAddr   = currentByteAddr & ~(BytesPerWord - 1u);
-            uint32_t block          = wordByteAddr / BytesPerBlock;
-            uint32_t wordOffset     = (wordByteAddr / BytesPerWord) % WordsPerBlock;
-            uint32_t byteInWord     = currentByteAddr - wordByteAddr;
+            FlashControlInterruptGuard flashControlInterruptGuard;
 
-            uint32_t wordData = ReadWord(block, wordOffset);
+            uint32_t currentByteAddr = address;
+            uint32_t bufferIndex     = 0;
 
-            uint32_t bytesFromWord = BytesPerWord - byteInWord;
-            if (bytesFromWord > (buffer.size() - bufferIndex))
-                bytesFromWord = buffer.size() - bufferIndex;
-
-            for (uint32_t i = 0u; i < bytesFromWord; ++i)
+            while (bufferIndex < buffer.size())
             {
-                buffer[bufferIndex + i] = static_cast<uint8_t>((wordData >> ((byteInWord + i) * 8u)) & 0xFFu);
-            }
+                uint32_t wordByteAddr   = currentByteAddr & ~(BytesPerWord - 1u);
+                uint32_t block          = wordByteAddr / BytesPerBlock;
+                uint32_t wordOffset     = (wordByteAddr / BytesPerWord) % WordsPerBlock;
+                uint32_t byteInWord     = currentByteAddr - wordByteAddr;
 
-            currentByteAddr += bytesFromWord;
-            bufferIndex     += bytesFromWord;
+                uint32_t wordData = ReadWord(block, wordOffset);
+
+                uint32_t bytesFromWord = BytesPerWord - byteInWord;
+                if (bytesFromWord > (buffer.size() - bufferIndex))
+                    bytesFromWord = buffer.size() - bufferIndex;
+
+                for (uint32_t i = 0u; i < bytesFromWord; ++i)
+                {
+                    buffer[bufferIndex + i] = static_cast<uint8_t>((wordData >> ((byteInWord + i) * 8u)) & 0xFFu);
+                }
+
+                currentByteAddr += bytesFromWord;
+                bufferIndex     += bytesFromWord;
+            }
         }
 
         onDone();
@@ -106,8 +138,13 @@ namespace hal::tiva
 
     void Eeprom::WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
+        const uint32_t totalSize = Size();
+        FlashControlInterruptGuard flashControlInterruptGuard;
+
         really_assert(currentOperation == Operation::Idle);
         really_assert(!buffer.empty());
+        really_assert(address <= totalSize);
+        really_assert(buffer.size() <= totalSize - address);
 
         currentOperation   = Operation::Writing;
         pendingWriteBuffer = buffer;
@@ -124,7 +161,7 @@ namespace hal::tiva
         uint32_t wordOffset   = (wordByteAddr / BytesPerWord) % WordsPerBlock;
         uint32_t byteInWord   = pendingByteAddress - wordByteAddr;
 
-        uint32_t bytesAvail   = static_cast<uint32_t>(pendingWriteBuffer.size());
+        auto bytesAvail       = pendingWriteBuffer.size();
         uint32_t bytesToWrite = BytesPerWord - byteInWord;
         if (bytesToWrite > bytesAvail)
             bytesToWrite = bytesAvail;
@@ -160,7 +197,10 @@ namespace hal::tiva
 
     void Eeprom::Erase(infra::Function<void()> onDone)
     {
+        FlashControlInterruptGuard flashControlInterruptGuard;
+
         really_assert(currentOperation == Operation::Idle);
+        really_assert(numberOfBlocks != 0);
 
         currentOperation  = Operation::Erasing;
         eraseCurrentBlock = 0;
@@ -169,7 +209,7 @@ namespace hal::tiva
         StartNextErase();
     }
 
-    void Eeprom::StartNextErase()
+    void Eeprom::StartNextErase() const
     {
         EEPROM->EEBLOCK = eraseCurrentBlock;
         EEPROM->EESUPP  = EesuppEraseCmd;

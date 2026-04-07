@@ -4,7 +4,6 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "infra/util/Function.hpp"
 #include <cstdint>
-#include DEVICE_HEADER
 
 namespace hal::tiva
 {
@@ -26,7 +25,7 @@ namespace hal::tiva
         void DisableClock() const;
         void HandleInterrupt();
         void StartNextWriteWord();
-        void StartNextErase();
+        void StartNextErase() const;
         uint32_t ReadWord(uint32_t block, uint32_t wordOffset) const;
 
     private:
