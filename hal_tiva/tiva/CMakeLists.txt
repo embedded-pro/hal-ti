@@ -25,6 +25,8 @@ target_sources(hal_tiva.tiva PRIVATE
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.hpp>
     Dma.cpp
     Dma.hpp
+    Eeprom.cpp
+    Eeprom.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.hpp>
     Gpio.cpp
