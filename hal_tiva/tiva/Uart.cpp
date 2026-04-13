@@ -35,7 +35,7 @@ namespace hal::tiva
     {
         this->dataReceived = dataReceived;
 
-        uartArray[uartIndex]->IM = (uartArray[uartIndex]->IM & ~UART_IM_RXIM) | (!dataReceived ? UART_IM_RXIM : 0); /* Enable RX interrupt */
+        uartArray[uartIndex]->IM = (uartArray[uartIndex]->IM & ~UART_IM_RXIM) | (dataReceived ? UART_IM_RXIM : 0); /* Enable RX interrupt */
     }
 
     void Uart::Invoke()

@@ -83,7 +83,6 @@ namespace hal::tiva
 
     UartWithDma::~UartWithDma()
     {
-        Unregister();
         DisableTxDma();
         DisableRxDma();
         DisableUart();
@@ -151,13 +150,15 @@ namespace hal::tiva
         if (dmaRx.IsPrimaryTransferCompleted())
         {
             dmaRx.ReArmPingPongHalf(false, { drAddr, rxBufferPrimary.begin(), rxBufferPrimary.size() });
-            dataReceived(rxBufferPrimary);
+            if (dataReceived != nullptr)
+                dataReceived(rxBufferPrimary);
         }
 
         if (dmaRx.IsAlternateTransferCompleted())
         {
             dmaRx.ReArmPingPongHalf(true, { drAddr, rxBufferAlternate.begin(), rxBufferAlternate.size() });
-            dataReceived(rxBufferAlternate);
+            if (dataReceived != nullptr)
+                dataReceived(rxBufferAlternate);
         }
     }
 
@@ -180,7 +181,8 @@ namespace hal::tiva
                 dataReceived(infra::MakeRange(rxBufferPrimary.begin(), rxBufferPrimary.begin() + bytesReceived));
         }
 
-        ReceiveData();
+        if (dataReceived != nullptr)
+            ReceiveData();
     }
 
     void UartWithDma::Invoke()

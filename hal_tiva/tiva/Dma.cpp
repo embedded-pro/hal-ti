@@ -112,7 +112,7 @@ namespace hal::tiva
         void SetControlBase(const uint32_t& address)
         {
             really_assert((address & ~0x3FF) == address);
-            really_assert(address >= 0x2000000);
+            really_assert(address >= 0x20000000);
 
             UDMA->CTLBASE = address;
         }

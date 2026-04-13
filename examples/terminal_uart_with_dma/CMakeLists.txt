@@ -3,6 +3,7 @@ emil_build_for(hal_tiva.terminal_uart_with_dma TARGET_MCU_VENDOR ti PREREQUISITE
 
 target_link_libraries(hal_tiva.terminal_uart_with_dma PRIVATE
     services.util
+    services.peripheral
     hal_tiva.instantiations
     hal_tiva.tiva
 )
