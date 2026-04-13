@@ -149,8 +149,8 @@ namespace hal::tiva
         uartArray = peripheralUart;
         irqArray = infra::MakeRange(peripheralIrqUartArray);
         EnableClock();
-        RegisterInterrupt(config);
         Initialization(config);
+        RegisterInterrupt(config);
     }
 
     UartBase::UartBase(uint8_t aUartIndex, GpioPin& uartTxPin, GpioPin& uartRxPin, GpioPin& uartRtsPin, GpioPin& uartCtsPin, const Config& config)
@@ -163,8 +163,8 @@ namespace hal::tiva
         uartArray = peripheralUart;
         irqArray = infra::MakeRange(peripheralIrqUartArray);
         EnableClock();
-        RegisterInterrupt(config);
         Initialization(config);
+        RegisterInterrupt(config);
     }
 
     UartBase::~UartBase()
@@ -203,8 +203,10 @@ namespace hal::tiva
         uartArray[uartIndex]->IM |= UART_IM_OEIM;
         EnableUart();
 
-        if (config.priority)
-            NVIC_SetPriority(irqArray[uartIndex], static_cast<uint32_t>(*config.priority));
+        if (config.hwFlowControl == FlowControl::rts || config.hwFlowControl == FlowControl::rtsAndCts)
+            uartArray[uartIndex]->CTL |= UART_CTL_RTSEN;
+        if (config.hwFlowControl == FlowControl::cts || config.hwFlowControl == FlowControl::rtsAndCts)
+            uartArray[uartIndex]->CTL |= UART_CTL_CTSEN;
     }
 
     void UartBase::RegisterInterrupt(const Config& config)

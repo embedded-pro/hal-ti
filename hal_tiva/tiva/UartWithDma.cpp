@@ -55,8 +55,8 @@ namespace hal::tiva
             { { 21, 2 }, { 20, 2 } },
         } };
 
-        constexpr DmaChannel::Attributes txAttributes{ false, false, true, true };
-        constexpr DmaChannel::Attributes rxAttributes{ true, true, true, true };
+        constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
+        constexpr DmaChannel::Attributes rxAttributes{ true, true, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
         constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
     }
@@ -83,6 +83,7 @@ namespace hal::tiva
 
     UartWithDma::~UartWithDma()
     {
+        Unregister();
         DisableTxDma();
         DisableRxDma();
         DisableUart();

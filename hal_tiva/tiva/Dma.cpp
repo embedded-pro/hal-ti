@@ -75,7 +75,7 @@ namespace hal::tiva
 
         void Disable()
         {
-            UDMA->CFG &= ~UDMA_CFG_MASTEN;
+            UDMA->CFG = 0;
         }
 
         bool ErrorStatusGet()
@@ -228,6 +228,7 @@ namespace hal::tiva
     {
         EnableClock();
         Enable();
+        enabled = true;
         SetControlBase(reinterpret_cast<uint32_t>(Dma::controlTable.data()));
 
         Register(UDMAERR_IRQn);
@@ -242,7 +243,7 @@ namespace hal::tiva
 
     bool Dma::IsEnabled() const
     {
-        return (UDMA->CFG & UDMA_CFG_MASTEN) != 0;
+        return enabled;
     }
 
     void Dma::Invoke()
@@ -321,11 +322,6 @@ namespace hal::tiva
     void DmaChannel::StopTransfer() const
     {
         ChannelDisable(channel.number);
-    }
-
-    bool DmaChannel::IsAlternateActive() const
-    {
-        return (UDMA->ALTSET & (1u << channel.number)) != 0;
     }
 
     std::size_t DmaChannel::RemainingTransfers(bool alternate) const

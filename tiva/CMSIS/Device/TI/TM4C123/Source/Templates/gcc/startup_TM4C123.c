@@ -37,6 +37,7 @@ extern void Default_Handler_Forwarded();
 extern void __libc_init_local();
 static void Default_Handler();
 void Reset_Handler();
+void HardFault_Handler() __attribute__((weak, alias("Default_Handler")));
 void SVC_Handler() __attribute__((weak, alias("Default_Handler")));
 void PendSV_Handler() __attribute__((weak, alias("Default_Handler")));
 void SysTick_Handler() __attribute__((weak, alias("Default_Handler")));
@@ -99,7 +100,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     (void*)&_estack,       /*!< The initial stack pointer, 0x20008000 32K */
     Reset_Handler,         /*!< The reset handler */
     Default_Handler,       /*!< NMI_Handler,               The NMI handler */
-    Default_Handler,       /*!< HardFault_Handler,         The hard fault handler */
+    HardFault_Handler,     /*!< HardFault_Handler,         The hard fault handler */
     Default_Handler,       /*!< MemManage_Handler,         The MPU fault handler */
     Default_Handler,       /*!< BusFault_Handler,          The bus fault handler */
     Default_Handler,       /*!< UsageFault_Handler,        The usage fault handler */

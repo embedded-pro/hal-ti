@@ -26,6 +26,7 @@ namespace hal::tiva
         void DisableClock() const;
 
         infra::Function<void()> onError;
+        bool enabled = false;
         static std::array<uint8_t, 1024> controlTable alignas(1024);
     };
 
@@ -116,7 +117,6 @@ namespace hal::tiva
         bool IsPrimaryTransferCompleted() const;
         bool IsAlternateTransferCompleted() const;
         void StopTransfer() const;
-        bool IsAlternateActive() const;
         std::size_t RemainingTransfers(bool alternate) const;
         void ForceRequest() const;
         std::size_t MaxTransferSize() const;
