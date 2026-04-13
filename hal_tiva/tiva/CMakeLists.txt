@@ -1,5 +1,5 @@
-add_library(hal_tiva.tiva ${HAL_TI_EXCLUDE_FROM_ALL} STATIC)
-install(TARGETS hal_tiva.tiva EXPORT halTivaTargets)
+add_library(hal_tiva.tiva STATIC)
+emil_build_for(hal_tiva.tiva TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
 target_include_directories(hal_tiva.tiva PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
@@ -17,12 +17,16 @@ target_link_libraries(hal_tiva.tiva PUBLIC
 target_sources(hal_tiva.tiva PRIVATE
     Adc.cpp
     Adc.hpp
+    Can.cpp
+    Can.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.hpp>
     Dma.cpp
     Dma.hpp
+    Eeprom.cpp
+    Eeprom.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.hpp>
     Gpio.cpp

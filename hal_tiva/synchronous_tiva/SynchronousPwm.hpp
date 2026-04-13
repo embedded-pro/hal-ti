@@ -5,6 +5,7 @@
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
+#include <chrono>
 #include <optional>
 
 namespace hal::tiva
@@ -41,8 +42,8 @@ namespace hal::tiva
 
             struct DeadTime
             {
-                uint8_t fallInClockCycles = 0xff;
-                uint8_t riseInClockCycles = 0xff;
+                uint16_t fallInClockCycles = 0xffff;
+                uint16_t riseInClockCycles = 0xffff;
             };
 
             enum class ClockDivisor
@@ -56,22 +57,11 @@ namespace hal::tiva
                 divisor64,
             };
 
-            enum class Trigger
-            {
-                countZero,
-                countLoad,
-                countComparatorAUp,
-                countComparatorADown,
-                countComparatorBUp,
-                countComparatorBDown,
-            };
-
             bool channelAInverted = false;
             bool channelBInverted = false;
             Control control;
             ClockDivisor clockDivisor = ClockDivisor::divisor64;
             std::optional<DeadTime> deadTime;
-            std::optional<Trigger> trigger;
         };
 
         enum class GeneratorIndex : uint8_t
@@ -84,6 +74,16 @@ namespace hal::tiva
 
         struct PinChannel
         {
+            enum class Trigger
+            {
+                countZero,
+                countLoad,
+                countComparatorAUp,
+                countComparatorADown,
+                countComparatorBUp,
+                countComparatorBDown,
+            };
+
             GeneratorIndex generator;
 
             GpioPin& pinA = dummyPin;
@@ -91,6 +91,8 @@ namespace hal::tiva
 
             bool usesChannelA = false;
             bool usesChannelB = false;
+
+            std::optional<Trigger> trigger;
         };
 
         SynchronousPwm(uint8_t aPwmIndex, infra::MemoryRange<PinChannel> channels, const Config& config);
@@ -102,6 +104,8 @@ namespace hal::tiva
         void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3) override;
         void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4) override;
         void Stop() override;
+
+        static uint16_t CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor);
 
     private:
         struct PwmChannelType
@@ -131,19 +135,21 @@ namespace hal::tiva
             0x00000100, /* Channel 3 */
         } };
 
-        static PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
+        static volatile PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
         {
-            return reinterpret_cast<PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
+            return reinterpret_cast<volatile PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
         struct Generator
         {
-            Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index);
+            Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index, std::optional<PinChannel::Trigger> trigger);
 
-            infra::Optional<PeripheralPin> a;
-            infra::Optional<PeripheralPin> b;
-            PwmChannelType* const address;
+            std::optional<PeripheralPin> a;
+            std::optional<PeripheralPin> b;
+            volatile PwmChannelType* const address;
             uint32_t enable = 0;
+            uint32_t generatorId = 0;
+            std::optional<PinChannel::Trigger> trigger;
         };
 
         uint8_t pwmIndex;
@@ -153,12 +159,17 @@ namespace hal::tiva
 
     private:
         void Initialize();
-        void GeneratorConfiguration(Generator& generator);
-        void SetComparator(Generator& generator, hal::Percent& dutyCycle);
-        void Sync();
-        uint32_t GetLoad(Generator& generator);
-        void EnableClock();
-        void DisableClock();
+        void GeneratorConfiguration(Generator& generator) const;
+        void EnableDeadBand(Generator& generator) const;
+        void EnableGenerator(Generator& generator) const;
+        void DisableGenerator(Generator& generator) const;
+        void EnableOutput(const Generator& generator) const;
+        void DisableOutput(const Generator& generator) const;
+        void SetComparator(Generator& generator, const hal::Percent& dutyCycle) const;
+        void Sync() const;
+        uint32_t GetLoad(const Generator& generator) const;
+        void EnableClock() const;
+        void DisableClock() const;
     };
 }
 

@@ -2,6 +2,7 @@
 #define HAL_DMA_STM_HPP
 
 #include "infra/util/InterfaceConnector.hpp"
+#include <optional>
 #include DEVICE_HEADER
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 

@@ -5,7 +5,7 @@
 #include "hal/interfaces/SerialCommunication.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "infra/util/Optional.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -64,7 +64,7 @@ namespace hal::tiva
                 , enableRx(enableRx)
             {}
 
-            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, infra::Optional<InterruptPriority> priority)
+            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, std::optional<InterruptPriority> priority)
                 : enableTx(enableTx)
                 , enableRx(enableRx)
                 , baudrate(baudrate)
@@ -82,7 +82,7 @@ namespace hal::tiva
             Parity parity = Parity::none;
             StopBits stopbits = StopBits::one;
             NumberOfBytes numberOfBytes = NumberOfBytes::_8_bytes;
-            infra::Optional<InterruptPriority> priority;
+            std::optional<InterruptPriority> priority;
         };
 
         Uart(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, const Config& config = Config(true, true));
@@ -122,8 +122,8 @@ namespace hal::tiva
         uint8_t uartIndex;
         PeripheralPin uartTx;
         PeripheralPin uartRx;
-        infra::Optional<PeripheralPin> uartRts;
-        infra::Optional<PeripheralPin> uartCts;
+        std::optional<PeripheralPin> uartRts;
+        std::optional<PeripheralPin> uartCts;
         uint32_t enableTx = 0;
         uint32_t enableRx = 0;
 

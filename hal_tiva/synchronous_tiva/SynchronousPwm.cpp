@@ -351,13 +351,18 @@ namespace
         else
             return 1U << ((result >> 1) + 1);
 #else
-        auto result = pwmBase->CC & (PWM_CC_USEPWMDIV | PWM_CC_PWMDIV_M);
+        auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
 
         if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
             return 1;
         else
             return 1U << (result + 1);
 #endif
+    }
+
+    float GetSystemCoreClock()
+    {
+        return static_cast<float>(SystemCoreClock);
     }
 
     uint32_t ToPeriod(PWM0_Type* const pwmBase, hal::Hertz& baseFrequency)
@@ -402,28 +407,27 @@ namespace hal::tiva
 
         value |= static_cast<uint32_t>(updateMode) << 6;
         value |= static_cast<uint32_t>(updateMode) << 8;
-        value |= static_cast<uint32_t>(updateMode) << 10;
-        value |= static_cast<uint32_t>(updateMode) << 12;
-        value |= static_cast<uint32_t>(updateMode) << 14;
 
         return value & 0x7fffe;
     }
 
-    SynchronousPwm::Generator::Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex generator)
+    SynchronousPwm::Generator::Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex generator, std::optional<PinChannel::Trigger> trigger)
         : address(PwmChannel(pwmOffset, generator))
+        , generatorId(1 << static_cast<uint32_t>(generator))
+        , trigger(trigger)
     {
         auto index = static_cast<uint8_t>(generator) * 2;
         auto pinConfig = pinConfigPeripheral.at(infra::enum_cast(generator));
 
         if (pins.usesChannelA)
         {
-            a.Emplace(pins.pinA, pinConfig.first);
+            a.emplace(pins.pinA, pinConfig.first);
             enable |= 1 << index;
         }
 
         if (pins.usesChannelB)
         {
-            b.Emplace(pins.pinB, pinConfig.second);
+            b.emplace(pins.pinB, pinConfig.second);
             enable |= 1 << (index + 1);
         }
     }
@@ -435,23 +439,14 @@ namespace hal::tiva
         really_assert(!channels.empty() && channels.size() <= generators.max_size());
 
         for (auto& channel : channels)
-            generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator);
+            generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator, channel.trigger);
 
         Initialize();
     }
 
     SynchronousPwm::~SynchronousPwm()
     {
-        auto zero = hal::Percent(0);
-
-        for (auto& generator : generators)
-        {
-            SetComparator(generator, zero);
-            Sync();
-            peripheralPwm[pwmIndex]->ENABLE &= ~generator.enable;
-            generator.address->CTL &= ~PWM_CHANNEL_CTL_ENABLE;
-        }
-
+        Stop();
         DisableClock();
     }
 
@@ -462,24 +457,17 @@ namespace hal::tiva
 
         for (auto& generator : generators)
             GeneratorConfiguration(generator);
-
-        if (config.trigger)
-            generators[0].address->INTEN |= triggerType[static_cast<uint32_t>(*config.trigger)];
     }
 
     void SynchronousPwm::SetBaseFrequency(hal::Hertz baseFrequency)
     {
         auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
-        really_assert((load & 0xffff) == 0);
+        really_assert(load <= 0xffff);
 
         for (auto& generator : generators)
-        {
-            if (generator.a)
+            if (generator.a || generator.b)
                 generator.address->LOAD = load;
-            if (generator.b)
-                generator.address->LOAD = load;
-        }
 
         Sync();
     }
@@ -529,16 +517,16 @@ namespace hal::tiva
 
     void SynchronousPwm::Stop()
     {
-        auto zero = hal::Percent(0);
-
         for (auto& generator : generators)
         {
-            SetComparator(generator, zero);
-            Sync();
+            DisableGenerator(generator);
+            DisableOutput(generator);
         }
+
+        Sync();
     }
 
-    void SynchronousPwm::GeneratorConfiguration(Generator& generator)
+    void SynchronousPwm::GeneratorConfiguration(Generator& generator) const
     {
         if (generator.a || generator.b)
         {
@@ -546,48 +534,57 @@ namespace hal::tiva
             generator.address->GENA = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENA_ACTCMPAU_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO) : (PWM_CHANNEL_GENA_ACTLOAD_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO);
             generator.address->GENB = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO) : (PWM_CHANNEL_GENB_ACTLOAD_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
 
+            if (generator.trigger)
+                generator.address->INTEN |= triggerType[static_cast<uint32_t>(*generator.trigger)];
+
             if (config.deadTime)
-            {
-                generator.address->DBCTL |= PWM_CHANNEL_DBCTL_ENABLE;
-                generator.address->DBFALL = config.deadTime->fallInClockCycles;
-                generator.address->DBRISE = config.deadTime->riseInClockCycles;
-            }
+                EnableDeadBand(generator);
             else
                 generator.address->DBCTL &= ~PWM_CHANNEL_DBCTL_ENABLE;
-
-            peripheralPwm[pwmIndex]->ENABLE |= generator.enable;
         }
     }
 
-    void SynchronousPwm::SetComparator(Generator& generator, hal::Percent& dutyCycle)
+    void SynchronousPwm::SetComparator(Generator& generator, const hal::Percent& dutyCycle) const
     {
-        really_assert(dutyCycle.Value() < 100);
+        really_assert(dutyCycle.Value() <= 100);
 
-        auto comparator = GetLoad(generator) * dutyCycle.Value() / 100;
+        auto width = GetLoad(generator) * dutyCycle.Value() / 100;
 
         if (IsCenterAligned(config.control.mode))
-            comparator = comparator / 2;
+            width /= 2;
+
+        auto load = generator.address->LOAD;
+
+        really_assert(width < load);
 
         if (generator.a)
-            generator.address->CMPA = generator.address->LOAD - comparator;
+            generator.address->CMPA = load - width;
         if (generator.b)
-            generator.address->CMPB = generator.address->LOAD - comparator;
+            generator.address->CMPB = load - width;
+
+        EnableOutput(generator);
+        EnableGenerator(generator);
     }
 
-    void SynchronousPwm::Sync()
+    void SynchronousPwm::Sync() const
     {
-        peripheralPwm[pwmIndex]->SYNC = 0x0000000F;
+        uint32_t ctl = 0;
+
+        for (auto& generator : generators)
+            ctl |= generator.generatorId;
+
+        peripheralPwm[pwmIndex]->CTL = ctl;
     }
 
-    uint32_t SynchronousPwm::GetLoad(Generator& generator)
+    uint32_t SynchronousPwm::GetLoad(const Generator& generator) const
     {
         if (IsCenterAligned(config.control.mode))
             return generator.address->LOAD * 2;
         else
-            return generator.address->LOAD - 1;
+            return generator.address->LOAD + 1;
     }
 
-    void SynchronousPwm::EnableClock()
+    void SynchronousPwm::EnableClock() const
     {
         SYSCTL->RCGCPWM |= (1 << pwmIndex);
 
@@ -596,8 +593,49 @@ namespace hal::tiva
         }
     }
 
-    void SynchronousPwm::DisableClock()
+    void SynchronousPwm::DisableClock() const
     {
         SYSCTL->RCGCPWM &= ~(1 << pwmIndex);
+    }
+
+    void SynchronousPwm::EnableDeadBand(Generator& generator) const
+    {
+        generator.address->DBFALL = config.deadTime->fallInClockCycles;
+        generator.address->DBRISE = config.deadTime->riseInClockCycles;
+        generator.address->DBCTL |= PWM_CHANNEL_DBCTL_ENABLE;
+    }
+
+    void SynchronousPwm::EnableGenerator(Generator& generator) const
+    {
+        generator.address->CTL |= PWM_CHANNEL_CTL_ENABLE;
+    }
+
+    void SynchronousPwm::DisableGenerator(Generator& generator) const
+    {
+        generator.address->CTL &= ~PWM_CHANNEL_CTL_ENABLE;
+    }
+
+    void SynchronousPwm::EnableOutput(const Generator& generator) const
+    {
+        peripheralPwm[pwmIndex]->ENABLE |= generator.enable;
+    }
+
+    void SynchronousPwm::DisableOutput(const Generator& generator) const
+    {
+        peripheralPwm[pwmIndex]->ENABLE &= ~generator.enable;
+    }
+
+    uint16_t SynchronousPwm::CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor)
+    {
+        static constexpr std::array<uint32_t, 7> divisorValues = { { 1, 2, 4, 8, 16, 32, 64 } };
+
+        auto divisorValue = divisorValues[static_cast<uint32_t>(divisor)];
+        auto pwmClockFreq = GetSystemCoreClock() / static_cast<float>(divisorValue);
+        auto deadTimeNs = static_cast<float>(deadTime.count());
+        auto cycles = static_cast<uint32_t>(deadTimeNs * pwmClockFreq / 1e9);
+
+        really_assert(cycles <= 4095);
+
+        return static_cast<uint16_t>(cycles);
     }
 }

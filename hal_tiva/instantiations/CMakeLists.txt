@@ -1,7 +1,7 @@
-add_library(hal_tiva.instantiations ${HAL_TI_EXCLUDE_FROM_ALL} STATIC)
-install(TARGETS hal_tiva.instantiations EXPORT halTivaTargets)
+add_library(hal_tiva.instantiations STATIC)
+emil_build_for(hal_tiva.instantiations TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
-if (TARGET_MCU_FAMILY STREQUAL "TM4C129")
+if (TARGET_MCU_FAMILY STREQUAL "TM4C129" AND EMIL_INCLUDE_LWIP)
     add_subdirectory(lwip)
 endif()
 
@@ -17,7 +17,7 @@ target_link_libraries(hal_tiva.instantiations PUBLIC
     infra.event
     infra.timer
     services.tracer
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:hal_tiva.instantiations.lwip>
+    $<$<AND:$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>,$<BOOL:${EMIL_INCLUDE_LWIP}>>:hal_tiva.instantiations.lwip>
 )
 
 target_sources(hal_tiva.instantiations PRIVATE

@@ -5,25 +5,47 @@
 
 namespace
 {
-    extern "C" void AdcSequence0_Handler()
+    extern "C" void Adc0Sequence0_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS0_IRQn);
     }
 
-    extern "C" void AdcSequence1_Handler()
+    extern "C" void Adc0Sequence1_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS1_IRQn);
     }
 
-    extern "C" void AdcSequence2_Handler()
+    extern "C" void Adc0Sequence2_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS2_IRQn);
     }
 
-    extern "C" void AdcSequence3_Handler()
+    extern "C" void Adc0Sequence3_Handler()
     {
         hal::InterruptTable::Instance().Invoke(ADC0SS3_IRQn);
     }
+
+    extern "C" void Adc1Sequence0_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS0_IRQn);
+    }
+
+    extern "C" void Adc1Sequence1_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS1_IRQn);
+    }
+
+    extern "C" void Adc1Sequence2_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS2_IRQn);
+    }
+
+    extern "C" void Adc1Sequence3_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(ADC1SS3_IRQn);
+    }
+
+    constexpr static size_t sequencerOffset = 8;
 
     constexpr static uint32_t ADC_SSFSTAT0_FULL = 0x00001000;
     constexpr static uint32_t ADC_SSFSTAT0_EMPTY = 0x00000100;
@@ -92,7 +114,11 @@ namespace
         ADC_CTL_SHOLD_256,
     } };
 
-    const infra::MemoryRange<ADC0_Type* const> peripheralAdc = infra::ReinterpretCastMemoryRange<ADC0_Type* const>(infra::MakeRange(peripheralAdcArray));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast) - hardware register access
+    const std::array<ADC0_Type*, 2> peripheralAdc = { {
+        reinterpret_cast<ADC0_Type*>(ADC0_BASE),
+        reinterpret_cast<ADC0_Type*>(ADC1_BASE),
+    } };
 
     bool IsPwmTrigger(hal::tiva::Adc::Trigger trigger)
     {
@@ -123,32 +149,32 @@ namespace
 
     void SequenceConfigure(ADC0_Type& adc, uint8_t sequencer, hal::tiva::Adc::Trigger trigger, uint8_t priority)
     {
-        auto triggerParsed = (triggerFields.at(infra::enum_cast(trigger)) & 0xf);
-        auto generator = (triggerParsed - ADC_TRIGGER_PWM0) * 8;
-        sequencer *= 4;
+        auto triggerParsed = triggerFields.at(infra::enum_cast(trigger)) & 0xf;
+        auto sequencerShift = sequencer * 4;
+        auto tsselShift = 4 + (sequencer * sequencerOffset);
 
-        adc.EMUX = (adc.EMUX & ~(0xf << sequencer)) | (triggerParsed << sequencer);
-        adc.SSPRI = (adc.SSPRI & ~(0xf << sequencer)) | ((priority & 0x3) << sequencer);
+        adc.EMUX = (adc.EMUX & ~(0xf << sequencerShift)) | (triggerParsed << sequencerShift);
+        adc.SSPRI = (adc.SSPRI & ~(0xf << sequencerShift)) | ((priority & 0x3) << sequencerShift);
 
         if (IsPwmTrigger(trigger))
-            adc.TSSEL = (adc.TSSEL & ~(0x30 << generator)) | ((triggerParsed & 0x30) << generator);
+            adc.TSSEL = (adc.TSSEL & ~(0x3 << tsselShift)) | (ADC_TRIGGER_PWM_MOD0 << tsselShift);
     }
 
     void SequenceStepConfigure(ADC0_Type& adc, uint8_t sequencer, uint8_t step, uint32_t config)
     {
-        uint32_t stepOffset = step * 4;
+        volatile uint32_t* SSMUX = &adc.SSMUX0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSCTL = &adc.SSCTL0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSEMUX = &adc.SSEMUX0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSTSH = &adc.SSTSH0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSOP = &adc.SSOP0 + (sequencer * sequencerOffset);
 
-        volatile uint32_t* SSMUX = &adc.SSMUX0 + (sequencer * 4);
-        volatile uint32_t* SSCTL = &adc.SSCTL0 + (sequencer * 4);
-        volatile uint32_t* SSEMUX = &adc.SSEMUX0 + (sequencer * 4);
-        volatile uint32_t* SSTSH = &adc.SSTSH0 + (sequencer * 4);
-        volatile uint32_t* SSOP = &adc.SSOP0 + (sequencer * 4);
+        step *= 4;
 
-        *SSMUX = ((*SSMUX & ~(0x0000000f << stepOffset)) | ((config & 0x0f) << stepOffset));
-        *SSEMUX = ((*SSEMUX & ~(0x0000000f << stepOffset)) | (((config & 0xf00) >> 8) << stepOffset));
-        *SSCTL = ((*SSCTL & ~(0x0000000f << stepOffset)) | (((config & 0xf0) >> 4) << stepOffset));
-        *SSTSH = ((*SSTSH & ~(0x0000000f << stepOffset)) | (((config & 0xf00000) >> 20) << stepOffset));
-        *SSOP &= ~(1 << stepOffset);
+        *SSMUX = ((*SSMUX & ~(0x0000000f << step)) | ((config & 0x0f) << step));
+        *SSEMUX = ((*SSEMUX & ~(0x0000000f << step)) | (((config & 0xf00) >> 8) << step));
+        *SSCTL = ((*SSCTL & ~(0x0000000f << step)) | (((config & 0xf0) >> 4) << step));
+        *SSTSH = ((*SSTSH & ~(0x0000000f << step)) | (((config & 0xf00000) >> 20) << step));
+        *SSOP &= ~(1 << step);
     }
 
     void SequenceOversampling(ADC0_Type& adc, uint8_t oversampling)
@@ -167,41 +193,54 @@ namespace
         adc.IM &= ~(1 << sequencer);
     }
 
-    bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
+    [[gnu::always_inline]] inline bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
     {
         return (adc.RIS) & (0x10000 | (1 << sequencer));
     }
 
-    void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
+    [[gnu::always_inline]] inline void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
     {
         adc.ISC = 1 << sequencer;
     }
 
-    void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples)
+    [[gnu::always_inline]] inline void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
     {
-        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * 4);
-        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * 4);
+        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
 
         samples.clear();
 
-        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && (samples.size() < 8))
-            samples.push_back(static_cast<uint16_t>(*SSFIFO));
+        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && numberOfSamples--)
+        {
+            auto data = *SSFIFO;
+            samples.push_back(static_cast<uint16_t>(data));
+        }
+    }
+
+    void SetPhaseDelay(uint8_t adcIndex, uint32_t delay)
+    {
+        ADC0_Type& adc = *peripheralAdc[adcIndex];
+        adc.SPC = (adc.SPC & ~0x0F) | (delay & 0x0F);
     }
 }
 
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray.at(numberOfSequencers * adcIndex + adcSequencer), [this]()
+        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], [this]()
               {
-                  if (IsInterruptTriggered(*peripheralAdc[this->adcIndex], this->adcSequencer))
+                  auto& adc = *peripheralAdc[this->adcIndex];
+                  if (IsInterruptTriggered(adc, this->adcSequencer))
                   {
-                      InterruptClear(*peripheralAdc[this->adcIndex], this->adcSequencer);
-                      DataGet(*peripheralAdc[this->adcIndex], this->adcSequencer, buffer);
+                      InterruptClear(adc, this->adcSequencer);
+                      DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
+                      if (callback)
+                          callback(infra::MakeRange(buffer));
                   }
               })
         , adcIndex(adcIndex)
         , adcSequencer(adcSequencer)
+        , numberOfChannels(inputs.size())
     {
         really_assert(inputs.size() > 0);
 
@@ -220,6 +259,9 @@ namespace hal::tiva
 
         if (config.oversampling)
             SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
+
+        if (config.samplingDelay)
+            SetPhaseDelay(adcIndex, config.samplingDelay->Value());
     }
 
     Adc::~Adc()
@@ -234,6 +276,12 @@ namespace hal::tiva
         callback = onDone;
         InterruptEnable(*peripheralAdc[adcIndex], adcSequencer);
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
+    }
+
+    void Adc::Stop()
+    {
+        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
+        InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
     void Adc::EnableClock()

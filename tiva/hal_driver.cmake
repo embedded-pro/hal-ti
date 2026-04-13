@@ -2,8 +2,6 @@ function(add_hal_driver target_name manufacturer manufacturer_family)
 
     add_library(${target_name} STATIC)
 
-    install(TARGETS ${target_name} EXPORT halTivaTargets)
-
     file(GLOB manufacturer_include RELATIVE ${CMAKE_CURRENT_LIST_DIR} CMSIS/Device/${manufacturer}/${manufacturer_family}*)
 
     target_include_directories(${target_name} PUBLIC
@@ -17,6 +15,10 @@ function(add_hal_driver target_name manufacturer manufacturer_family)
         CMSIS/Core/Include/*.h
         CMSIS/Device/${manufacturer}/${manufacturer_family}/Include/*.h
         CMSIS/Device/${manufacturer}/${manufacturer_family}/Source/Templates/system_*.c
+    )
+
+    target_compile_options(${target_name} PUBLIC
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-volatile>
     )
 
     set(sources)

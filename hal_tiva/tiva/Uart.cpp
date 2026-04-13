@@ -245,8 +245,8 @@ namespace hal::tiva
     Uart::Uart(uint8_t aUartIndex, GpioPin& uartTxPin, GpioPin& uartRxPin, GpioPin& uartRtsPin, GpioPin& uartCtsPin, const Config& config)
         : Uart(aUartIndex, uartTxPin, uartRxPin, config)
     {
-        uartRts.Emplace(uartRtsPin, PinConfigPeripheral::uartRts);
-        uartCts.Emplace(uartCtsPin, PinConfigPeripheral::uartCts);
+        uartRts.emplace(uartRtsPin, PinConfigPeripheral::uartRts);
+        uartCts.emplace(uartCtsPin, PinConfigPeripheral::uartCts);
     }
 
     Uart::~Uart()

@@ -5,6 +5,7 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Function.hpp"
+#include <optional>
 
 namespace hal::tiva
 {
@@ -14,7 +15,36 @@ namespace hal::tiva
     public:
         struct Config
         {
+            enum class ResetMode
+            {
+                onMaxPosition,
+                onIndexPulse,
+            };
+
+            enum class CaptureMode
+            {
+                onlyPhaseA,
+                phaseAandPhaseB,
+            };
+
+            enum class SignalMode
+            {
+                quadrature,
+                clockAndDirection,
+            };
+
             constexpr Config()
+            {}
+
+            Config(uint32_t aResolution, uint32_t anOffset, bool anInvertPhaseA, bool anInvertPhaseB, bool anInvertIndex, ResetMode aResetMode, CaptureMode aCaptureMode, SignalMode aSignalMode)
+                : resolution(aResolution)
+                , offset(anOffset)
+                , invertPhaseA(anInvertPhaseA)
+                , invertPhaseB(anInvertPhaseB)
+                , invertIndex(anInvertIndex)
+                , resetMode(aResetMode)
+                , captureMode(aCaptureMode)
+                , signalMode(aSignalMode)
             {}
 
             uint32_t resolution = 1024;
@@ -22,6 +52,9 @@ namespace hal::tiva
             bool invertPhaseA = false;
             bool invertPhaseB = false;
             bool invertIndex = false;
+            ResetMode resetMode = ResetMode::onMaxPosition;
+            CaptureMode captureMode = CaptureMode::phaseAandPhaseB;
+            SignalMode signalMode = SignalMode::quadrature;
         };
 
         QuadratureEncoder(uint8_t aQeiIndex, GpioPin& phaseA = dummyPin, GpioPin& phaseB = dummyPin, GpioPin& index = dummyPin, const Config& config = Config());
@@ -33,7 +66,6 @@ namespace hal::tiva
         uint32_t Speed() override;
 
     private:
-        void HandleInterrupt();
         void EnableClock();
         void DisableClock();
 
@@ -47,7 +79,7 @@ namespace hal::tiva
         infra::MemoryRange<IRQn_Type const> irqArray;
 
         infra::Function<void(MotionDirection)> onDirectionChange;
-        infra::Optional<ImmediateInterruptHandler> qeiInterruptRegistration;
+        std::optional<ImmediateInterruptHandler> qeiInterruptRegistration;
     };
 }
 

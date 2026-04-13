@@ -1,5 +1,5 @@
-add_library(hal_tiva.default_init ${HAL_TI_EXCLUDE_FROM_ALL} STATIC)
-install(TARGETS hal_tiva.default_init EXPORT halTivaTargets)
+add_library(hal_tiva.default_init STATIC)
+emil_build_for(hal_tiva.default_init TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
 target_include_directories(hal_tiva.default_init PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
