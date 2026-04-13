@@ -1,6 +1,14 @@
 #include "hal_tiva/tiva/Dma.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
+namespace
+{
+    extern "C" void UdmaError_Handler()
+    {
+        hal::InterruptTable::Instance().Invoke(UDMAERR_IRQn);
+    }
+}
+
 namespace hal::tiva
 {
     namespace
@@ -15,7 +23,6 @@ namespace hal::tiva
         constexpr uint32_t UDMA_CHCTL_SRCSIZE_M = 0x03000000;
         constexpr uint32_t UDMA_CHCTL_ARBSIZE_M = 0x0003C000;
         constexpr uint32_t UDMA_CHCTL_NXTUSEBURST = 0x00000008;
-        constexpr uint32_t UDMA_CHMAP0 = 0x400FF510;
 
         enum class ChannelType : uint8_t
         {
@@ -47,11 +54,6 @@ namespace hal::tiva
 
         constexpr DmaChannel::Attributes allAttributes{ true, true, true, true };
 
-        volatile uint32_t& Reg(uint32_t reg)
-        {
-            return *reinterpret_cast<volatile uint32_t*>(reg);
-        }
-
         uint32_t ControlSetMask()
         {
             return UDMA_CHCTL_DSTINC_M | UDMA_CHCTL_DSTSIZE_M | UDMA_CHCTL_SRCINC_M | UDMA_CHCTL_SRCSIZE_M | UDMA_CHCTL_ARBSIZE_M | UDMA_CHCTL_NXTUSEBURST;
@@ -59,12 +61,11 @@ namespace hal::tiva
 
         volatile void* GoToEndAddress(volatile void* address, DmaChannel::Increment increment, std::size_t size)
         {
-            uint32_t bufferAddress = 0;
+            if (increment == DmaChannel::Increment::none)
+                return address;
 
-            if (increment != DmaChannel::Increment::none)
-                bufferAddress = (size << static_cast<std::size_t>(increment)) - 1;
-
-            return static_cast<volatile void*>(reinterpret_cast<volatile uint32_t*>(address) + bufferAddress);
+            auto byteOffset = (size - 1) << static_cast<std::size_t>(increment);
+            return static_cast<volatile void*>(static_cast<volatile uint8_t*>(address) + byteOffset);
         }
 
         void Enable()
@@ -163,7 +164,13 @@ namespace hal::tiva
         {
             really_assert(channelNumber < 32);
             auto controlArray = reinterpret_cast<Control*>(UDMA->CTLBASE);
-            controlArray[channelNumber].channelControl = (controlArray[channelNumber].channelControl & ~(ControlSetMask())) | control.Read();
+            auto ctrlValue = control.Read();
+            auto mask = ControlSetMask();
+
+            controlArray[channelNumber].channelControl =
+                (controlArray[channelNumber].channelControl & ~mask) | ctrlValue;
+            controlArray[channelNumber + 32].channelControl =
+                (controlArray[channelNumber + 32].channelControl & ~mask) | ctrlValue;
         }
 
         void ChannelSetTransfer(uint8_t channelNumber, ChannelType channelType, DmaChannel::Transfer transfer, volatile void* sourceAddress, volatile void* destinationAddress, std::size_t size)
@@ -190,10 +197,9 @@ namespace hal::tiva
             really_assert(channelNumber < 32);
             really_assert(mapping < 16);
 
-            auto mapRegister = UDMA_CHMAP0 + static_cast<uint32_t>((channelNumber / 8) * 4);
             auto mapShift = (channelNumber % 8) * 4;
-
-            Reg(mapRegister) = (Reg(mapRegister) & ~(0xf << mapShift)) | mapping << mapShift;
+            volatile uint32_t* mapReg = &UDMA->CHMAP0 + (channelNumber / 8);
+            *mapReg = (*mapReg & ~(0xfU << mapShift)) | (static_cast<uint32_t>(mapping) << mapShift);
         }
 
         DmaChannel::Transfer ChannelGetMode(uint8_t channelNumber, ChannelType channelType)
@@ -229,6 +235,7 @@ namespace hal::tiva
 
     Dma::~Dma()
     {
+        Unregister();
         Disable();
         DisableClock();
     }
@@ -281,11 +288,6 @@ namespace hal::tiva
         ChannelAttributeDisable(channel.number, allAttributes);
     }
 
-    void DmaChannel::ForceRequest() const
-    {
-        ChannelRequest(channel.number);
-    }
-
     void DmaChannel::StartTransfer(Transfer transfer, const Buffers& buffer) const
     {
         really_assert(transfer != Transfer::pingPong);
@@ -300,6 +302,12 @@ namespace hal::tiva
         ChannelEnable(channel.number);
     }
 
+    void DmaChannel::ReArmPingPongHalf(bool alternate, const Buffers& buffer) const
+    {
+        auto channelType = alternate ? ChannelType::alternate : ChannelType::primary;
+        ChannelSetTransfer(channel.number, channelType, Transfer::pingPong, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
+    }
+
     bool DmaChannel::IsPrimaryTransferCompleted() const
     {
         return ChannelGetMode(channel.number, ChannelType::primary) == Transfer::stop;
@@ -308,6 +316,28 @@ namespace hal::tiva
     bool DmaChannel::IsAlternateTransferCompleted() const
     {
         return ChannelGetMode(channel.number, ChannelType::alternate) == Transfer::stop;
+    }
+
+    void DmaChannel::StopTransfer() const
+    {
+        ChannelDisable(channel.number);
+    }
+
+    bool DmaChannel::IsAlternateActive() const
+    {
+        return (UDMA->ALTSET & (1u << channel.number)) != 0;
+    }
+
+    std::size_t DmaChannel::RemainingTransfers(bool alternate) const
+    {
+        auto controlArray = reinterpret_cast<volatile Control*>(UDMA->CTLBASE);
+        auto controlIndex = alternate ? channel.number + 32 : channel.number;
+        return ((controlArray[controlIndex].channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
+    }
+
+    void DmaChannel::ForceRequest() const
+    {
+        ChannelRequest(channel.number);
     }
 
     std::size_t DmaChannel::MaxTransferSize() const

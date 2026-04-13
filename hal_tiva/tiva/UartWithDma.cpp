@@ -54,10 +54,15 @@ namespace hal::tiva
             { { 11, 2 }, { 10, 2 } },
             { { 21, 2 }, { 20, 2 } },
         } };
+
+        constexpr DmaChannel::Attributes txAttributes{ false, false, true, true };
+        constexpr DmaChannel::Attributes rxAttributes{ true, true, true, true };
+        constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
-        : Uart(aUartIndex, uartTx, uartRx, config)
+        : UartBase(aUartIndex, uartTx, uartRx, config)
         , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ txAttributes, controlBlockTx } }
         , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ rxAttributes, controlBlockRx } }
         , rxBufferPrimary{ rxBuffer.begin(), rxBuffer.begin() + rxBuffer.size() / 2 }
@@ -67,7 +72,7 @@ namespace hal::tiva
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, Dma& dma, const Config& config)
-        : Uart{ aUartIndex, uartTx, uartRx, uartRts, uartCts, config }
+        : UartBase{ aUartIndex, uartTx, uartRx, uartRts, uartCts, config }
         , dmaTx{ dma, uartDmaChannels[aUartIndex].tx, DmaChannel::Configuration{ txAttributes, controlBlockTx } }
         , dmaRx{ dma, uartDmaChannels[aUartIndex].rx, DmaChannel::Configuration{ rxAttributes, controlBlockRx } }
         , rxBufferPrimary{ rxBuffer.begin(), rxBuffer.begin() + rxBuffer.size() / 2 }
@@ -86,7 +91,7 @@ namespace hal::tiva
     void UartWithDma::Initialize() const
     {
         DisableUart();
-        SetFifo(Uart::Fifo::_1_8, Uart::Fifo::_4_8);
+        SetFifo(Fifo::_1_8, Fifo::_4_8);
         EnableRxDma();
         EnableTxDma();
         EnableUart();
@@ -140,53 +145,40 @@ namespace hal::tiva
 
     void UartWithDma::ProcessDmaRx() const
     {
+        auto* drAddr = reinterpret_cast<volatile void*>(&(uartArray[uartIndex]->DR));
+
         if (dmaRx.IsPrimaryTransferCompleted())
+        {
+            dmaRx.ReArmPingPongHalf(false, { drAddr, rxBufferPrimary.begin(), rxBufferPrimary.size() });
             dataReceived(rxBufferPrimary);
-        else
+        }
+
+        if (dmaRx.IsAlternateTransferCompleted())
+        {
+            dmaRx.ReArmPingPongHalf(true, { drAddr, rxBufferAlternate.begin(), rxBufferAlternate.size() });
             dataReceived(rxBufferAlternate);
+        }
     }
 
-    void UartWithDma::ProcessRxTimeout()
+    void UartWithDma::ProcessRxTimeout() const
     {
-        // Timeout handling in ping-pong mode is complex
-        // Simple approach: stop ping-pong, process partial data, restart
-        auto channelNumber = uartDmaChannels[uartIndex].rx.number;
-
-        // Disable the channel to stop transfers
-        UDMA->ENACLR = (1 << channelNumber);
-
-        // Check which buffer was being filled and how much data is there
-        auto controlArray = reinterpret_cast<volatile Control*>(UDMA->CTLBASE);
-        bool wasUsingAlternate = (UDMA->ALTSET & (1 << channelNumber)) != 0;
-
+        bool fillingAlternate = dmaRx.IsPrimaryTransferCompleted();
+        std::size_t remaining = dmaRx.RemainingTransfers(fillingAlternate);
         dmaRx.StopTransfer();
 
-        if (wasUsingAlternate)
+        if (fillingAlternate)
         {
-            // Was filling alternate buffer
-            auto alternateControl = &controlArray[channelNumber + 32];
-            auto remainingTransfers = ((alternateControl->channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
-            auto bytesReceived = rxBufferAlternate.size() - remainingTransfers;
-
+            auto bytesReceived = rxBufferAlternate.size() - remaining;
             if (bytesReceived > 0 && dataReceived != nullptr)
-            {
                 dataReceived(infra::MakeRange(rxBufferAlternate.begin(), rxBufferAlternate.begin() + bytesReceived));
-            }
         }
         else
         {
-            // Was filling primary buffer
-            auto primaryControl = &controlArray[channelNumber];
-            auto remainingTransfers = ((primaryControl->channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
-            auto bytesReceived = rxBufferPrimary.size() - remainingTransfers;
-
+            auto bytesReceived = rxBufferPrimary.size() - remaining;
             if (bytesReceived > 0 && dataReceived != nullptr)
-            {
                 dataReceived(infra::MakeRange(rxBufferPrimary.begin(), rxBufferPrimary.begin() + bytesReceived));
-            }
         }
 
-        // Restart the ping-pong operation
         ReceiveData();
     }
 

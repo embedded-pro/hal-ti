@@ -1,5 +1,5 @@
-#ifndef HAL_DMA_STM_HPP
-#define HAL_DMA_STM_HPP
+#ifndef HAL_DMA_TIVA_HPP
+#define HAL_DMA_TIVA_HPP
 
 #include "infra/util/InterfaceConnector.hpp"
 #include <optional>
@@ -112,9 +112,12 @@ namespace hal::tiva
 
         void StartTransfer(Transfer transfer, const Buffers& buffer) const;
         void StartPingPongTransfer(const Buffers& primaryBuffer, const Buffers& alternateBuffer) const;
+        void ReArmPingPongHalf(bool alternate, const Buffers& buffer) const;
         bool IsPrimaryTransferCompleted() const;
         bool IsAlternateTransferCompleted() const;
         void StopTransfer() const;
+        bool IsAlternateActive() const;
+        std::size_t RemainingTransfers(bool alternate) const;
         void ForceRequest() const;
         std::size_t MaxTransferSize() const;
 

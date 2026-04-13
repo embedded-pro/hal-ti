@@ -39,6 +39,8 @@ target_sources(hal_tiva.tiva PRIVATE
     SpiMaster.hpp
     Uart.cpp
     Uart.hpp
+    UartBase.cpp
+    UartBase.hpp
     UartWithDma.cpp
     UartWithDma.hpp
     UniqueDeviceId.cpp
