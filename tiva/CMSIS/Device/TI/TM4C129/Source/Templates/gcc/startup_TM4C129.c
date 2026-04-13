@@ -37,6 +37,7 @@ extern void Default_Handler_Forwarded();
 extern void __libc_init_local();
 static void Default_Handler();
 void Reset_Handler();
+void HardFault_Handler() __attribute__((weak, alias("Default_Handler")));
 void SVC_Handler() __attribute__((weak, alias("Default_Handler")));
 void PendSV_Handler() __attribute__((weak, alias("Default_Handler")));
 void SysTick_Handler() __attribute__((weak, alias("Default_Handler")));
@@ -51,6 +52,15 @@ void Adc1Sequence3_Handler() __attribute__((weak, alias("Default_Handler")));
 void Can0_Handler() __attribute__((weak, alias("Default_Handler")));
 void Can1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Eeprom_Handler() __attribute__((weak, alias("Default_Handler")));
+void UdmaError_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart0_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart1_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart2_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart3_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart4_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart5_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart6_Handler() __attribute__((weak, alias("Default_Handler")));
+void Uart7_Handler() __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -90,7 +100,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     (void*)&_estack,       /*!< The initial stack pointer, 0x20008000 32K */
     Reset_Handler,         /*!< The reset handler */
     Default_Handler,       /*!< NMI_Handler,               The NMI handler */
-    Default_Handler,       /*!< HardFault_Handler,         The hard fault handler */
+    HardFault_Handler,     /*!< HardFault_Handler,         The hard fault handler */
     Default_Handler,       /*!< MemManage_Handler,         The MPU fault handler */
     Default_Handler,       /*!< BusFault_Handler,          The bus fault handler */
     Default_Handler,       /*!< UsageFault_Handler,        The usage fault handler */
@@ -108,8 +118,8 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< GPIO Port C */
     Default_Handler,       /*!< GPIO Port D */
     Default_Handler,       /*!< GPIO Port E */
-    Default_Handler,       /*!< UART0 Rx and Tx */
-    Default_Handler,       /*!< UART1 Rx and Tx */
+    Uart0_Handler,         /*!< UART0 Rx and Tx */
+    Uart1_Handler,         /*!< UART1 Rx and Tx */
     Default_Handler,       /*!< SSI0 Rx and Tx */
     Default_Handler,       /*!< I2C0 Master and Slave */
     Default_Handler,       /*!< PWM Fault */
@@ -136,7 +146,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< GPIO Port F */
     Default_Handler,       /*!< GPIO Port G */
     Default_Handler,       /*!< GPIO Port H */
-    Default_Handler,       /*!< UART2 Rx and Tx */
+    Uart2_Handler,         /*!< UART2 Rx and Tx */
     Default_Handler,       /*!< SSI1 Rx and Tx */
     Default_Handler,       /*!< Timer 3 subtimer A */
     Default_Handler,       /*!< Timer 3 subtimer B */
@@ -148,7 +158,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< USB0 */
     Default_Handler,       /*!< PWM Generator 3 */
     Default_Handler,       /*!< uDMA Software Transfer */
-    Default_Handler,       /*!< uDMA Error */
+    UdmaError_Handler,     /*!< uDMA Error */
     Adc1Sequence0_Handler, /*!< ADC1 Sequence 0 */
     Adc1Sequence1_Handler, /*!< ADC1 Sequence 1 */
     Adc1Sequence2_Handler, /*!< ADC1 Sequence 2 */
@@ -159,11 +169,11 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< GPIO Port L */
     Default_Handler,       /*!< SSI2 Rx and Tx */
     Default_Handler,       /*!< SSI3 Rx and Tx */
-    Default_Handler,       /*!< UART3 Rx and Tx */
-    Default_Handler,       /*!< UART4 Rx and Tx */
-    Default_Handler,       /*!< UART5 Rx and Tx */
-    Default_Handler,       /*!< UART6 Rx and Tx */
-    Default_Handler,       /*!< UART7 Rx and Tx */
+    Uart3_Handler,         /*!< UART3 Rx and Tx */
+    Uart4_Handler,         /*!< UART4 Rx and Tx */
+    Uart5_Handler,         /*!< UART5 Rx and Tx */
+    Uart6_Handler,         /*!< UART6 Rx and Tx */
+    Uart7_Handler,         /*!< UART7 Rx and Tx */
     Default_Handler,       /*!< I2C2 Master and Slave */
     Default_Handler,       /*!< I2C3 Master and Slave */
     Default_Handler,       /*!< Timer 4 subtimer A */
