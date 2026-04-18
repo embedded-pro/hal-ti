@@ -54,14 +54,14 @@ namespace hal::tiva
         constexpr uint32_t UART_FR_BUSY = 0x00000008;
 
         constexpr uint32_t UART_LCRH_WLEN_8 = 0x00000060;
-        constexpr uint32_t UART_LCRH_FEN    = 0x00000010;
+        constexpr uint32_t UART_LCRH_FEN = 0x00000010;
 
-        constexpr uint32_t UART_CTL_CTSEN  = 0x00008000;
-        constexpr uint32_t UART_CTL_RTSEN  = 0x00004000;
-        constexpr uint32_t UART_CTL_RXE    = 0x00000200;
-        constexpr uint32_t UART_CTL_TXE    = 0x00000100;
-        constexpr uint32_t UART_CTL_HSE    = 0x00000020;
-        constexpr uint32_t UART_CTL_EOT    = 0x00000010;
+        constexpr uint32_t UART_CTL_CTSEN = 0x00008000;
+        constexpr uint32_t UART_CTL_RTSEN = 0x00004000;
+        constexpr uint32_t UART_CTL_RXE = 0x00000200;
+        constexpr uint32_t UART_CTL_TXE = 0x00000100;
+        constexpr uint32_t UART_CTL_HSE = 0x00000020;
+        constexpr uint32_t UART_CTL_EOT = 0x00000010;
         constexpr uint32_t UART_CTL_UARTEN = 0x00000001;
 
         constexpr uint32_t UART_IFLS_RX7_8 = 0x00000020;
@@ -69,24 +69,24 @@ namespace hal::tiva
 
         constexpr uint32_t UART_IM_DMATXIM = 0x00020000;
         constexpr uint32_t UART_IM_DMARXIM = 0x00010000;
-        constexpr uint32_t UART_IM_OEIM    = 0x00000400;
-        constexpr uint32_t UART_IM_RTIM    = 0x00000040;
+        constexpr uint32_t UART_IM_OEIM = 0x00000400;
+        constexpr uint32_t UART_IM_RTIM = 0x00000040;
 
         constexpr uint32_t UART_ICR_DMATXIC = 0x00020000;
         constexpr uint32_t UART_ICR_DMARXIC = 0x00010000;
-        constexpr uint32_t UART_ICR_9BITIC  = 0x00001000;
-        constexpr uint32_t UART_ICR_EOTIC   = 0x00000800;
-        constexpr uint32_t UART_ICR_OEIC    = 0x00000400;
-        constexpr uint32_t UART_ICR_BEIC    = 0x00000200;
-        constexpr uint32_t UART_ICR_PEIC    = 0x00000100;
-        constexpr uint32_t UART_ICR_FEIC    = 0x00000080;
-        constexpr uint32_t UART_ICR_RTIC    = 0x00000040;
-        constexpr uint32_t UART_ICR_TXIC    = 0x00000020;
-        constexpr uint32_t UART_ICR_RXIC    = 0x00000010;
-        constexpr uint32_t UART_ICR_DSRMIC  = 0x00000008;
-        constexpr uint32_t UART_ICR_DCDMIC  = 0x00000004;
-        constexpr uint32_t UART_ICR_CTSMIC  = 0x00000002;
-        constexpr uint32_t UART_ICR_RIMIC   = 0x00000001;
+        constexpr uint32_t UART_ICR_9BITIC = 0x00001000;
+        constexpr uint32_t UART_ICR_EOTIC = 0x00000800;
+        constexpr uint32_t UART_ICR_OEIC = 0x00000400;
+        constexpr uint32_t UART_ICR_BEIC = 0x00000200;
+        constexpr uint32_t UART_ICR_PEIC = 0x00000100;
+        constexpr uint32_t UART_ICR_FEIC = 0x00000080;
+        constexpr uint32_t UART_ICR_RTIC = 0x00000040;
+        constexpr uint32_t UART_ICR_TXIC = 0x00000020;
+        constexpr uint32_t UART_ICR_RXIC = 0x00000010;
+        constexpr uint32_t UART_ICR_DSRMIC = 0x00000008;
+        constexpr uint32_t UART_ICR_DCDMIC = 0x00000004;
+        constexpr uint32_t UART_ICR_CTSMIC = 0x00000002;
+        constexpr uint32_t UART_ICR_RIMIC = 0x00000001;
 
         constexpr uint32_t UART_DMACTL_TXDMAE = 0x00000002;
         constexpr uint32_t UART_DMACTL_RXDMAE = 0x00000001;
@@ -179,8 +179,8 @@ namespace hal::tiva
     {
         bool isHse = baudRateTiva.at(static_cast<uint8_t>(config.baudrate)) * 16 > SystemCoreClock;
         uint32_t baudrate = isHse
-            ? baudRateTiva.at(static_cast<uint8_t>(config.baudrate)) / 2
-            : baudRateTiva.at(static_cast<uint8_t>(config.baudrate));
+                                ? baudRateTiva.at(static_cast<uint8_t>(config.baudrate)) / 2
+                                : baudRateTiva.at(static_cast<uint8_t>(config.baudrate));
         uint32_t div = (((SystemCoreClock * 8) / baudrate) + 1) / 2;
         uint32_t lcrh = parityTiva.at(static_cast<uint8_t>(config.parity));
         lcrh |= stopBitsTiva.at(static_cast<uint8_t>(config.stopbits));
@@ -227,7 +227,8 @@ namespace hal::tiva
     void UartBase::DisableUart() const
     {
         while (uartArray[uartIndex]->FR & UART_FR_BUSY)
-        {}
+        {
+        }
         uartArray[uartIndex]->LCRH &= ~UART_LCRH_FEN;
         uartArray[uartIndex]->CTL &= ~(UART_CTL_UARTEN | enableTx | enableRx);
     }
@@ -248,14 +249,19 @@ namespace hal::tiva
         return uartArray[uartIndex]->RIS;
     }
 
+    uint32_t UartBase::MaskedInterruptStatus() const
+    {
+        return uartArray[uartIndex]->MIS;
+    }
+
     void UartBase::InterruptClear(uint32_t mask) const
     {
         constexpr uint32_t writableMask =
             UART_ICR_DMATXIC | UART_ICR_DMARXIC |
-            UART_ICR_9BITIC  | UART_ICR_EOTIC   |
-            UART_ICR_OEIC    | UART_ICR_BEIC     | UART_ICR_PEIC   | UART_ICR_FEIC |
-            UART_ICR_RTIC    | UART_ICR_TXIC     | UART_ICR_RXIC   |
-            UART_ICR_DSRMIC  | UART_ICR_DCDMIC   | UART_ICR_CTSMIC | UART_ICR_RIMIC;
+            UART_ICR_9BITIC | UART_ICR_EOTIC |
+            UART_ICR_OEIC | UART_ICR_BEIC | UART_ICR_PEIC | UART_ICR_FEIC |
+            UART_ICR_RTIC | UART_ICR_TXIC | UART_ICR_RXIC |
+            UART_ICR_DSRMIC | UART_ICR_DCDMIC | UART_ICR_CTSMIC | UART_ICR_RIMIC;
 
         uartArray[uartIndex]->ICR = mask & writableMask;
     }
@@ -289,7 +295,8 @@ namespace hal::tiva
         infra::ReplaceBit(SYSCTL->RCGCUART, true, uartIndex);
 
         while (!infra::IsBitSet(SYSCTL->PRUART, uartIndex))
-        {}
+        {
+        }
     }
 
     void UartBase::DisableClock() const

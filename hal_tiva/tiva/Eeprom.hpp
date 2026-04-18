@@ -2,6 +2,8 @@
 
 #include "hal/interfaces/Eeprom.hpp"
 #include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "infra/timer/Timer.hpp"
+#include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Function.hpp"
 #include <cstdint>
 
@@ -25,7 +27,7 @@ namespace hal::tiva
         void DisableClock() const;
         void HandleInterrupt();
         void StartNextWriteWord();
-        void StartNextErase() const;
+        void PollEraseCompletion();
         uint32_t ReadWord(uint32_t block, uint32_t wordOffset) const;
 
     private:
@@ -37,13 +39,10 @@ namespace hal::tiva
         };
 
         Operation currentOperation = Operation::Idle;
-
         infra::ConstByteRange pendingWriteBuffer;
         uint32_t pendingByteAddress = 0;
-
-        uint32_t eraseCurrentBlock = 0;
         uint32_t numberOfBlocks = 0;
-
-        infra::Function<void()> onOperationDone;
+        infra::TimerSingleShot erasePollTimer;
+        infra::AutoResetFunction<void()> onOperationDone;
     };
 }
