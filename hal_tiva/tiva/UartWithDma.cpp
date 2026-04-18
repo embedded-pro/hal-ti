@@ -6,37 +6,14 @@ namespace hal::tiva
 {
     namespace
     {
+        constexpr const uint32_t UART_FR_RXFE = 0x00000010;      // Receive FIFO Empty
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMARXRIS = 0x00010000; // Receive DMA Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_9BITRIS = 0x00001000;  // 9-Bit Mode Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_EOTRIS = 0x00000800;   // End of Transmission Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_OERIS = 0x00000400;    // UART Overrun Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_BERIS = 0x00000200;    // UART Break Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_PERIS = 0x00000100;    // UART Parity Error Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_FERIS = 0x00000080;    // UART Framing Error Raw Interrupt Status
         constexpr const uint32_t UART_RIS_RTRIS = 0x00000040;    // UART Receive Time-Out Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_TXRIS = 0x00000020;    // UART Transmit Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_RXRIS = 0x00000010;    // UART Receive Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_DSRRIS = 0x00000008;   // UART Data Set Ready Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_DCDRIS = 0x00000004;   // UART Data Carrier Detect Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_CTSRIS = 0x00000002;   // UART Clear to Send Modem Raw Interrupt Status
-        constexpr const uint32_t UART_RIS_RIRIS = 0x00000001;    // UART Ring Indicator Modem Raw Interrupt Status
 
         constexpr const uint32_t UART_ICR_DMATXIC = 0x00020000; // Transmit DMA Interrupt Clear
         constexpr const uint32_t UART_ICR_DMARXIC = 0x00010000; // Receive DMA Interrupt Clear
-        constexpr const uint32_t UART_ICR_9BITIC = 0x00001000;  // 9-Bit Mode Interrupt Clear
-        constexpr const uint32_t UART_ICR_EOTIC = 0x00000800;   // End of Transmission Interrupt Clear
-        constexpr const uint32_t UART_ICR_OEIC = 0x00000400;    // Overrun Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_BEIC = 0x00000200;    // Break Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_PEIC = 0x00000100;    // Parity Error Interrupt Clear
-        constexpr const uint32_t UART_ICR_FEIC = 0x00000080;    // Framing Error Interrupt Clear
         constexpr const uint32_t UART_ICR_RTIC = 0x00000040;    // Receive Time-Out Interrupt Clear
-        constexpr const uint32_t UART_ICR_TXIC = 0x00000020;    // Transmit Interrupt Clear
-        constexpr const uint32_t UART_ICR_RXIC = 0x00000010;    // Receive Interrupt Clear
-        constexpr const uint32_t UART_ICR_DSRMIC = 0x00000008;  // UART Data Set Ready Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_DCDMIC = 0x00000004;  // UART Data Carrier Detect Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_CTSMIC = 0x00000002;  // UART Clear to Send Modem Interrupt Clear
-        constexpr const uint32_t UART_ICR_RIMIC = 0x00000001;   // UART Ring Indicator Modem Interrupt Clear
 
         struct UartDma
         {
@@ -56,7 +33,7 @@ namespace hal::tiva
         } };
 
         constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
-        constexpr DmaChannel::Attributes rxAttributes{ true, true, true, false };
+        constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
         constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
     }
@@ -165,21 +142,18 @@ namespace hal::tiva
     void UartWithDma::ProcessRxTimeout() const
     {
         bool fillingAlternate = dmaRx.IsPrimaryTransferCompleted();
-        std::size_t remaining = dmaRx.RemainingTransfers(fillingAlternate);
+        auto activeBuffer = fillingAlternate ? rxBufferAlternate : rxBufferPrimary;
+        std::size_t bytesReceived = activeBuffer.size() - dmaRx.RemainingTransfers(fillingAlternate);
         dmaRx.StopTransfer();
 
-        if (fillingAlternate)
+        while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
         {
-            auto bytesReceived = rxBufferAlternate.size() - remaining;
-            if (bytesReceived > 0 && dataReceived != nullptr)
-                dataReceived(infra::MakeRange(rxBufferAlternate.begin(), rxBufferAlternate.begin() + bytesReceived));
+            activeBuffer[bytesReceived] = static_cast<uint8_t>(uartArray[uartIndex]->DR);
+            ++bytesReceived;
         }
-        else
-        {
-            auto bytesReceived = rxBufferPrimary.size() - remaining;
-            if (bytesReceived > 0 && dataReceived != nullptr)
-                dataReceived(infra::MakeRange(rxBufferPrimary.begin(), rxBufferPrimary.begin() + bytesReceived));
-        }
+
+        if (bytesReceived > 0 && dataReceived != nullptr)
+            dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
 
         if (dataReceived != nullptr)
             ReceiveData();
@@ -187,21 +161,22 @@ namespace hal::tiva
 
     void UartWithDma::Invoke()
     {
-        auto status = InterruptStatus();
+        auto rawStatus = InterruptStatus();
+        auto maskedStatus = MaskedInterruptStatus();
 
-        if (status & UART_RIS_DMATXRIS)
+        if (rawStatus & UART_RIS_DMATXRIS)
         {
             InterruptClear(UART_ICR_DMATXIC);
             ProcessDmaTx();
         }
 
-        if (status & UART_RIS_DMARXRIS)
+        if (rawStatus & UART_RIS_DMARXRIS)
         {
             InterruptClear(UART_ICR_DMARXIC);
             ProcessDmaRx();
         }
 
-        if (status & UART_RIS_RTRIS)
+        if (maskedStatus & UART_RIS_RTRIS)
         {
             InterruptClear(UART_ICR_RTIC);
             ProcessRxTimeout();

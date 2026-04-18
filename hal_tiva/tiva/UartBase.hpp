@@ -111,6 +111,7 @@ namespace hal::tiva
         void DisableRxDma() const;
         void DisableTxDma() const;
         void SetFifo(Fifo fifoRx, Fifo fifoTx) const;
+        uint32_t MaskedInterruptStatus() const;
         uint32_t InterruptStatus() const;
         void InterruptClear(uint32_t mask) const;
 
