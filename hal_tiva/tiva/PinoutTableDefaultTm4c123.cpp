@@ -250,7 +250,7 @@ namespace hal::tiva
             pinoutTableCanTxPins,
             Drive::None,
             hal::PinConfigType::output,
-            Current::_2mA,
+            Current::_8mA,
             true,
         },
     } };
