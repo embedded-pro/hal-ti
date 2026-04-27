@@ -4,6 +4,7 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
+#include <atomic>
 #include <cstdint>
 #include <optional>
 #include DEVICE_HEADER
@@ -16,6 +17,7 @@ namespace hal::tiva
         uint8_t data[8];
         uint8_t length;
         bool is29Bit;
+        bool isRemoteFrame;
     };
 
     class Can
@@ -48,6 +50,13 @@ namespace hal::tiva
             uint8_t baudratePrescaler = 0;
         };
 
+        struct Filter
+        {
+            uint32_t id;
+            uint32_t mask;
+            bool is29Bit;
+        };
+
         struct Config
         {
             constexpr Config()
@@ -56,6 +65,7 @@ namespace hal::tiva
             bool testMode = false;
             uint32_t bitRate = 1000000;
             std::optional<BitTiming> bitTiming = std::nullopt;
+            std::optional<Filter> filter = std::nullopt;
         };
 
         Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError);
@@ -65,16 +75,30 @@ namespace hal::tiva
         void ReceiveData(const infra::Function<void(Id id, const Message& data)>& receivedAction) override;
 
     private:
+        enum class StatusLevel : uint8_t
+        {
+            ok = 0,
+            warning = 1,
+            passive = 2,
+            busOff = 3,
+        };
+
         void EnableClock() const;
         void DisableClock() const;
+        void Enable() const;
+        void Initialization() const;
+        void EnableInterrupts() const;
+        void DisableInterrupts() const;
+        void ConfigureFilter() const;
+        void ConfigureReceiveMessageObject() const;
         void HandleInterrupt();
         void ScheduleError(Error error) const;
-        void HandleStatusInterrupt(CAN0_Type& can) const;
+        void HandleStatusInterrupt(CAN0_Type& can);
         void HandleTxInterrupt(CAN0_Type& can);
         void HandleRxInterrupt(CAN0_Type& can);
         void ProcessRxBuffer();
         void ConfigureBitTiming() const;
-        void ConfigureReceiveMessageObject() const;
+        void ClearAllMessageObjects() const;
 
     private:
         static constexpr uint8_t txMessageObject = 1;
@@ -88,6 +112,7 @@ namespace hal::tiva
         infra::Function<void(bool success)> onSendComplete;
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
-        volatile bool sending = false;
+        std::atomic<bool> sending{ false };
+        StatusLevel previousStatusLevel = StatusLevel::ok;
     };
 }
