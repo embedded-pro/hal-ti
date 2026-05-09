@@ -4,8 +4,10 @@
 #include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
+#include <atomic>
 #include <cstdint>
 #include <optional>
+#include <variant>
 #include DEVICE_HEADER
 
 namespace hal::tiva
@@ -40,12 +42,22 @@ namespace hal::tiva
             messageLost,
         };
 
+        using BitRate = uint32_t;
+
         struct BitTiming
         {
-            uint8_t phaseSegment1 = 0;
-            uint8_t phaseSegment2 = 0;
-            uint8_t synchronizationJumpWidth = 0;
-            uint8_t baudratePrescaler = 0;
+            uint8_t phaseSegment1;
+            uint8_t phaseSegment2;
+            uint8_t synchronizationJumpWidth;
+            uint16_t baudratePrescaler;
+        };
+
+        struct Filter
+        {
+            uint32_t id = 0;
+            uint32_t mask = 0;
+            bool extended = false;
+            bool matchIdType = true;
         };
 
         struct Config
@@ -54,8 +66,9 @@ namespace hal::tiva
             {}
 
             bool testMode = false;
-            uint32_t bitRate = 1000000;
-            std::optional<BitTiming> bitTiming = std::nullopt;
+            bool autoBusOffRecovery = true;
+            std::variant<BitRate, BitTiming> timing = BitRate{ 1000000 };
+            std::optional<Filter> filter;
         };
 
         Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError);
@@ -65,21 +78,18 @@ namespace hal::tiva
         void ReceiveData(const infra::Function<void(Id id, const Message& data)>& receivedAction) override;
 
     private:
-        void EnableClock() const;
-        void DisableClock() const;
+        CAN0_Type& Peripheral() const;
+
         void HandleInterrupt();
-        void ScheduleError(Error error) const;
-        void HandleStatusInterrupt(CAN0_Type& can) const;
-        void HandleTxInterrupt(CAN0_Type& can);
-        void HandleRxInterrupt(CAN0_Type& can);
+        void HandleStatusInterrupt();
+        void HandleTxInterrupt();
+        void HandleRxInterrupt();
+
         void ProcessRxBuffer();
-        void ConfigureBitTiming() const;
-        void ConfigureReceiveMessageObject() const;
+        void ScheduleError(Error error) const;
+        void NotifySendFailedFromInterrupt();
 
     private:
-        static constexpr uint8_t txMessageObject = 1;
-        static constexpr uint8_t rxMessageObject = 2;
-
         infra::QueueForOneReaderOneIrqWriter<CanRxEntry> rxQueue;
         uint8_t canIndex;
         PeripheralPin rxPin;
@@ -88,6 +98,6 @@ namespace hal::tiva
         infra::Function<void(bool success)> onSendComplete;
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
-        volatile bool sending = false;
+        std::atomic<bool> sending{ false };
     };
 }
