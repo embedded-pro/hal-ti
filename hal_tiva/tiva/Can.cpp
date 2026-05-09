@@ -19,166 +19,125 @@ namespace
         reinterpret_cast<CAN0_Type*>(CAN1_BASE),
     } };
 
-    constexpr std::array<IRQn_Type, 2> peripheralIrqCanArray = { {
+    constexpr std::array<IRQn_Type, 2> peripheralIrqCan = { {
         CAN0_IRQn,
         CAN1_IRQn,
     } };
 
-    constexpr uint32_t CAN_CTL_INIT = 1 << 0;
-    constexpr uint32_t CAN_CTL_IE = 1 << 1;
-    constexpr uint32_t CAN_CTL_SIE = 1 << 2;
-    constexpr uint32_t CAN_CTL_EIE = 1 << 3;
-    constexpr uint32_t CAN_CTL_DAR = 1 << 5;
-    constexpr uint32_t CAN_CTL_CCE = 1 << 6;
-    constexpr uint32_t CAN_CTL_TEST = 1 << 7;
-
-    constexpr uint32_t CAN_STS_LEC_M = 0x07;
-    constexpr uint32_t CAN_STS_TXOK = 1 << 3;
-    constexpr uint32_t CAN_STS_RXOK = 1 << 4;
-    constexpr uint32_t CAN_STS_EPASS = 1 << 5;
-    constexpr uint32_t CAN_STS_EWARN = 1 << 6;
-    constexpr uint32_t CAN_STS_BOFF = 1 << 7;
-
-    constexpr uint32_t CAN_STS_LEC_STUFF = 1;
-    constexpr uint32_t CAN_STS_LEC_FORM = 2;
-    constexpr uint32_t CAN_STS_LEC_ACK = 3;
-    constexpr uint32_t CAN_STS_LEC_BIT1 = 4;
-    constexpr uint32_t CAN_STS_LEC_BIT0 = 5;
-    constexpr uint32_t CAN_STS_LEC_CRC = 6;
-
-    constexpr uint32_t CAN_BIT_BRP_M = 0x3F;
-    constexpr uint32_t CAN_BIT_SJW_S = 6;
-    constexpr uint32_t CAN_BIT_SJW_M = 0x3 << CAN_BIT_SJW_S;
-    constexpr uint32_t CAN_BIT_TSEG1_S = 8;
-    constexpr uint32_t CAN_BIT_TSEG1_M = 0xF << CAN_BIT_TSEG1_S;
-    constexpr uint32_t CAN_BIT_TSEG2_S = 12;
-    constexpr uint32_t CAN_BIT_TSEG2_M = 0x7 << CAN_BIT_TSEG2_S;
-
-    constexpr uint32_t CAN_TST_LBACK = 1 << 4;
-
-    constexpr uint32_t CAN_INT_STS_CAUSE_STATUS = 0x8000;
-
-    constexpr uint32_t CAN_IFCRQ_BUSY = 1 << 15;
-
-    constexpr uint32_t CAN_IFCMSK_DATAB = 1 << 0;
-    constexpr uint32_t CAN_IFCMSK_DATAA = 1 << 1;
-    constexpr uint32_t CAN_IFCMSK_NEWDAT = 1 << 2;
-    constexpr uint32_t CAN_IFCMSK_TXRQST = 1 << 2;
-    constexpr uint32_t CAN_IFCMSK_CLRINTPND = 1 << 3;
-    constexpr uint32_t CAN_IFCMSK_CONTROL = 1 << 4;
-    constexpr uint32_t CAN_IFCMSK_ARB = 1 << 5;
-    constexpr uint32_t CAN_IFCMSK_MASK = 1 << 6;
-    constexpr uint32_t CAN_IFCMSK_WRNRD = 1 << 7;
-
-    constexpr uint32_t CAN_IFARB2_DIR = 1 << 13;
-    constexpr uint32_t CAN_IFARB2_XTD = 1 << 14;
-    constexpr uint32_t CAN_IFARB2_MSGVAL = 1 << 15;
-
-    constexpr uint32_t CAN_IFMCTL_DLC_M = 0x0F;
-    constexpr uint32_t CAN_IFMCTL_EOB = 1 << 7;
-    constexpr uint32_t CAN_IFMCTL_TXRQST = 1 << 8;
-    constexpr uint32_t CAN_IFMCTL_RMTEN = 1 << 9;
-    constexpr uint32_t CAN_IFMCTL_RXIE = 1 << 10;
-    constexpr uint32_t CAN_IFMCTL_TXIE = 1 << 11;
-    constexpr uint32_t CAN_IFMCTL_UMASK = 1 << 12;
-    constexpr uint32_t CAN_IFMCTL_INTPND = 1 << 13;
-    constexpr uint32_t CAN_IFMCTL_MSGLST = 1 << 14;
-    constexpr uint32_t CAN_IFMCTL_NEWDAT = 1 << 15;
-
-    constexpr uint32_t CAN_IFMSK2_MXTD = 1 << 15;
-    constexpr uint32_t CAN_IFMSK2_MDIR = 1 << 14;
-
-    std::optional<hal::tiva::Can::Error> LecToError(uint32_t lec)
+    namespace ctl
     {
-        switch (lec)
-        {
-            case CAN_STS_LEC_STUFF:
-                return hal::tiva::Can::Error::stuffError;
-            case CAN_STS_LEC_FORM:
-                return hal::tiva::Can::Error::formError;
-            case CAN_STS_LEC_ACK:
-                return hal::tiva::Can::Error::ackError;
-            case CAN_STS_LEC_BIT1:
-                return hal::tiva::Can::Error::bit1Error;
-            case CAN_STS_LEC_BIT0:
-                return hal::tiva::Can::Error::bit0Error;
-            case CAN_STS_LEC_CRC:
-                return hal::tiva::Can::Error::crcError;
-            default:
-                return std::nullopt;
-        }
+        inline constexpr uint32_t Init = 1u << 0;
+        inline constexpr uint32_t Ie = 1u << 1;
+        inline constexpr uint32_t Sie = 1u << 2;
+        inline constexpr uint32_t Eie = 1u << 3;
+        inline constexpr uint32_t Cce = 1u << 6;
+        inline constexpr uint32_t Test = 1u << 7;
+        inline constexpr uint32_t AllInterrupts = Ie | Sie | Eie;
     }
 
-    void WaitIfBusy(volatile uint32_t& crq)
+    namespace sts
     {
-        while (crq & CAN_IFCRQ_BUSY)
-        {
-            // do nothing until not busy
-        }
+        inline constexpr uint32_t LecMask = 0x07;
+        inline constexpr uint32_t TxOk = 1u << 3;
+        inline constexpr uint32_t RxOk = 1u << 4;
+        inline constexpr uint32_t EPass = 1u << 5;
+        inline constexpr uint32_t EWarn = 1u << 6;
+        inline constexpr uint32_t BOff = 1u << 7;
+        inline constexpr uint32_t ClearMask = static_cast<uint32_t>(~(TxOk | RxOk | LecMask));
+
+        inline constexpr uint32_t LecStuff = 1;
+        inline constexpr uint32_t LecForm = 2;
+        inline constexpr uint32_t LecAck = 3;
+        inline constexpr uint32_t LecBit1 = 4;
+        inline constexpr uint32_t LecBit0 = 5;
+        inline constexpr uint32_t LecCrc = 6;
     }
 
-    void SetArbitration11Bit(CAN0_Type& can, uint32_t id, bool isTx)
+    namespace bittiming
     {
-        can.IF1ARB1 = 0;
-        can.IF1ARB2 = CAN_IFARB2_MSGVAL | (isTx ? CAN_IFARB2_DIR : 0) | ((id & 0x7FF) << 2);
+        inline constexpr uint32_t BrpMask = 0x3F;
+        inline constexpr uint32_t SjwShift = 6;
+        inline constexpr uint32_t Tseg1Shift = 8;
+        inline constexpr uint32_t Tseg2Shift = 12;
+        inline constexpr uint32_t BrpExtMask = 0x0F;
+        inline constexpr uint32_t BrpExtShift = 6;
     }
 
-    void SetArbitration29Bit(CAN0_Type& can, uint32_t id, bool isTx)
+    namespace tst
     {
-        can.IF1ARB1 = id & 0xFFFF;
-        can.IF1ARB2 = CAN_IFARB2_MSGVAL | CAN_IFARB2_XTD | (isTx ? CAN_IFARB2_DIR : 0) | ((id >> 16) & 0x1FFF);
+        inline constexpr uint32_t LBack = 1u << 4;
     }
 
-    void WriteData(CAN0_Type& can, const hal::Can::Message& data)
+    namespace interruptStatus
     {
-        uint32_t da1 = 0;
-        uint32_t da2 = 0;
-        uint32_t db1 = 0;
-        uint32_t db2 = 0;
-
-        if (data.size() > 0)
-            da1 |= data[0];
-        if (data.size() > 1)
-            da1 |= static_cast<uint32_t>(data[1]) << 8;
-        if (data.size() > 2)
-            da2 |= data[2];
-        if (data.size() > 3)
-            da2 |= static_cast<uint32_t>(data[3]) << 8;
-        if (data.size() > 4)
-            db1 |= data[4];
-        if (data.size() > 5)
-            db1 |= static_cast<uint32_t>(data[5]) << 8;
-        if (data.size() > 6)
-            db2 |= data[6];
-        if (data.size() > 7)
-            db2 |= static_cast<uint32_t>(data[7]) << 8;
-
-        can.IF1DA1 = da1;
-        can.IF1DA2 = da2;
-        can.IF1DB1 = db1;
-        can.IF1DB2 = db2;
+        inline constexpr uint32_t CauseNone = 0x0000;
+        inline constexpr uint32_t CauseStatus = 0x8000;
     }
 
-    uint32_t BuildBitReg(uint32_t brp, uint32_t sjw, uint32_t tseg1, uint32_t tseg2)
+    namespace ifcrq
     {
-        return (brp & CAN_BIT_BRP_M) | ((sjw & 0x3) << CAN_BIT_SJW_S) | ((tseg1 & 0xF) << CAN_BIT_TSEG1_S) | ((tseg2 & 0x7) << CAN_BIT_TSEG2_S);
+        inline constexpr uint32_t MnumMask = 0x3F;
+        inline constexpr uint32_t Busy = 1u << 15;
     }
 
-    void ApplyManualBitTiming(CAN0_Type& can, const hal::tiva::Can::BitTiming& timing)
+    namespace ifcmsk
     {
-        really_assert(timing.baudratePrescaler >= 1);
-        really_assert(timing.phaseSegment1 >= 1);
-        really_assert(timing.phaseSegment2 >= 1);
-        really_assert(timing.synchronizationJumpWidth >= 1);
-
-        uint32_t brp = timing.baudratePrescaler - 1;
-        uint32_t sjw = timing.synchronizationJumpWidth - 1;
-        uint32_t tseg1 = timing.phaseSegment1 - 1;
-        uint32_t tseg2 = timing.phaseSegment2 - 1;
-
-        can.BIT = BuildBitReg(brp, sjw, tseg1, tseg2);
-        can.BRPE = (brp >> 6) & 0x0F;
+        inline constexpr uint32_t DataB = 1u << 0;
+        inline constexpr uint32_t DataA = 1u << 1;
+        inline constexpr uint32_t NewDat = 1u << 2;
+        inline constexpr uint32_t ClrIntPnd = 1u << 3;
+        inline constexpr uint32_t Control = 1u << 4;
+        inline constexpr uint32_t Arb = 1u << 5;
+        inline constexpr uint32_t Mask = 1u << 6;
+        inline constexpr uint32_t WrNRd = 1u << 7;
     }
+
+    namespace ifarb
+    {
+        inline constexpr uint32_t Dir = 1u << 13;
+        inline constexpr uint32_t Xtd = 1u << 14;
+        inline constexpr uint32_t MsgVal = 1u << 15;
+        inline constexpr uint32_t Id11Shift = 2;
+        inline constexpr uint32_t Id11Mask = 0x7FF;
+        inline constexpr uint32_t Id29HighShift = 16;
+        inline constexpr uint32_t Id29HighMask = 0x1FFF;
+        inline constexpr uint32_t Id29LowMask = 0xFFFF;
+        inline constexpr uint32_t Mask11InMsk2 = 0x1FFC;
+    }
+
+    namespace ifmctl
+    {
+        inline constexpr uint32_t DlcMask = 0x0F;
+        inline constexpr uint32_t Eob = 1u << 7;
+        inline constexpr uint32_t TxRqst = 1u << 8;
+        inline constexpr uint32_t RxIe = 1u << 10;
+        inline constexpr uint32_t TxIe = 1u << 11;
+        inline constexpr uint32_t UMask = 1u << 12;
+        inline constexpr uint32_t MsgLst = 1u << 14;
+    }
+
+    namespace ifmsk
+    {
+        inline constexpr uint32_t Mxtd = 1u << 15;
+    }
+
+    struct DataWords
+    {
+        uint32_t da1;
+        uint32_t da2;
+        uint32_t db1;
+        uint32_t db2;
+    };
+
+    struct RxReadResult
+    {
+        hal::tiva::CanRxEntry entry;
+        bool messageLost;
+    };
+
+    constexpr uint32_t totalMessageObjects = 32;
+    constexpr uint8_t maxDataLength = 8;
+    constexpr uint8_t rxFilterDlc = 8;
 
     constexpr uint32_t minTimeQuanta = 8;
     constexpr uint32_t maxTimeQuanta = 25;
@@ -186,61 +145,361 @@ namespace
     constexpr uint32_t maxTseg2 = 8;
     constexpr uint32_t maxSjw = 4;
     constexpr uint32_t maxPrescaler = 1024;
+    constexpr uint32_t targetSamplePointPermille = 875;
 
-    uint32_t ClampedTseg2(uint32_t tq)
+    constexpr uint8_t txMessageObject = 1;
+    constexpr uint8_t rxMessageObject = 2;
+
+    std::optional<hal::tiva::Can::Error> LecToError(uint32_t lec)
     {
-        uint32_t tseg2 = (tq - 1) / 3;
-        if (tseg2 > maxTseg2)
-            return maxTseg2;
-        if (tseg2 < 1)
-            return 1;
-        return tseg2;
-    }
-
-    bool IsValidSegmentation(uint32_t tq, uint32_t tseg1, uint32_t tseg2)
-    {
-        return tseg1 >= 1 && tseg1 <= maxTseg1 && (1 + tseg1 + tseg2) == tq;
-    }
-
-    void ApplyBitTimingRegisters(CAN0_Type& can, uint32_t prescaler, uint32_t sjw, uint32_t tseg1, uint32_t tseg2)
-    {
-        can.BIT = BuildBitReg(prescaler - 1, sjw - 1, tseg1 - 1, tseg2 - 1);
-        can.BRPE = ((prescaler - 1) >> 6) & 0x0F;
-    }
-
-    void CalculateAndApplyBitTiming(CAN0_Type& can, uint32_t bitRate)
-    {
-        uint32_t bitClocks = SystemCoreClock / bitRate;
-
-        for (uint32_t prescaler = 1; prescaler <= maxPrescaler; ++prescaler)
+        switch (lec)
         {
-            if (bitClocks % prescaler != 0)
+            case sts::LecStuff:
+                return hal::tiva::Can::Error::stuffError;
+            case sts::LecForm:
+                return hal::tiva::Can::Error::formError;
+            case sts::LecAck:
+                return hal::tiva::Can::Error::ackError;
+            case sts::LecBit1:
+                return hal::tiva::Can::Error::bit1Error;
+            case sts::LecBit0:
+                return hal::tiva::Can::Error::bit0Error;
+            case sts::LecCrc:
+                return hal::tiva::Can::Error::crcError;
+            default:
+                return std::nullopt;
+        }
+    }
+
+    void WaitWhileBusy(volatile uint32_t& crq)
+    {
+        while ((crq & ifcrq::Busy) != 0)
+        {
+            // spin until controller releases the interface
+        }
+    }
+
+    DataWords PackMessageData(const hal::Can::Message& data)
+    {
+        really_assert(data.size() <= maxDataLength);
+        const auto byteAt = [&](std::size_t i) -> uint32_t
+        {
+            return i < data.size() ? data[i] : 0u;
+        };
+        const auto word = [&](std::size_t lo)
+        {
+            return byteAt(lo) | (byteAt(lo + 1) << 8);
+        };
+        return { word(0), word(2), word(4), word(6) };
+    }
+
+    void UnpackMessageData(const DataWords& packed, uint8_t dlc, uint8_t* out)
+    {
+        const uint32_t words[4] = { packed.da1, packed.da2, packed.db1, packed.db2 };
+        const uint8_t length = dlc < maxDataLength ? dlc : maxDataLength;
+        for (uint8_t i = 0; i < length; ++i)
+            out[i] = static_cast<uint8_t>((words[i / 2] >> ((i % 2) * 8)) & 0xFF);
+    }
+
+    void WriteArbitration(volatile uint32_t& arb1, volatile uint32_t& arb2, hal::Can::Id id, bool isTx)
+    {
+        const uint32_t dirFlag = isTx ? ifarb::Dir : 0u;
+
+        if (id.Is29BitId())
+        {
+            const uint32_t value = id.Get29BitId();
+            arb1 = value & ifarb::Id29LowMask;
+            arb2 = ifarb::MsgVal | ifarb::Xtd | dirFlag |
+                   ((value >> ifarb::Id29HighShift) & ifarb::Id29HighMask);
+        }
+        else
+        {
+            arb1 = 0;
+            arb2 = ifarb::MsgVal | dirFlag |
+                   ((id.Get11BitId() & ifarb::Id11Mask) << ifarb::Id11Shift);
+        }
+    }
+
+    uint32_t BuildBitReg(uint32_t brp, uint32_t sjw, uint32_t tseg1, uint32_t tseg2)
+    {
+        using namespace bittiming;
+        return (brp & BrpMask) | ((sjw & 0x3) << SjwShift) |
+               ((tseg1 & 0xF) << Tseg1Shift) | ((tseg2 & 0x7) << Tseg2Shift);
+    }
+
+    void ApplyManualBitTiming(CAN0_Type& can, const hal::tiva::Can::BitTiming& timing)
+    {
+        really_assert(timing.baudratePrescaler >= 1 && timing.baudratePrescaler <= maxPrescaler);
+        really_assert(timing.phaseSegment1 >= 1 && timing.phaseSegment1 <= maxTseg1);
+        really_assert(timing.phaseSegment2 >= 1 && timing.phaseSegment2 <= maxTseg2);
+        really_assert(timing.synchronizationJumpWidth >= 1 && timing.synchronizationJumpWidth <= maxSjw);
+
+        uint32_t brp = timing.baudratePrescaler - 1u;
+        uint32_t sjw = timing.synchronizationJumpWidth - 1u;
+        uint32_t tseg1 = timing.phaseSegment1 - 1u;
+        uint32_t tseg2 = timing.phaseSegment2 - 1u;
+
+        can.BIT = BuildBitReg(brp, sjw, tseg1, tseg2);
+        can.BRPE = (brp >> bittiming::BrpExtShift) & bittiming::BrpExtMask;
+    }
+
+    // Computes bit-timing parameters targeting a 87.5% sample point (CiA-301 recommended).
+    //
+    // The algorithm enumerates all valid time-quanta (tq) counts in the C_CAN range [8, 25]
+    // and selects the one whose sample point is closest to 87.5%. Higher tq counts win on tie
+    // because they offer better SJW resolution. For the common baudrates the result is:
+    //
+    //   sysclk   bit-rate  tq  prescaler  phaseSeg1  phaseSeg2  sample-point
+    //   ---------------------------------------------------------------------
+    //   120 MHz   100 kbit 16     75         13         2          87.50 %
+    //   120 MHz   125 kbit 16     60         13         2          87.50 %
+    //   120 MHz   250 kbit 16     30         13         2          87.50 %
+    //   120 MHz   500 kbit 16     15         13         2          87.50 %
+    //   120 MHz     1 Mbit  8     15          6         1          87.50 %
+    //    80 MHz   100 kbit 16     50         13         2          87.50 %
+    //    80 MHz   125 kbit 16     40         13         2          87.50 %
+    //    80 MHz   250 kbit 16     20         13         2          87.50 %
+    //    80 MHz   500 kbit 16     10         13         2          87.50 %
+    //    80 MHz     1 Mbit 16      5         13         2          87.50 %
+    hal::tiva::Can::BitTiming CalculateBitTiming(uint32_t sysclk, uint32_t bitRate)
+    {
+        really_assert(bitRate > 0);
+        really_assert(sysclk % bitRate == 0);
+
+        uint32_t bitClocks = sysclk / bitRate;
+
+        hal::tiva::Can::BitTiming best{};
+        uint32_t bestDistance = UINT32_MAX;
+
+        for (uint32_t tq = maxTimeQuanta; tq >= minTimeQuanta; --tq)
+        {
+            if (bitClocks % tq != 0)
                 continue;
 
-            uint32_t tq = bitClocks / prescaler;
-
-            if (tq < minTimeQuanta || tq > maxTimeQuanta)
+            uint32_t prescaler = bitClocks / tq;
+            if (prescaler < 1 || prescaler > maxPrescaler)
                 continue;
 
-            uint32_t tseg2 = ClampedTseg2(tq);
-            uint32_t tseg1 = tq - 1 - tseg2;
-
-            if (!IsValidSegmentation(tq, tseg1, tseg2))
+            // round(0.875 * tq) = (1 + phaseSegment1 quanta before sample point)
+            uint32_t quantaBeforeSample = (targetSamplePointPermille * tq + 500u) / 1000u;
+            if (quantaBeforeSample < 3)
+                continue;
+            uint32_t phaseSeg1 = quantaBeforeSample - 1u;
+            if (phaseSeg1 > maxTseg1)
+                continue;
+            uint32_t phaseSeg2 = tq - 1u - phaseSeg1;
+            if (phaseSeg2 < 1 || phaseSeg2 > maxTseg2)
                 continue;
 
-            uint32_t sjw = tseg2 > maxSjw ? maxSjw : tseg2;
-            ApplyBitTimingRegisters(can, prescaler, sjw, tseg1, tseg2);
-            return;
+            uint32_t samplePointPermille = quantaBeforeSample * 1000u / tq;
+            uint32_t distance = samplePointPermille > targetSamplePointPermille
+                                    ? samplePointPermille - targetSamplePointPermille
+                                    : targetSamplePointPermille - samplePointPermille;
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best.baudratePrescaler = static_cast<uint16_t>(prescaler);
+                best.phaseSegment1 = static_cast<uint8_t>(phaseSeg1);
+                best.phaseSegment2 = static_cast<uint8_t>(phaseSeg2);
+                best.synchronizationJumpWidth = static_cast<uint8_t>(phaseSeg2 < maxSjw ? phaseSeg2 : maxSjw);
+            }
         }
 
-        really_assert(false);
+        really_assert(bestDistance != UINT32_MAX);
+        return best;
+    }
+
+    void EnterInitMode(CAN0_Type& can)
+    {
+        can.CTL |= ctl::Init;
+    }
+
+    void ExitInitMode(CAN0_Type& can)
+    {
+        can.CTL &= ~ctl::Init;
+    }
+
+    void EnableConfigurationAccess(CAN0_Type& can)
+    {
+        can.CTL |= ctl::Cce;
+    }
+
+    void DisableConfigurationAccess(CAN0_Type& can)
+    {
+        can.CTL &= ~ctl::Cce;
+    }
+
+    void EnableInterrupts(CAN0_Type& can)
+    {
+        can.CTL |= ctl::AllInterrupts;
+    }
+
+    void DisableInterrupts(CAN0_Type& can)
+    {
+        can.CTL &= ~ctl::AllInterrupts;
+    }
+
+    void EnablePeripheralClock(uint8_t canIndex)
+    {
+        SYSCTL->RCGCCAN |= 1u << canIndex;
+
+        while ((SYSCTL->PRCAN & (1u << canIndex)) == 0)
+        {
+            // spin until peripheral clock is ready
+        }
+    }
+
+    void DisablePeripheralClock(uint8_t canIndex)
+    {
+        SYSCTL->RCGCCAN &= ~(1u << canIndex);
+    }
+
+    void ConfigureBitTiming(CAN0_Type& can, const std::variant<hal::tiva::Can::BitRate, hal::tiva::Can::BitTiming>& timing)
+    {
+        std::visit(
+            [&can](const auto& selected)
+            {
+                using T = std::decay_t<decltype(selected)>;
+                if constexpr (std::is_same_v<T, hal::tiva::Can::BitTiming>)
+                    ApplyManualBitTiming(can, selected);
+                else
+                    ApplyManualBitTiming(can, CalculateBitTiming(SystemCoreClock, selected));
+            },
+            timing);
+    }
+
+    void ConfigureLoopbackIfRequested(CAN0_Type& can, bool testMode)
+    {
+        if (!testMode)
+            return;
+
+        can.CTL |= ctl::Test;
+        can.TST |= tst::LBack;
+    }
+
+    void ClearAllMessageObjects(CAN0_Type& can)
+    {
+        const auto requestAllObjects = [&can]()
+        {
+            for (uint32_t object = 1; object <= totalMessageObjects; ++object)
+            {
+                WaitWhileBusy(can.IF1CRQ);
+                can.IF1CRQ = object;
+            }
+        };
+
+        WaitWhileBusy(can.IF1CRQ);
+        can.IF1CMSK = ifcmsk::WrNRd | ifcmsk::Arb | ifcmsk::Control;
+        can.IF1ARB1 = 0;
+        can.IF1ARB2 = 0;
+        can.IF1MCTL = 0;
+        requestAllObjects();
+
+        WaitWhileBusy(can.IF1CRQ);
+        can.IF1CMSK = ifcmsk::NewDat | ifcmsk::ClrIntPnd;
+        requestAllObjects();
+    }
+
+    void ApplyReceiveFilterForExtendedId(CAN0_Type& can, uint32_t id, uint32_t mask)
+    {
+        can.IF2MSK1 = mask & ifarb::Id29LowMask;
+        can.IF2MSK2 = (mask >> ifarb::Id29HighShift) & ifarb::Id29HighMask;
+        can.IF2ARB1 = id & ifarb::Id29LowMask;
+        can.IF2ARB2 = ifarb::MsgVal | ifarb::Xtd | ((id >> ifarb::Id29HighShift) & ifarb::Id29HighMask);
+    }
+
+    void ApplyReceiveFilterForStandardId(CAN0_Type& can, uint32_t id, uint32_t mask)
+    {
+        can.IF2MSK1 = 0;
+        can.IF2MSK2 = (mask << ifarb::Id11Shift) & ifarb::Mask11InMsk2;
+        can.IF2ARB1 = 0;
+        can.IF2ARB2 = ifarb::MsgVal | ((id & ifarb::Id11Mask) << ifarb::Id11Shift);
+    }
+
+    void ApplyReceiveFilter(CAN0_Type& can, const hal::tiva::Can::Filter& filter)
+    {
+        if (filter.extended)
+            ApplyReceiveFilterForExtendedId(can, filter.id, filter.mask);
+        else
+            ApplyReceiveFilterForStandardId(can, filter.id, filter.mask);
+
+        can.IF2ARB2 = ifarb::MsgVal | ifarb::Xtd | ((filter.id >> ifarb::Id29HighShift) & ifarb::Id29HighMask);
+    }
+
+    void ApplyAcceptAllFilter(CAN0_Type& can)
+    {
+        can.IF2MSK1 = 0;
+        can.IF2MSK2 = ifmsk::Mxtd;
+        can.IF2ARB1 = 0;
+        can.IF2ARB2 = ifarb::MsgVal;
+    }
+
+    void ConfigureReceiveMessageObject(CAN0_Type& can, const std::optional<hal::tiva::Can::Filter>& filter)
+    {
+        WaitWhileBusy(can.IF2CRQ);
+        can.IF2CMSK = ifcmsk::WrNRd | ifcmsk::Arb | ifcmsk::Control | ifcmsk::Mask;
+
+        if (filter)
+            ApplyReceiveFilter(can, *filter);
+        else
+            ApplyAcceptAllFilter(can);
+
+        can.IF2MCTL = ifmctl::RxIe | ifmctl::Eob | ifmctl::UMask | (rxFilterDlc & ifmctl::DlcMask);
+        can.IF2CRQ = rxMessageObject;
+    }
+
+    void LoadTxMessageObject(CAN0_Type& can, hal::Can::Id id, const hal::Can::Message& data)
+    {
+        WaitWhileBusy(can.IF1CRQ);
+
+        can.IF1CMSK = ifcmsk::WrNRd | ifcmsk::Arb | ifcmsk::Control | ifcmsk::DataA | ifcmsk::DataB;
+
+        WriteArbitration(can.IF1ARB1, can.IF1ARB2, id, true);
+
+        can.IF1MCTL = ifmctl::TxRqst | ifmctl::TxIe | ifmctl::Eob | (data.size() & ifmctl::DlcMask);
+
+        const auto packed = PackMessageData(data);
+        can.IF1DA1 = packed.da1;
+        can.IF1DA2 = packed.da2;
+        can.IF1DB1 = packed.db1;
+        can.IF1DB2 = packed.db2;
+
+        can.IF1CRQ = txMessageObject;
+    }
+
+    void ClearMessageObjectInterrupt(CAN0_Type& can, uint32_t objectId)
+    {
+        WaitWhileBusy(can.IF1CRQ);
+        can.IF1CMSK = ifcmsk::ClrIntPnd;
+        can.IF1CRQ = objectId & ifcrq::MnumMask;
+    }
+
+    RxReadResult ReadRxMessageObject(CAN0_Type& can)
+    {
+        WaitWhileBusy(can.IF2CRQ);
+        can.IF2CMSK = ifcmsk::ClrIntPnd | ifcmsk::NewDat | ifcmsk::Arb | ifcmsk::Control | ifcmsk::DataA | ifcmsk::DataB;
+        can.IF2CRQ = rxMessageObject;
+        WaitWhileBusy(can.IF2CRQ);
+
+        RxReadResult result{};
+        result.messageLost = (can.IF2MCTL & ifmctl::MsgLst) != 0;
+        result.entry.length = can.IF2MCTL & ifmctl::DlcMask;
+        result.entry.is29Bit = (can.IF2ARB2 & ifarb::Xtd) != 0;
+        result.entry.id = result.entry.is29Bit
+                              ? ((can.IF2ARB2 & ifarb::Id29HighMask) << ifarb::Id29HighShift) | can.IF2ARB1
+                              : (can.IF2ARB2 >> ifarb::Id11Shift) & ifarb::Id11Mask;
+
+        UnpackMessageData({ can.IF2DA1, can.IF2DA2, can.IF2DB1, can.IF2DB2 }, result.entry.length, result.entry.data);
+
+        return result;
     }
 }
 
 namespace hal::tiva
 {
     Can::Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError)
-        : ImmediateInterruptHandler(peripheralIrqCanArray[canIndex], [this]()
+        : ImmediateInterruptHandler(peripheralIrqCan[canIndex], [this]()
               {
                   HandleInterrupt();
               })
@@ -254,61 +513,43 @@ namespace hal::tiva
         , config(config)
         , onError(onError)
     {
-        EnableClock();
+        EnablePeripheralClock(canIndex);
 
-        auto& can = *peripheralCan[canIndex];
+        auto& can = Peripheral();
 
-        can.CTL = CAN_CTL_INIT;
-        can.CTL |= CAN_CTL_CCE;
+        EnterInitMode(can);
+        EnableConfigurationAccess(can);
+        ConfigureBitTiming(can, this->config.timing);
+        ConfigureLoopbackIfRequested(can, this->config.testMode);
+        DisableConfigurationAccess(can);
 
-        ConfigureBitTiming();
+        ClearAllMessageObjects(can);
+        ConfigureReceiveMessageObject(can, this->config.filter);
 
-        if (config.testMode)
-        {
-            can.CTL |= CAN_CTL_TEST;
-            can.TST |= CAN_TST_LBACK;
-        }
+        (void)can.STS;
 
-        can.CTL |= CAN_CTL_IE | CAN_CTL_SIE | CAN_CTL_EIE;
-        can.CTL &= ~(CAN_CTL_INIT | CAN_CTL_CCE);
-
-        ConfigureReceiveMessageObject();
+        EnableInterrupts(can);
+        ExitInitMode(can);
     }
 
     Can::~Can()
     {
-        auto& can = *peripheralCan[canIndex];
+        auto& can = Peripheral();
 
-        can.CTL |= CAN_CTL_INIT;
-        can.CTL &= ~(CAN_CTL_IE | CAN_CTL_SIE | CAN_CTL_EIE);
-
-        NVIC_DisableIRQ(peripheralIrqCanArray[canIndex]);
-        DisableClock();
+        EnterInitMode(can);
+        DisableInterrupts(can);
+        DisablePeripheralClock(canIndex);
     }
 
     void Can::SendData(Id id, const Message& data, const infra::Function<void(bool success)>& actionOnCompletion)
     {
-        really_assert(!sending);
+        really_assert(!sending.load(std::memory_order_acquire));
+        really_assert(data.size() <= maxDataLength);
 
-        auto& can = *peripheralCan[canIndex];
-
-        sending = true;
         onSendComplete = actionOnCompletion;
+        sending.store(true, std::memory_order_release);
 
-        WaitIfBusy(can.IF1CRQ);
-
-        can.IF1CMSK = CAN_IFCMSK_WRNRD | CAN_IFCMSK_ARB | CAN_IFCMSK_CONTROL | CAN_IFCMSK_DATAA | CAN_IFCMSK_DATAB;
-
-        if (id.Is29BitId())
-            SetArbitration29Bit(can, id.Get29BitId(), true);
-        else
-            SetArbitration11Bit(can, id.Get11BitId(), true);
-
-        can.IF1MCTL = CAN_IFMCTL_TXRQST | CAN_IFMCTL_TXIE | CAN_IFMCTL_EOB | (data.size() & CAN_IFMCTL_DLC_M);
-
-        WriteData(can, data);
-
-        can.IF1CRQ = txMessageObject;
+        LoadTxMessageObject(Peripheral(), id, data);
     }
 
     void Can::ReceiveData(const infra::Function<void(Id id, const Message& data)>& receivedAction)
@@ -316,18 +557,101 @@ namespace hal::tiva
         onReceive = receivedAction;
     }
 
+    CAN0_Type& Can::Peripheral() const
+    {
+        return *peripheralCan[canIndex];
+    }
+
     void Can::HandleInterrupt()
     {
-        auto& can = *peripheralCan[canIndex];
+        auto& can = Peripheral();
 
-        uint32_t intStatus = can.INT;
+        for (;;)
+        {
+            const uint32_t intStatus = can.INT;
 
-        if (intStatus == CAN_INT_STS_CAUSE_STATUS)
-            HandleStatusInterrupt(can);
-        else if (intStatus == txMessageObject)
-            HandleTxInterrupt(can);
-        else if (intStatus == rxMessageObject)
-            HandleRxInterrupt(can);
+            if (intStatus == interruptStatus::CauseNone)
+                return;
+
+            if (intStatus == interruptStatus::CauseStatus)
+                HandleStatusInterrupt();
+            else if (intStatus == txMessageObject)
+                HandleTxInterrupt();
+            else if (intStatus == rxMessageObject)
+                HandleRxInterrupt();
+            else
+                ClearMessageObjectInterrupt(can, intStatus);
+        }
+    }
+
+    void Can::HandleStatusInterrupt()
+    {
+        auto& can = Peripheral();
+
+        const uint32_t status = can.STS;
+        can.STS = sts::ClearMask;
+
+        if (auto lecError = LecToError(status & sts::LecMask))
+            ScheduleError(*lecError);
+
+        if ((status & sts::EWarn) != 0)
+            ScheduleError(Error::errorWarning);
+
+        if ((status & sts::EPass) != 0)
+            ScheduleError(Error::errorPassive);
+
+        if ((status & sts::BOff) != 0)
+        {
+            ScheduleError(Error::busOff);
+            NotifySendFailedFromInterrupt();
+
+            if (config.autoBusOffRecovery)
+                ExitInitMode(can);
+        }
+    }
+
+    void Can::HandleTxInterrupt()
+    {
+        ClearMessageObjectInterrupt(Peripheral(), txMessageObject);
+
+        if (sending.exchange(false, std::memory_order_acq_rel))
+        {
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    if (onSendComplete)
+                        onSendComplete(true);
+                });
+        }
+    }
+
+    void Can::HandleRxInterrupt()
+    {
+        const auto result = ReadRxMessageObject(Peripheral());
+
+        if (result.messageLost)
+            ScheduleError(Error::messageLost);
+
+        if (!rxQueue.Full())
+            rxQueue.AddFromInterrupt(result.entry);
+        else
+            ScheduleError(Error::messageLost);
+    }
+
+    void Can::ProcessRxBuffer()
+    {
+        while (!rxQueue.Empty())
+        {
+            const CanRxEntry entry = rxQueue.Get();
+            const Id id = entry.is29Bit ? Id::Create29BitId(entry.id) : Id::Create11BitId(entry.id);
+
+            Message data;
+            const uint8_t length = entry.length < maxDataLength ? entry.length : maxDataLength;
+            for (uint8_t i = 0; i < length; ++i)
+                data.push_back(entry.data[i]);
+
+            if (onReceive)
+                onReceive(id, data);
+        }
     }
 
     void Can::ScheduleError(Error error) const
@@ -339,153 +663,15 @@ namespace hal::tiva
             });
     }
 
-    void Can::HandleStatusInterrupt(CAN0_Type& can) const
+    void Can::NotifySendFailedFromInterrupt()
     {
-        uint32_t status = can.STS;
-        can.STS = status & ~(CAN_STS_TXOK | CAN_STS_RXOK | CAN_STS_LEC_M);
-
-        if (status & CAN_STS_BOFF)
+        if (sending.exchange(false, std::memory_order_acq_rel))
         {
-            ScheduleError(Error::busOff);
-            return;
-        }
-
-        if (status & CAN_STS_EPASS)
-        {
-            ScheduleError(Error::errorPassive);
-            return;
-        }
-
-        if (status & CAN_STS_EWARN)
-        {
-            ScheduleError(Error::errorWarning);
-            return;
-        }
-
-        auto error = LecToError(status & CAN_STS_LEC_M);
-        if (error)
-            ScheduleError(*error);
-    }
-
-    void Can::HandleTxInterrupt(CAN0_Type& can)
-    {
-        WaitIfBusy(can.IF1CRQ);
-        can.IF1CMSK = CAN_IFCMSK_CLRINTPND;
-        can.IF1CRQ = txMessageObject;
-
-        if (sending)
-        {
-            sending = false;
             infra::EventDispatcher::Instance().Schedule([this]()
                 {
                     if (onSendComplete)
-                        onSendComplete(true);
+                        onSendComplete(false);
                 });
         }
-    }
-
-    void Can::HandleRxInterrupt(CAN0_Type& can)
-    {
-        WaitIfBusy(can.IF2CRQ);
-        can.IF2CMSK = CAN_IFCMSK_CLRINTPND | CAN_IFCMSK_NEWDAT | CAN_IFCMSK_ARB | CAN_IFCMSK_CONTROL | CAN_IFCMSK_DATAA | CAN_IFCMSK_DATAB;
-        can.IF2CRQ = rxMessageObject;
-        WaitIfBusy(can.IF2CRQ);
-
-        if (can.IF2MCTL & CAN_IFMCTL_MSGLST)
-            ScheduleError(Error::messageLost);
-
-        uint8_t dlc = can.IF2MCTL & CAN_IFMCTL_DLC_M;
-
-        CanRxEntry entry{};
-        entry.length = dlc;
-        entry.is29Bit = (can.IF2ARB2 & CAN_IFARB2_XTD) != 0;
-
-        if (entry.is29Bit)
-            entry.id = ((can.IF2ARB2 & 0x1FFF) << 16) | can.IF2ARB1;
-        else
-            entry.id = (can.IF2ARB2 >> 2) & 0x7FF;
-
-        if (dlc > 0)
-            entry.data[0] = static_cast<uint8_t>(can.IF2DA1 & 0xFF);
-        if (dlc > 1)
-            entry.data[1] = static_cast<uint8_t>((can.IF2DA1 >> 8) & 0xFF);
-        if (dlc > 2)
-            entry.data[2] = static_cast<uint8_t>(can.IF2DA2 & 0xFF);
-        if (dlc > 3)
-            entry.data[3] = static_cast<uint8_t>((can.IF2DA2 >> 8) & 0xFF);
-        if (dlc > 4)
-            entry.data[4] = static_cast<uint8_t>(can.IF2DB1 & 0xFF);
-        if (dlc > 5)
-            entry.data[5] = static_cast<uint8_t>((can.IF2DB1 >> 8) & 0xFF);
-        if (dlc > 6)
-            entry.data[6] = static_cast<uint8_t>(can.IF2DB2 & 0xFF);
-        if (dlc > 7)
-            entry.data[7] = static_cast<uint8_t>((can.IF2DB2 >> 8) & 0xFF);
-
-        if (!rxQueue.Full())
-            rxQueue.AddFromInterrupt(entry);
-        else
-            ScheduleError(Error::messageLost);
-    }
-
-    void Can::ProcessRxBuffer()
-    {
-        while (!rxQueue.Empty())
-        {
-            CanRxEntry entry = rxQueue.Get();
-
-            Id id = entry.is29Bit ? Id::Create29BitId(entry.id) : Id::Create11BitId(entry.id);
-
-            Message data;
-            for (uint8_t i = 0; i < entry.length && i < 8; ++i)
-                data.push_back(entry.data[i]);
-
-            if (onReceive)
-                onReceive(id, data);
-        }
-    }
-
-    void Can::ConfigureBitTiming() const
-    {
-        auto& can = *peripheralCan[canIndex];
-
-        if (config.bitTiming)
-            ApplyManualBitTiming(can, *config.bitTiming);
-        else
-            CalculateAndApplyBitTiming(can, config.bitRate);
-    }
-
-    void Can::ConfigureReceiveMessageObject() const
-    {
-        auto& can = *peripheralCan[canIndex];
-
-        WaitIfBusy(can.IF2CRQ);
-
-        can.IF2CMSK = CAN_IFCMSK_WRNRD | CAN_IFCMSK_ARB | CAN_IFCMSK_CONTROL | CAN_IFCMSK_MASK;
-
-        can.IF2MSK1 = 0;
-        can.IF2MSK2 = 0;
-
-        can.IF2ARB1 = 0;
-        can.IF2ARB2 = CAN_IFARB2_MSGVAL;
-
-        can.IF2MCTL = CAN_IFMCTL_RXIE | CAN_IFMCTL_EOB | CAN_IFMCTL_UMASK | (8 & CAN_IFMCTL_DLC_M);
-
-        can.IF2CRQ = rxMessageObject;
-    }
-
-    void Can::EnableClock() const
-    {
-        SYSCTL->RCGCCAN |= 1 << canIndex;
-
-        while ((SYSCTL->PRCAN & (1 << canIndex)) == 0)
-        {
-            // do nothing until peripheral is ready
-        }
-    }
-
-    void Can::DisableClock() const
-    {
-        SYSCTL->RCGCCAN &= ~(1 << canIndex);
     }
 }
