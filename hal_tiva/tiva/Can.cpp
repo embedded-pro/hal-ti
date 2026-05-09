@@ -43,7 +43,6 @@ namespace
         inline constexpr uint32_t EPass = 1u << 5;
         inline constexpr uint32_t EWarn = 1u << 6;
         inline constexpr uint32_t BOff = 1u << 7;
-        inline constexpr uint32_t ClearMask = static_cast<uint32_t>(~(TxOk | RxOk | LecMask));
 
         inline constexpr uint32_t LecStuff = 1;
         inline constexpr uint32_t LecForm = 2;
@@ -424,7 +423,8 @@ namespace
         else
             ApplyReceiveFilterForStandardId(can, filter.id, filter.mask);
 
-        can.IF2ARB2 = ifarb::MsgVal | ifarb::Xtd | ((filter.id >> ifarb::Id29HighShift) & ifarb::Id29HighMask);
+        if (filter.matchIdType)
+            can.IF2MSK2 |= ifmsk::Mxtd;
     }
 
     void ApplyAcceptAllFilter(CAN0_Type& can)
@@ -538,6 +538,11 @@ namespace hal::tiva
 
         EnterInitMode(can);
         DisableInterrupts(can);
+
+        const auto irq = peripheralIrqCan[canIndex];
+        NVIC_DisableIRQ(irq);
+        NVIC_ClearPendingIRQ(irq);
+
         DisablePeripheralClock(canIndex);
     }
 
@@ -589,7 +594,7 @@ namespace hal::tiva
         auto& can = Peripheral();
 
         const uint32_t status = can.STS;
-        can.STS = sts::ClearMask;
+        can.STS = (status & ~(sts::TxOk | sts::RxOk)) | sts::LecMask;
 
         if (auto lecError = LecToError(status & sts::LecMask))
             ScheduleError(*lecError);
