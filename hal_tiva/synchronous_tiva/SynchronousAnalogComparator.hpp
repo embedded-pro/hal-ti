@@ -26,8 +26,6 @@ namespace hal::tiva
         bool GetOutput() const override;
 
     private:
-        void EnableClock();
-        static void DisableClockIfLastInstance();
         void ConfigureReference() const;
         void ConfigureControl() const;
         uint32_t ComputeAcctl() const;

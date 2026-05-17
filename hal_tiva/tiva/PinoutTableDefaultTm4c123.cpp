@@ -397,7 +397,7 @@ namespace hal::tiva
             Drive::None,
             hal::PinConfigType::output,
             Current::_2mA,
-            false,
+            true,
         },
     } };
 

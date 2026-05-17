@@ -18,8 +18,6 @@ namespace
     constexpr uint32_t AcrefctlRng      = 1u << 8;
     constexpr uint32_t AcrefctlVrefMask = 0x0Fu;
     constexpr uint32_t AcrefctlCfgMask  = AcrefctlEn | AcrefctlRng | AcrefctlVrefMask;
-
-    volatile uint8_t syncInstanceCount = 0;
 }
 
 namespace hal::tiva
@@ -37,7 +35,7 @@ namespace hal::tiva
         if (config.outputToPin && &outputPin != &dummyPin)
             outputPeripheralPin.emplace(outputPin, PinConfigPeripheral::comparatorOutput);
 
-        EnableClock();
+        AnalogComparator::EnableAcmpClock();
         ConfigureReference();
         ConfigureControl();
         COMP->ACMIS = (1u << index);
@@ -49,30 +47,12 @@ namespace hal::tiva
         outputPeripheralPin.reset();
         vinNegativePin.reset();
         vinPositivePin.reset();
-        DisableClockIfLastInstance();
+        AnalogComparator::DisableAcmpClockIfLastInstance();
     }
 
     bool SynchronousAnalogComparator::GetOutput() const
     {
         return (Acstat() & AcstatOval) != 0;
-    }
-
-    void SynchronousAnalogComparator::EnableClock()
-    {
-        if (syncInstanceCount == 0)
-        {
-            SYSCTL->RCGCACMP |= 1u;
-            while ((SYSCTL->PRACMP & 1u) == 0)
-            {}
-        }
-        ++syncInstanceCount;
-    }
-
-    void SynchronousAnalogComparator::DisableClockIfLastInstance()
-    {
-        --syncInstanceCount;
-        if (syncInstanceCount == 0)
-            SYSCTL->RCGCACMP &= ~1u;
     }
 
     void SynchronousAnalogComparator::ConfigureReference() const
@@ -81,6 +61,7 @@ namespace hal::tiva
             return;
 
         const auto& ref = *config.internalReference;
+        really_assert(ref.step <= 15);
         uint32_t newVal = AcrefctlEn
                         | (static_cast<uint32_t>(ref.range) << 8)
                         | (ref.step & AcrefctlVrefMask);

@@ -91,11 +91,7 @@ namespace
 namespace hal::tiva
 {
     AnalogComparator::AnalogComparator(uint8_t aIndex, GpioPin& vinPositive, GpioPin& vinNegative, GpioPin& outputPin, const Config& aConfig)
-        : ImmediateInterruptHandler(peripheralIrqComp[aIndex], aConfig.priority, [this]()
-              {
-                  HandleIrq();
-              })
-        , index(aIndex)
+        : index(aIndex)
         , config(aConfig)
     {
         really_assert(config.routeToPwmFault.has_value() ? config.triggerEnabled : true);
@@ -107,26 +103,30 @@ namespace hal::tiva
         if (config.outputToPin && &outputPin != &dummyPin)
             outputPeripheralPin.emplace(outputPin, PinConfigPeripheral::comparatorOutput);
 
-        EnableClock();
+        EnableAcmpClock();
         ConfigureReference();
         ConfigureControl(std::nullopt);
         COMP->ACMIS = (1u << index);
+        irqHandler.emplace(peripheralIrqComp[index], config.priority, [this]() { HandleIrq(); });
     }
 
     AnalogComparator::~AnalogComparator()
     {
+        irqHandler.reset();
         COMP->ACINTEN &= ~(1u << index);
         Acctl() = 0;
         outputPeripheralPin.reset();
         vinNegativePin.reset();
         vinPositivePin.reset();
-        DisableClockIfLastInstance();
+        DisableAcmpClockIfLastInstance();
     }
 
     void AnalogComparator::Enable(const infra::Function<void(bool output)>& aOnOutputChanged, InterruptTrigger trigger)
     {
         onOutputChanged = aOnOutputChanged;
-        ConfigureControl(SenseFromTrigger(trigger));
+        const InterruptSense isen = SenseFromTrigger(trigger);
+        const uint32_t isenBits = (static_cast<uint32_t>(isen) << AcctlIsenShift) & AcctlIsenMask;
+        Acctl() = (Acctl() & ~(AcctlIsenMask | AcctlIslval)) | isenBits;
         COMP->ACMIS = (1u << index);
         COMP->ACINTEN |= (1u << index);
     }
@@ -143,7 +143,7 @@ namespace hal::tiva
         return (Acstat() & AcstatOval) != 0;
     }
 
-    void AnalogComparator::EnableClock()
+    void AnalogComparator::EnableAcmpClock()
     {
         if (instanceCount == 0)
         {
@@ -154,7 +154,7 @@ namespace hal::tiva
         ++instanceCount;
     }
 
-    void AnalogComparator::DisableClockIfLastInstance()
+    void AnalogComparator::DisableAcmpClockIfLastInstance()
     {
         --instanceCount;
         if (instanceCount == 0)
@@ -167,6 +167,7 @@ namespace hal::tiva
             return;
 
         const auto& ref = *config.internalReference;
+        really_assert(ref.step <= 15);
         uint32_t newVal = AcrefctlEn
                         | (static_cast<uint32_t>(ref.range) << 8)
                         | (ref.step & AcrefctlVrefMask);

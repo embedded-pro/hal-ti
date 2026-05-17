@@ -12,7 +12,6 @@ namespace hal::tiva
 {
     class AnalogComparator
         : public hal::AnalogComparator
-        , private hal::ImmediateInterruptHandler
     {
     public:
         enum class PositiveInputSource : uint8_t
@@ -77,9 +76,10 @@ namespace hal::tiva
         void Disable() override;
         bool GetOutput() const override;
 
+        static void EnableAcmpClock();
+        static void DisableAcmpClockIfLastInstance();
+
     private:
-        void EnableClock();
-        static void DisableClockIfLastInstance();
         void ConfigureReference() const;
         void ConfigureControl(std::optional<InterruptSense> overrideSense) const;
         uint32_t ComputeAcctl(InterruptSense isense, bool islval) const;
@@ -92,6 +92,7 @@ namespace hal::tiva
         std::optional<AnalogPin> vinPositivePin;
         std::optional<AnalogPin> vinNegativePin;
         std::optional<PeripheralPin> outputPeripheralPin;
+        std::optional<hal::ImmediateInterruptHandler> irqHandler;
         infra::Function<void(bool)> onOutputChanged;
     };
 }
