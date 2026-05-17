@@ -360,7 +360,7 @@ namespace hal::tiva
             channel->INTEN |= normalInterruptBit[static_cast<uint8_t>(normalSource.source)];
 
             if (!generatorHandlers[genIdx].has_value())
-                generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], interruptConfig.normalPriority, normalSource.generator);
+                generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], interruptConfig.priority, normalSource.generator);
         }
     }
 
@@ -392,7 +392,7 @@ namespace hal::tiva
         }
 
         if (hasFault)
-            faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq, interruptConfig.faultPriority);
+            faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq, interruptConfig.priority);
         
     }
 
