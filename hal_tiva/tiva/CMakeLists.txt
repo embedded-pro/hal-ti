@@ -31,6 +31,8 @@ target_sources(hal_tiva.tiva PRIVATE
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.hpp>
     Gpio.cpp
     Gpio.hpp
+    Pwm.cpp
+    Pwm.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:PinoutTableDefaultTm4c123.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:PinoutTableDefaultTm4c123.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:PinoutTableDefaultTm4c129.cpp>
