@@ -440,7 +440,26 @@ namespace hal::tiva
 
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableEthernet = pinoutTableEthernetArray;
 
-    constexpr std::array<const infra::MemoryRange<const Gpio::PinoutTable>, 7> pinoutTableDefaultArray = { pinoutTableUart, pinoutTableSpi, pinoutTableI2c, pinoutTableCan, pinoutTablePwm, pinoutTableQei, pinoutTableEthernet };
+    constexpr std::array<const Gpio::PinPosition, 3> pinoutTableComparatorOutputPins = { {
+        { 0, Port::D, 0, 0x08 },
+        { 1, Port::D, 1, 0x08 },
+        { 2, Port::D, 2, 0x08 },
+    } };
+
+    constexpr std::array<const Gpio::PinoutTable, 1> pinoutTableComparatorArray = { {
+        {
+            PinConfigPeripheral::comparatorOutput,
+            pinoutTableComparatorOutputPins,
+            Drive::None,
+            hal::PinConfigType::output,
+            Current::_2mA,
+            false,
+        },
+    } };
+
+    constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableComparator = pinoutTableComparatorArray;
+
+    constexpr std::array<const infra::MemoryRange<const Gpio::PinoutTable>, 8> pinoutTableDefaultArray = { pinoutTableUart, pinoutTableSpi, pinoutTableI2c, pinoutTableCan, pinoutTablePwm, pinoutTableQei, pinoutTableEthernet, pinoutTableComparator };
     constexpr infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTableDefault = pinoutTableDefaultArray;
     constexpr std::array<const Gpio::AnalogPinPosition, 20> analogTableDefaultArray = { {
         { Type::adc, Port::E, 3, 0 },
