@@ -61,6 +61,11 @@ void Uart4_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart5_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart6_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart7_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator0_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator1_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator2_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator3_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Fault_Handler()      __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -122,10 +127,10 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Uart1_Handler,         /*!< UART1 Rx and Tx */
     Default_Handler,       /*!< SSI0 Rx and Tx */
     Default_Handler,       /*!< I2C0 Master and Slave */
-    Default_Handler,       /*!< PWM Fault */
-    Default_Handler,       /*!< PWM Generator 0 */
-    Default_Handler,       /*!< PWM Generator 1 */
-    Default_Handler,       /*!< PWM Generator 2 */
+    Pwm0Fault_Handler,      /*!< PWM Fault */
+    Pwm0Generator0_Handler, /*!< PWM Generator 0 */
+    Pwm0Generator1_Handler, /*!< PWM Generator 1 */
+    Pwm0Generator2_Handler, /*!< PWM Generator 2 */
     Default_Handler,       /*!< Quadrature Encoder 0 */
     Adc0Sequence0_Handler, /*!< ADC Sequence 0 */
     Adc0Sequence1_Handler, /*!< ADC Sequence 1 */
@@ -156,7 +161,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< Ethernet */
     Default_Handler,       /*!< Hibernate */
     Default_Handler,       /*!< USB0 */
-    Default_Handler,       /*!< PWM Generator 3 */
+    Pwm0Generator3_Handler, /*!< PWM Generator 3 */
     Default_Handler,       /*!< uDMA Software Transfer */
     UdmaError_Handler,     /*!< uDMA Error */
     Adc1Sequence0_Handler, /*!< ADC1 Sequence 0 */

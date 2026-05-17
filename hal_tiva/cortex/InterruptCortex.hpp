@@ -109,6 +109,7 @@ namespace hal
     {
     public:
         ImmediateInterruptHandler(IRQn_Type irq, const infra::Function<void()>& onInvoke);
+        ImmediateInterruptHandler(IRQn_Type irq, InterruptPriority priority, const infra::Function<void()>& onInvoke);
         ImmediateInterruptHandler(const ImmediateInterruptHandler& other) = delete;
         ImmediateInterruptHandler(ImmediateInterruptHandler&& other) = delete;
         ImmediateInterruptHandler(ImmediateInterruptHandler&& other, const infra::Function<void()>& onInvoke);

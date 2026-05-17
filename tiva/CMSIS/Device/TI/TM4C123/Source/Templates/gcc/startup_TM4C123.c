@@ -61,6 +61,16 @@ void Uart4_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart5_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart6_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart7_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator0_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator1_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator2_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Generator3_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm0Fault_Handler()      __attribute__((weak, alias("Default_Handler")));
+void Pwm1Generator0_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm1Generator1_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm1Generator2_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm1Generator3_Handler() __attribute__((weak, alias("Default_Handler")));
+void Pwm1Fault_Handler()      __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -122,10 +132,10 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Uart1_Handler,         /*!< UART1_Handler,             UART1 Rx and Tx */
     Default_Handler,       /*!< SSI0_Handler,              SSI0 Rx and Tx */
     Default_Handler,       /*!< I2C0_Handler,              I2C0 Master and Slave */
-    Default_Handler,       /*!< PMW0_FAULT_Handler,        PWM Fault */
-    Default_Handler,       /*!< PWM0_0_Handler,            PWM Generator 0 */
-    Default_Handler,       /*!< PWM0_1_Handler,            PWM Generator 1 */
-    Default_Handler,       /*!< PWM0_2_Handler,            PWM Generator 2 */
+    Pwm0Fault_Handler,      /*!< PMW0_FAULT_Handler,        PWM Fault */
+    Pwm0Generator0_Handler, /*!< PWM0_0_Handler,            PWM Generator 0 */
+    Pwm0Generator1_Handler, /*!< PWM0_1_Handler,            PWM Generator 1 */
+    Pwm0Generator2_Handler, /*!< PWM0_2_Handler,            PWM Generator 2 */
     Default_Handler,       /*!< QEI0_Handler,              Quadrature Encoder 0 */
     Adc0Sequence0_Handler, /*!< ADC0SS0_Handler,           ADC Sequence 0 */
     Adc0Sequence1_Handler, /*!< ADC0SS1_Handler,           ADC Sequence 1 */
@@ -158,7 +168,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     0,                     /*!< Reserved */
     Default_Handler,       /*!< HIB_Handler,               Hibernate */
     Default_Handler,       /*!< USB0_Handler,              USB0 */
-    Default_Handler,       /*!< PWM0_3_Handler,            PWM Generator 3 */
+    Pwm0Generator3_Handler, /*!< PWM0_3_Handler,            PWM Generator 3 */
     Default_Handler,       /*!< UDMA_Handler,              uDMA Software Transfer */
     UdmaError_Handler,     /*!< UDMAERR_Handler,           uDMA Error */
     Adc1Sequence0_Handler, /*!< ADC1SS0_Handler,           ADC1 Sequence 0 */
@@ -247,11 +257,11 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
     0,                     /*!< Reserved */
-    Default_Handler,       /*!< PWM1_0_Handler,           PWM 1 Generator 0 */
-    Default_Handler,       /*!< PWM1_1_Handler,           PWM 1 Generator 1 */
-    Default_Handler,       /*!< PWM1_2_Handler,           PWM 1 Generator 2 */
-    Default_Handler,       /*!< PWM1_3_Handler,           PWM 1 Generator 3 */
-    Default_Handler,       /*!< PWM1_FAULT_Handler        PWM 1 Fault */
+    Pwm1Generator0_Handler, /*!< PWM1_0_Handler,           PWM 1 Generator 0 */
+    Pwm1Generator1_Handler, /*!< PWM1_1_Handler,           PWM 1 Generator 1 */
+    Pwm1Generator2_Handler, /*!< PWM1_2_Handler,           PWM 1 Generator 2 */
+    Pwm1Generator3_Handler, /*!< PWM1_3_Handler,           PWM 1 Generator 3 */
+    Pwm1Fault_Handler,      /*!< PWM1_FAULT_Handler        PWM 1 Fault */
 };
 
 #pragma GCC diagnostic pop
