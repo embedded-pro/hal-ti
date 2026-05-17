@@ -62,6 +62,30 @@ namespace hal::tiva
             uint32_t reserved : 28;
         };
 
+        enum class ComparatorCondition : uint8_t
+        {
+            lowBand,
+            midBand,
+            highBand,
+        };
+
+        enum class ComparatorMode : uint8_t
+        {
+            always,
+            once,
+            hysteresisAlways,
+            hysteresisOnce,
+        };
+
+        struct DigitalComparatorConfig
+        {
+            uint8_t comparatorIndex;
+            uint16_t lowThreshold;
+            uint16_t highThreshold;
+            ComparatorCondition triggerCondition = ComparatorCondition::highBand;
+            ComparatorMode triggerMode = ComparatorMode::always;
+        };
+
         struct Config
         {
             bool externalReference;
@@ -70,6 +94,7 @@ namespace hal::tiva
             SampleAndHold sampleAndHold;
             std::optional<Oversampling> oversampling;
             std::optional<SamplingDelay> samplingDelay;
+            infra::MemoryRange<const DigitalComparatorConfig> digitalComparators;
         };
 
         Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config);
