@@ -97,8 +97,6 @@ namespace hal::tiva
 
                 infra::BoundedVector<GeneratorInterrupt>::WithMaxSize<4> normalSources;
                 infra::BoundedVector<FaultConfig>::WithMaxSize<4> faultConfigs;
-                hal::InterruptPriority normalPriority;
-                hal::InterruptPriority faultPriority;
             };
 
             bool channelAInverted = false;

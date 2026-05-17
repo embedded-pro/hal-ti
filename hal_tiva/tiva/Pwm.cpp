@@ -400,11 +400,7 @@ namespace hal::tiva
             channel->INTEN |= normalInterruptBit[static_cast<uint8_t>(normalSource.source)];
 
             if (!generatorHandlers[genIdx].has_value())
-            {
-                const auto irq = peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx];
-                generatorHandlers[genIdx].emplace(*this, irq, normalSource.generator);
-                NVIC_SetPriority(irq, static_cast<uint32_t>(interruptConfig.normalPriority));
-            }
+                generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], normalSource.generator);
         }
     }
 
@@ -436,11 +432,8 @@ namespace hal::tiva
         }
 
         if (hasFault)
-        {
-            const auto irq = peripheralPwmIrqs[pwmIndex].faultIrq;
-            faultHandler.emplace(*this, irq);
-            NVIC_SetPriority(irq, static_cast<uint32_t>(interruptConfig.faultPriority));
-        }
+            faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq);
+        
     }
 
     void Pwm::SetBaseFrequency(hal::Hertz baseFrequency)
