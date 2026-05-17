@@ -234,7 +234,7 @@ namespace hal::tiva
 
         struct GeneratorInterruptSlot
         {
-            GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, GeneratorIndex gen);
+            GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority, GeneratorIndex gen);
 
             Pwm& owner;
             GeneratorIndex gen;
@@ -243,7 +243,7 @@ namespace hal::tiva
 
         struct FaultInterruptSlot
         {
-            FaultInterruptSlot(Pwm& owner, IRQn_Type irq);
+            FaultInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority);
 
             Pwm& owner;
             hal::ImmediateInterruptHandler handler;

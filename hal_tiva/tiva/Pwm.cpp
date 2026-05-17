@@ -88,20 +88,6 @@ namespace
 #endif
     } };
 
-    constexpr const uint32_t PWM_CTL_GLOBALSYNC3 = 0x00000008;
-    constexpr const uint32_t PWM_CTL_GLOBALSYNC2 = 0x00000004;
-    constexpr const uint32_t PWM_CTL_GLOBALSYNC1 = 0x00000002;
-    constexpr const uint32_t PWM_CTL_GLOBALSYNC0 = 0x00000001;
-
-    constexpr const uint32_t PWM_ENABLE_PWM7EN = 0x00000080;
-    constexpr const uint32_t PWM_ENABLE_PWM6EN = 0x00000040;
-    constexpr const uint32_t PWM_ENABLE_PWM5EN = 0x00000020;
-    constexpr const uint32_t PWM_ENABLE_PWM4EN = 0x00000010;
-    constexpr const uint32_t PWM_ENABLE_PWM3EN = 0x00000008;
-    constexpr const uint32_t PWM_ENABLE_PWM2EN = 0x00000004;
-    constexpr const uint32_t PWM_ENABLE_PWM1EN = 0x00000002;
-    constexpr const uint32_t PWM_ENABLE_PWM0EN = 0x00000001;
-
     constexpr const uint32_t PWM_INTEN_INTFAULT3 = 0x00080000;
     constexpr const uint32_t PWM_INTEN_INTFAULT2 = 0x00040000;
     constexpr const uint32_t PWM_INTEN_INTFAULT1 = 0x00020000;
@@ -115,16 +101,6 @@ namespace
     constexpr const uint32_t PWM_CHANNEL_CTL_LATCH    = 0x00040000;
     constexpr const uint32_t PWM_CHANNEL_CTL_MINFLTPER = 0x00020000;
     constexpr const uint32_t PWM_CHANNEL_CTL_FLTSRC   = 0x00010000;
-    constexpr const uint32_t PWM_CHANNEL_CTL_DBFALLUPD_GS = 0x0000C000;
-    constexpr const uint32_t PWM_CHANNEL_CTL_DBRISEUPD_GS = 0x00003000;
-    constexpr const uint32_t PWM_CHANNEL_CTL_DBCTLUPD_GS  = 0x00000C00;
-    constexpr const uint32_t PWM_CHANNEL_CTL_GENBUPD_GS   = 0x00000300;
-    constexpr const uint32_t PWM_CHANNEL_CTL_GENAUPD_GS   = 0x000000C0;
-    constexpr const uint32_t PWM_CHANNEL_CTL_CMPBUPD  = 0x00000020;
-    constexpr const uint32_t PWM_CHANNEL_CTL_CMPAUPD  = 0x00000010;
-    constexpr const uint32_t PWM_CHANNEL_CTL_LOADUPD  = 0x00000008;
-    constexpr const uint32_t PWM_CHANNEL_CTL_DEBUG    = 0x00000004;
-    constexpr const uint32_t PWM_CHANNEL_CTL_MODE     = 0x00000002;
     constexpr const uint32_t PWM_CHANNEL_CTL_ENABLE   = 0x00000001;
 
     constexpr const uint32_t PWM_CHANNEL_INTEN_TRCMPBD  = 0x00002000;
@@ -146,28 +122,12 @@ namespace
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTCMPAU_ONE  = 0x00000030;
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTCMPAD_ZERO = 0x00000080;
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTLOAD_ONE   = 0x0000000C;
-    constexpr const uint32_t PWM_CHANNEL_GENA_ACTCMPAD_ZERO2 = 0x00000080;
 
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTCMPBU_ONE  = 0x00000300;
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTCMPBD_ZERO = 0x00000800;
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTLOAD_ONE   = 0x0000000C;
-    constexpr const uint32_t PWM_CHANNEL_GENB_ACTCMPBD_ZERO2 = 0x00000800;
 
     constexpr const uint32_t PWM_CHANNEL_DBCTL_ENABLE = 0x00000001;
-
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC0_FAULT3 = 0x00000008;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC0_FAULT2 = 0x00000004;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC0_FAULT1 = 0x00000002;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC0_FAULT0 = 0x00000001;
-
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP7 = 0x00000080;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP6 = 0x00000040;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP5 = 0x00000020;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP4 = 0x00000010;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP3 = 0x00000008;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP2 = 0x00000004;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP1 = 0x00000002;
-    constexpr const uint32_t PWM_CHANNEL_FLTSRC1_DCMP0 = 0x00000001;
 
     constexpr const uint32_t SYSCTL_RCC_USEPWMDIV = 0x00100000;
     constexpr const uint32_t SYSCTL_RCC_PWMDIV_M  = 0x000E0000;
@@ -255,11 +215,11 @@ namespace
     uint32_t GetClockDivisor(PWM0_Type* const pwmBase)
     {
 #if defined(TM4C123)
-        volatile auto result = (SYSCTL->RCC & SYSCTL_RCC_PWMDIV_M) >> 17;
+        auto result = (SYSCTL->RCC & SYSCTL_RCC_PWMDIV_M) >> 17;
         if (!(SYSCTL->RCC & SYSCTL_RCC_USEPWMDIV))
             return 1;
         else
-            return 1U << ((result >> 1) + 1);
+            return 1U << (result + 1);
 #else
         auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
         if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
@@ -274,7 +234,7 @@ namespace
         return static_cast<float>(SystemCoreClock);
     }
 
-    uint32_t ToPeriod(PWM0_Type* const pwmBase, hal::Hertz& baseFrequency)
+    uint32_t ToPeriod(PWM0_Type* const pwmBase, const hal::Hertz& baseFrequency)
     {
         auto pwmClock = SystemCoreClock / GetClockDivisor(pwmBase);
         return pwmClock / baseFrequency.Value();
@@ -304,18 +264,18 @@ namespace hal::tiva
         return value & 0x7fffe;
     }
 
-    Pwm::GeneratorInterruptSlot::GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, GeneratorIndex gen)
+    Pwm::GeneratorInterruptSlot::GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority, GeneratorIndex gen)
         : owner(owner)
         , gen(gen)
-        , handler(irq, [this]()
+        , handler(irq, priority, [this]()
               {
                   this->owner.HandleGeneratorIrq(this->gen);
               })
     {}
 
-    Pwm::FaultInterruptSlot::FaultInterruptSlot(Pwm& owner, IRQn_Type irq)
+    Pwm::FaultInterruptSlot::FaultInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority)
         : owner(owner)
-        , handler(irq, [this]()
+        , handler(irq, priority, [this]()
               {
                   this->owner.HandleFaultIrq();
               })
@@ -400,7 +360,7 @@ namespace hal::tiva
             channel->INTEN |= normalInterruptBit[static_cast<uint8_t>(normalSource.source)];
 
             if (!generatorHandlers[genIdx].has_value())
-                generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], normalSource.generator);
+                generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], interruptConfig.normalPriority, normalSource.generator);
         }
     }
 
@@ -432,7 +392,7 @@ namespace hal::tiva
         }
 
         if (hasFault)
-            faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq);
+            faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq, interruptConfig.faultPriority);
         
     }
 
@@ -440,7 +400,7 @@ namespace hal::tiva
     {
         auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
-        really_assert(load <= 0xffff);
+        really_assert(load > 0 && load <= 0xffff);
 
         for (auto& gen : generators)
             if (gen.a || gen.b)
@@ -563,7 +523,8 @@ namespace hal::tiva
 
         auto load = generator.address->LOAD;
 
-        really_assert(width < load);
+        if (width > load)
+            width = load;
 
         if (generator.a)
             generator.address->CMPA = load - width;
