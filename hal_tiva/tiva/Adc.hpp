@@ -79,9 +79,11 @@ namespace hal::tiva
 
         struct DigitalComparatorConfig
         {
-            uint8_t comparatorIndex;
-            uint16_t lowThreshold;
-            uint16_t highThreshold;
+            static constexpr uint8_t noComparator = 0xFF;
+
+            uint8_t comparatorIndex = noComparator;
+            uint16_t lowThreshold = 0;
+            uint16_t highThreshold = 0;
             ComparatorCondition triggerCondition = ComparatorCondition::highBand;
             ComparatorMode triggerMode = ComparatorMode::always;
         };

@@ -80,16 +80,16 @@ namespace
     constexpr static uint32_t ADC_CTL_SHOLD_128 = 0x00A00000;
     constexpr static uint32_t ADC_CTL_SHOLD_256 = 0x00C00000;
 
-    constexpr static uint32_t ADC_DCCTL_CTM_ALWAYS            = 0x00000000;
-    constexpr static uint32_t ADC_DCCTL_CTM_ONCE              = 0x00000100;
+    constexpr static uint32_t ADC_DCCTL_CTM_ALWAYS = 0x00000000;
+    constexpr static uint32_t ADC_DCCTL_CTM_ONCE = 0x00000100;
     constexpr static uint32_t ADC_DCCTL_CTM_HYSTERESIS_ALWAYS = 0x00000200;
-    constexpr static uint32_t ADC_DCCTL_CTM_HYSTERESIS_ONCE   = 0x00000300;
+    constexpr static uint32_t ADC_DCCTL_CTM_HYSTERESIS_ONCE = 0x00000300;
 
-    constexpr static uint32_t ADC_DCCTL_CTC_LOW               = 0x00000000;
-    constexpr static uint32_t ADC_DCCTL_CTC_MID               = 0x00000400;
-    constexpr static uint32_t ADC_DCCTL_CTC_HIGH              = 0x00000800;
+    constexpr static uint32_t ADC_DCCTL_CTC_LOW = 0x00000000;
+    constexpr static uint32_t ADC_DCCTL_CTC_MID = 0x00000400;
+    constexpr static uint32_t ADC_DCCTL_CTC_HIGH = 0x00000800;
 
-    constexpr static uint32_t ADC_DCCTL_CTE                   = 0x00001000;
+    constexpr static uint32_t ADC_DCCTL_CTE = 0x00001000;
 
     constexpr std::array<uint32_t, 2> peripheralAdcArray = { {
         ADC0_BASE,
@@ -247,32 +247,77 @@ namespace
         adc.SPC = (adc.SPC & ~0x0F) | (delay & 0x0F);
     }
 
-    void ConfigureDigitalComparators(
-        ADC0_Type& adc,
-        uint8_t sequencer,
-        infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators)
+    void ValidateDigitalComparators(infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators, std::size_t numberOfInputs)
     {
-        volatile uint32_t* ssdc = &adc.SSDC0 + (sequencer * sequencerOffset);
+        really_assert(digitalComparators.size() == numberOfInputs);
 
-        for (std::size_t step = 0; step < digitalComparators.size(); ++step)
+        uint32_t usedComparatorMask = 0;
+        for (const auto& dc : digitalComparators)
         {
-            const auto& dc = digitalComparators[step];
+            if (dc.comparatorIndex == hal::tiva::Adc::DigitalComparatorConfig::noComparator)
+                continue;
+
             really_assert(dc.comparatorIndex < 8);
             really_assert(dc.highThreshold <= 0x0FFFu);
             really_assert(dc.lowThreshold <= dc.highThreshold);
 
-            *(&adc.DCCMP0 + dc.comparatorIndex) =
-                (static_cast<uint32_t>(dc.highThreshold) << 16)
-                | static_cast<uint32_t>(dc.lowThreshold);
+            const uint32_t bit = 1u << dc.comparatorIndex;
+            really_assert((usedComparatorMask & bit) == 0);
+            usedComparatorMask |= bit;
+        }
+    }
 
-            *(&adc.DCCTL0 + dc.comparatorIndex) =
-                comparatorTriggerModeFields.at(infra::enum_cast(dc.triggerMode))
-                | comparatorTriggerConditionFields.at(infra::enum_cast(dc.triggerCondition))
-                | ADC_DCCTL_CTE;
+    std::size_t CountFifoSteps(infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators)
+    {
+        std::size_t count = 0;
+        for (const auto& dc : digitalComparators)
+            if (dc.comparatorIndex == hal::tiva::Adc::DigitalComparatorConfig::noComparator)
+                ++count;
+        return count;
+    }
 
-            const auto stepShift = step * 4;
-            *ssdc = (*ssdc & ~(0xFu << stepShift))
-                  | ((static_cast<uint32_t>(dc.comparatorIndex) & 0xFu) << stepShift);
+    void ConfigureComparatorUnit(ADC0_Type& adc, const hal::tiva::Adc::DigitalComparatorConfig& dc)
+    {
+        *(&adc.DCCMP0 + dc.comparatorIndex) =
+            (static_cast<uint32_t>(dc.highThreshold) << 16)
+            | static_cast<uint32_t>(dc.lowThreshold);
+
+        *(&adc.DCCTL0 + dc.comparatorIndex) =
+            comparatorTriggerModeFields.at(infra::enum_cast(dc.triggerMode))
+            | comparatorTriggerConditionFields.at(infra::enum_cast(dc.triggerCondition))
+            | ADC_DCCTL_CTE;
+    }
+
+    void ConfigureSequencerStepDc(volatile uint32_t* ssdc, volatile uint32_t* ssop, std::size_t step, uint8_t comparatorIndex)
+    {
+        const auto nibbleShift = step * 4;
+        const auto bitShift = step;
+
+        if (comparatorIndex == hal::tiva::Adc::DigitalComparatorConfig::noComparator)
+        {
+            *ssdc &= ~(0xFu << nibbleShift);
+            *ssop &= ~(1u << bitShift);
+        }
+        else
+        {
+            *ssdc = (*ssdc & ~(0xFu << nibbleShift)) | (static_cast<uint32_t>(comparatorIndex) << nibbleShift);
+            *ssop |= (1u << bitShift);
+        }
+    }
+
+    void ConfigureDigitalComparators(ADC0_Type& adc, uint8_t sequencer, infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators)
+    {
+        volatile uint32_t* ssdc = &adc.SSDC0 + (sequencer * sequencerOffset);
+        volatile uint32_t* ssop = &adc.SSOP0 + (sequencer * sequencerOffset);
+
+        for (std::size_t step = 0; step < digitalComparators.size(); ++step)
+        {
+            const auto& dc = digitalComparators[step];
+
+            if (dc.comparatorIndex != hal::tiva::Adc::DigitalComparatorConfig::noComparator)
+                ConfigureComparatorUnit(adc, dc);
+
+            ConfigureSequencerStepDc(ssdc, ssop, step, dc.comparatorIndex);
         }
     }
 }
@@ -318,7 +363,8 @@ namespace hal::tiva
 
         if (!config.digitalComparators.empty())
         {
-            really_assert(config.digitalComparators.size() <= inputs.size());
+            ValidateDigitalComparators(config.digitalComparators, inputs.size());
+            numberOfChannels = CountFifoSteps(config.digitalComparators);
             ConfigureDigitalComparators(*peripheralAdc[adcIndex], adcSequencer, config.digitalComparators);
         }
     }
