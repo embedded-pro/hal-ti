@@ -71,6 +71,8 @@ void Pwm1Generator1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm1Generator2_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm1Generator3_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm1Fault_Handler()      __attribute__((weak, alias("Default_Handler")));
+void Comp0_Handler()          __attribute__((weak, alias("Default_Handler")));
+void Comp1_Handler()          __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -148,8 +150,8 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< TIMER1B_Handler,           Timer 1 subtimer B */
     Default_Handler,       /*!< TIMER2A_Handler,           Timer 2 subtimer A */
     Default_Handler,       /*!< TIMER2B_Handler,           Timer 2 subtimer B */
-    Default_Handler,       /*!< COMP0_Handler,             Analog Comparator 0 */
-    Default_Handler,       /*!< COMP1_Handler,             Analog Comparator 1 */
+    Comp0_Handler,         /*!< COMP0_Handler,             Analog Comparator 0 */
+    Comp1_Handler,         /*!< COMP1_Handler,             Analog Comparator 1 */
     0,                     /*!< Reserved */
     Default_Handler,       /*!< SYSCTL_Handler,            System Control (PLL, OSC, BO) */
     Eeprom_Handler,        /*!< Eeprom_Handler,            FLASH/EEPROM Control */

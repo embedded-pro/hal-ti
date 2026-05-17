@@ -17,6 +17,8 @@ target_link_libraries(hal_tiva.tiva PUBLIC
 target_sources(hal_tiva.tiva PRIVATE
     Adc.cpp
     Adc.hpp
+    AnalogComparator.cpp
+    AnalogComparator.hpp
     Can.cpp
     Can.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>

@@ -45,6 +45,7 @@ namespace hal::tiva
         ethernetLed0,
         ethernetLed1,
         ethernetLed2,
+        comparatorOutput,
     };
 
     enum class Type : uint8_t

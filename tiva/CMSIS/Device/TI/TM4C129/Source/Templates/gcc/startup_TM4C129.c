@@ -66,6 +66,9 @@ void Pwm0Generator1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm0Generator2_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm0Generator3_Handler() __attribute__((weak, alias("Default_Handler")));
 void Pwm0Fault_Handler()      __attribute__((weak, alias("Default_Handler")));
+void Comp0_Handler()          __attribute__((weak, alias("Default_Handler")));
+void Comp1_Handler()          __attribute__((weak, alias("Default_Handler")));
+void Comp2_Handler()          __attribute__((weak, alias("Default_Handler")));
 
 //*****************************************************************************
 //
@@ -143,9 +146,9 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Default_Handler,       /*!< Timer 1 subtimer B */
     Default_Handler,       /*!< Timer 2 subtimer A */
     Default_Handler,       /*!< Timer 2 subtimer B */
-    Default_Handler,       /*!< Analog Comparator 0 */
-    Default_Handler,       /*!< Analog Comparator 1 */
-    Default_Handler,       /*!< Analog Comparator 2 */
+    Comp0_Handler,         /*!< Analog Comparator 0 */
+    Comp1_Handler,         /*!< Analog Comparator 1 */
+    Comp2_Handler,         /*!< Analog Comparator 2 */
     Default_Handler,       /*!< System Control (PLL, OSC, BO) */
     Eeprom_Handler,        /*!< FLASH/EEPROM Control */
     Default_Handler,       /*!< GPIO Port F */

@@ -14,6 +14,8 @@ target_link_libraries(hal_tiva.synchronous_tiva PUBLIC
 target_sources(hal_tiva.synchronous_tiva PRIVATE
     SynchronousAdc.cpp
     SynchronousAdc.hpp
+    SynchronousAnalogComparator.cpp
+    SynchronousAnalogComparator.hpp
     SynchronousPwm.cpp
     SynchronousPwm.hpp
     SynchronousQuadratureEncoder.cpp
