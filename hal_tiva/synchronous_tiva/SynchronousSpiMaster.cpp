@@ -1,6 +1,8 @@
 #include "hal_tiva/synchronous_tiva/SynchronousSpiMaster.hpp"
 #include "infra/util/BitLogic.hpp"
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace hal::tiva
 {
     namespace
@@ -118,8 +120,6 @@ namespace hal::tiva
         } };
 
         const infra::MemoryRange<SSI0_Type* const> peripheralSsi = infra::ReinterpretCastMemoryRange<SSI0_Type* const>(infra::MakeRange(peripheralSsiArray));
-
-        extern "C" uint32_t SystemCoreClock;
     }
 
     SynchronousSpiMaster::SynchronousSpiMaster(uint8_t aSpiIndex, GpioPin& clock, GpioPin& miso, GpioPin& mosi, const Config& config)
