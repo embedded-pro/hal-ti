@@ -3,9 +3,10 @@
 #include "infra/util/BitLogic.hpp"
 #include "infra/util/EnumCast.hpp"
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace
 {
-    extern "C" uint32_t SystemCoreClock;
 
     constexpr const uint32_t PWM_CTL_GLOBALSYNC3 = 0x00000008; // Update PWM Generator 3
     constexpr const uint32_t PWM_CTL_GLOBALSYNC2 = 0x00000004; // Update PWM Generator 2
