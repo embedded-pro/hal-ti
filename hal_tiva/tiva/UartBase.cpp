@@ -3,6 +3,8 @@
 #include "infra/util/BitLogic.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace
 {
     extern "C" void Uart0_Handler()
@@ -137,8 +139,6 @@ namespace hal::tiva
 
         const infra::MemoryRange<UART0_Type* const> peripheralUart =
             infra::ReinterpretCastMemoryRange<UART0_Type* const>(infra::MakeRange(peripheralUartArray));
-
-        extern "C" uint32_t SystemCoreClock;
     }
 
     UartBase::UartBase(uint8_t aUartIndex, GpioPin& uartTxPin, GpioPin& uartRxPin, const Config& config)

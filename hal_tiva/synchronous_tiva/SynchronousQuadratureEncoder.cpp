@@ -6,6 +6,8 @@
 #define NUMBER_OF_QEI 2
 #endif
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace hal::tiva
 {
     namespace
@@ -84,7 +86,6 @@ namespace hal::tiva
 
         const infra::MemoryRange<QEI0_Type* const> peripheralQei = infra::ReinterpretCastMemoryRange<QEI0_Type* const>(infra::MakeRange(peripheralQeiArray));
 
-        extern "C" uint32_t SystemCoreClock;
 
         void SetRegister(bool condition, volatile uint32_t& reg, uint32_t mask)
         {

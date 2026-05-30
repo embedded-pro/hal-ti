@@ -3,6 +3,8 @@
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace
 {
     extern "C" void Pwm0Generator0_Handler()
@@ -57,7 +59,6 @@ namespace
     }
 #endif
 
-    extern "C" uint32_t SystemCoreClock;
 
 #if defined(TM4C129)
     constexpr std::size_t numberOfPwms = 1;
