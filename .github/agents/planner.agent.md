@@ -1,7 +1,7 @@
 ---
 description: "Use when a detailed implementation plan is needed before writing code in hal-ti. Produces structured, actionable plans following all hal-ti constraints: no heap allocation, ISR safety, TI Tiva C peripheral register sequences, ARM Cortex-M interrupt handling, vector table hygiene, and documentation alignment."
 tools: [read, search, web]
-model: "Claude Opus 4.6"
+model: "claude-opus-4-8"
 handoffs:
   - label: "Start Implementation"
     agent: executor

@@ -61,7 +61,7 @@ MyDriver::MyDriver(std::size_t index, /* pins, callbacks */)
     , txPin(/* PeripheralPin args */)
     , rxPin(/* PeripheralPin args */)
 {
-    EnableClock();                        // SYSCTL->RCGCxxx |= bit + 3 NOPs
+    EnableClock();                        // SYSCTL->RCGCxxx |= bit, poll SYSCTL->PRxxx until ready
     ConfigureRegisters();                 // mode, baud rate, FIFO, control bits
     NVIC_ClearPendingIRQ(irqNumber);
     NVIC_EnableIRQ(irqNumber);
@@ -79,10 +79,13 @@ MyDriver::~MyDriver()
 }
 ```
 
-**3 NOP delay** after every `SYSCTL->RCGCxxx |=`:
+**Peripheral-ready poll** after every `SYSCTL->RCGCxxx |=` — do NOT use `__asm("nop")`:
 ```cpp
 SYSCTL->RCGCxxx |= (1 << peripheralIndex);
-__asm("nop"); __asm("nop"); __asm("nop");
+while ((SYSCTL->PRxxx & (1 << peripheralIndex)) == 0)
+{
+    // Wait until peripheral is ready
+}
 ```
 
 ### Vector Table — BOTH STARTUP FILES
