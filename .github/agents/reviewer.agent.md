@@ -1,7 +1,7 @@
 ---
 description: "Use when reviewing code changes in hal-ti. Performs structured code review against all project standards: memory safety (no heap), ISR safety, TI Tiva C register sequences, ARM Cortex-M vector table hygiene (both startup files), peripheral lifecycle order, embedded-infra-lib pattern compliance, SOLID principles, and documentation alignment."
 tools: [read, search]
-model: "GPT-5.4"
+model: "claude-sonnet-4-6"
 handoffs:
   - label: "Fix Issues"
     agent: executor
