@@ -5,5 +5,4 @@ out/
 megalinter-reports/
 
 .claude/settings.local.json
-.claude/skills/
-.agents/
+CLAUDE.local.md
