@@ -9,17 +9,17 @@ Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4C123 and TM4
 
 ## Repository Structure
 
-| Path | Contents |
-|------|----------|
-| `hal_tiva/cortex/` | ARM Cortex-M core (InterruptTable, SystemTick, EventDispatcher, Reset, DWT) |
-| `hal_tiva/tiva/` | TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock) |
-| `hal_tiva/synchronous_tiva/` | Blocking/polling driver variants |
-| `hal_tiva/instantiations/` | Board Support Packages (LaunchPadBsp, EventInfrastructure) |
-| `hal_tiva/default_init/` | Startup code, atomics shim, hardware init hooks |
-| `tiva/CMSIS/Device/TI/` | CMSIS device headers, startup vector tables, linker scripts |
-| `integration_test/` | Host-side integration tests (GoogleTest) |
-| `examples/` | Reference applications (blink, terminal, FreeRTOS) |
-| `doc/` | Board-specific documentation |
+| Path                         | Contents                                                                    |
+|------------------------------|-----------------------------------------------------------------------------|
+| `hal_tiva/cortex/`           | ARM Cortex-M core (InterruptTable, SystemTick, EventDispatcher, Reset, DWT) |
+| `hal_tiva/tiva/`             | TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)       |
+| `hal_tiva/synchronous_tiva/` | Blocking/polling driver variants                                            |
+| `hal_tiva/instantiations/`   | Board Support Packages (LaunchPadBsp, EventInfrastructure)                  |
+| `hal_tiva/default_init/`     | Startup code, atomics shim, hardware init hooks                             |
+| `tiva/CMSIS/Device/TI/`      | CMSIS device headers, startup vector tables, linker scripts                 |
+| `integration_test/`          | Host-side integration tests (GoogleTest)                                    |
+| `examples/`                  | Reference applications (blink, terminal, FreeRTOS)                          |
+| `doc/`                       | Board-specific documentation                                                |
 
 ## Critical Constraints
 
