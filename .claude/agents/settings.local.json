@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -path \"./.git\" -prune -o -name \"*.md\" -print | xargs grep -l -i \"caveman\" 2>/dev/null; find ~/.claude -name \"*.md\" -o -name \"*.json\" 2>/dev/null | xargs grep -l -i \"caveman\" 2>/dev/null)",
+      "Read(//root/.claude/**)",
+      "Bash(ls ~/.claude/ 2>/dev/null && ls .claude/ 2>/dev/null)",
+      "Bash(caveman --help)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/JuliusBrussee/caveman/63a91ecadbf4c4719a4602a5abb00883f9966034/install.sh\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/readme\")",
+      "Bash(python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents\")",
+      "Bash(python3 -c \"import sys,json; [print\\(f['name'], f['type']\\) for f in json.load\\(sys.stdin\\)]\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/commands\")",
+      "Bash(python3 -c \"import sys,json; [print\\(f['name']\\) for f in json.load\\(sys.stdin\\)]\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/commands/caveman.toml\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/bin\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/bin/install.js\")",
+      "Bash(claude --version)",
+      "Bash(curl -s https://api.github.com/repos/JuliusBrussee/caveman/contents/commands/__TRACKED_VAR__.toml)",
+      "Bash(mkdir -p .claude/commands)",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/.claude-plugin\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/bin/lib/settings.js\")",
+      "Bash(curl -s https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/__TRACKED_VAR__)",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-activate.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-mode-tracker.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-config.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-stats.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-statusline.sh\")",
+      "Bash(mkdir -p /workspaces/hal-st/.claude/hooks)",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-config.js\" 2>/dev/null | python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\" > /workspaces/hal-st/.claude/hooks/caveman-config.js && echo \"ok\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-activate.js\" 2>/dev/null | python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\" > /workspaces/hal-st/.claude/hooks/caveman-activate.js && echo \"ok\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-mode-tracker.js\" 2>/dev/null | python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\" > /workspaces/hal-st/.claude/hooks/caveman-mode-tracker.js && echo \"ok\")",
+      "Bash(curl -s \"https://api.github.com/repos/JuliusBrussee/caveman/contents/src/hooks/caveman-stats.js\" 2>/dev/null | python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\" > /workspaces/hal-st/.claude/hooks/caveman-stats.js && echo \"ok\")",
+      "Bash(chmod +x /workspaces/hal-st/.claude/hooks/caveman-statusline.sh)",
+      "Bash(rm /workspaces/hal-st/.devcontainer/apt-requirements.json && echo \"deleted\")",
+      "Bash(git -C /workspaces/hal-st status --short)",
+      "Bash(node .claude/hooks/caveman-activate.js)",
+      "Bash(node .claude/hooks/caveman-mode-tracker.js)",
+      "Bash(bash .claude/hooks/caveman-statusline.sh)",
+      "Bash(node -e \"require\\('./.claude/hooks/caveman-config'\\); console.log\\('caveman-config: ok'\\)\")",
+      "Bash(node -e \"require\\('./.claude/hooks/caveman-stats'\\); console.log\\('caveman-stats: ok'\\)\")"
+    ],
+    "additionalDirectories": [
+      "/workspaces/hal-st/.claude",
+      "/workspaces/hal-st/.claude/hooks",
+      "/workspaces/hal-st/.devcontainer"
+    ]
+  }
+}
