@@ -13,3 +13,4 @@ ignore:
   - hal_ti/tiva/Clock*
   - megalinter-reports
   - tiva
+  - .megalinter_github_conf
