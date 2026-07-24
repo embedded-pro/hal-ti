@@ -325,7 +325,7 @@ namespace
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], [this]()
+        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], config.interruptPriority, [this]()
               {
                   auto& adc = *peripheralAdc[this->adcIndex];
                   if (IsInterruptTriggered(adc, this->adcSequencer))

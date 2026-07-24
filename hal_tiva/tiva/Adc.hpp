@@ -97,6 +97,7 @@ namespace hal::tiva
             std::optional<Oversampling> oversampling;
             std::optional<SamplingDelay> samplingDelay;
             infra::MemoryRange<const DigitalComparatorConfig> digitalComparators;
+            hal::InterruptPriority interruptPriority = hal::InterruptPriority::Normal;
         };
 
         Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config);

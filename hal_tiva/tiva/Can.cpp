@@ -499,7 +499,7 @@ namespace
 namespace hal::tiva
 {
     Can::Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError)
-        : ImmediateInterruptHandler(peripheralIrqCan[canIndex], [this]()
+        : ImmediateInterruptHandler(peripheralIrqCan[canIndex], config.interruptPriority, [this]()
               {
                   HandleInterrupt();
               })
