@@ -69,6 +69,7 @@ namespace hal::tiva
             bool autoBusOffRecovery = true;
             std::variant<BitRate, BitTiming> timing = BitRate{ 1000000 };
             std::optional<Filter> filter;
+            hal::InterruptPriority interruptPriority = hal::InterruptPriority::Normal;
         };
 
         Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError);
