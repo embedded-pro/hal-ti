@@ -77,7 +77,7 @@ namespace hal::tiva
 #endif
         } };
 
-        constexpr std::array<IRQn_Type, NUMBER_OF_QEI> peripheralIrqQeiArray = { {
+        constexpr std::array<int32_t, NUMBER_OF_QEI> peripheralIrqQeiArray = { {
             QEI0_IRQn,
 #if defined(TM4C123)
             QEI1_IRQn,

@@ -3,7 +3,7 @@
 
 #include DEVICE_HEADER
 #include "hal/interfaces/Gpio.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include <cstdint>
 
@@ -244,12 +244,12 @@ namespace hal::tiva
         std::array<infra::Function<void()>, 8 * 6> handlers;
         std::array<uint32_t, 15> assignedPins;
 
-        DispatchedInterruptHandler interruptDispatcherA;
-        DispatchedInterruptHandler interruptDispatcherB;
-        DispatchedInterruptHandler interruptDispatcherC;
-        DispatchedInterruptHandler interruptDispatcherD;
-        DispatchedInterruptHandler interruptDispatcherE;
-        DispatchedInterruptHandler interruptDispatcherF;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherA;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherB;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherC;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherD;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherE;
+        hal::cortex::DispatchedInterruptHandler interruptDispatcherF;
     };
 }
 

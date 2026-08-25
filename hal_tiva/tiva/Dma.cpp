@@ -5,7 +5,7 @@ namespace
 {
     extern "C" void UdmaError_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UDMAERR_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UDMAERR_IRQn);
     }
 }
 

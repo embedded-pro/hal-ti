@@ -9,6 +9,6 @@ target_link_libraries(hal_tiva.freertos PRIVATE
 )
 
 hal_ti_target_default_linker_scripts(hal_tiva.freertos)
-hal_ti_target_default_init(hal_tiva.freertos)
+hal_ti_target_bringup(hal_tiva.freertos)
 
 emil_generate_artifacts(TARGET hal_tiva.freertos LST MAP BIN HEX)

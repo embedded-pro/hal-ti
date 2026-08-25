@@ -7,42 +7,42 @@ namespace
 {
     extern "C" void Adc0Sequence0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC0SS0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC0SS0_IRQn);
     }
 
     extern "C" void Adc0Sequence1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC0SS1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC0SS1_IRQn);
     }
 
     extern "C" void Adc0Sequence2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC0SS2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC0SS2_IRQn);
     }
 
     extern "C" void Adc0Sequence3_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC0SS3_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC0SS3_IRQn);
     }
 
     extern "C" void Adc1Sequence0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC1SS0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC1SS0_IRQn);
     }
 
     extern "C" void Adc1Sequence1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC1SS1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC1SS1_IRQn);
     }
 
     extern "C" void Adc1Sequence2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC1SS2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC1SS2_IRQn);
     }
 
     extern "C" void Adc1Sequence3_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(ADC1SS3_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(ADC1SS3_IRQn);
     }
 
     constexpr static size_t sequencerOffset = 8;
@@ -96,7 +96,7 @@ namespace
         ADC1_BASE,
     } };
 
-    constexpr std::array<IRQn_Type, 8> peripheralIrqAdcArray = { {
+    constexpr std::array<int32_t, 8> peripheralIrqAdcArray = { {
         ADC0SS0_IRQn,
         ADC0SS1_IRQn,
         ADC0SS2_IRQn,

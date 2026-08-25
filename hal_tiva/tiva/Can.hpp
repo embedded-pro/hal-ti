@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/interfaces/Can.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
 #include <atomic>
@@ -22,7 +22,7 @@ namespace hal::tiva
 
     class Can
         : public hal::Can
-        , private hal::ImmediateInterruptHandler
+        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         template<std::size_t StorageSize>
@@ -69,7 +69,7 @@ namespace hal::tiva
             bool autoBusOffRecovery = true;
             std::variant<BitRate, BitTiming> timing = BitRate{ 1000000 };
             std::optional<Filter> filter;
-            hal::InterruptPriority interruptPriority = hal::InterruptPriority::Normal;
+            hal::cortex::InterruptPriority interruptPriority = hal::cortex::InterruptPriority::normal;
         };
 
         Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError);

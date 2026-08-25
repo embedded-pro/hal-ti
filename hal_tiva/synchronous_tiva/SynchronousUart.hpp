@@ -3,7 +3,7 @@
 
 #include "hal/synchronous_interfaces/SynchronousSerialCommunication.hpp"
 #include "hal/synchronous_interfaces/TimeKeeper.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/WithStorage.hpp"
 #include <atomic>
@@ -13,7 +13,7 @@ namespace hal::tiva
 {
     class SynchronousUart
         : public SynchronousSerialCommunication
-        , private InterruptHandler
+        , private hal::cortex::InterruptHandler
     {
     public:
         struct HwFlowControl

@@ -178,4 +178,4 @@ Applies if any new `extern "C"` ISR handler was introduced:
 - [ ] New source files added to the correct `CMakeLists.txt` target (`hal_tiva.tiva`, `hal_tiva.synchronous_tiva`, etc.)
 - [ ] MCU-family conditional compilation uses CMake generator expressions
 - [ ] No circular dependencies between targets
-- [ ] `hal_tiva.default_init` linked as object files (not static library) — check if startup changes require this
+- [ ] `hal_tiva.bringup` linked as object files (not static library) — check if startup changes require this

@@ -3,7 +3,7 @@
 
 #include DEVICE_HEADER
 #include "hal/interfaces/SerialCommunication.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <optional>
 
@@ -11,7 +11,7 @@ namespace hal::tiva
 {
     class UartBase
         : public hal::SerialCommunication
-        , protected hal::InterruptHandler
+        , protected hal::cortex::InterruptHandler
     {
     public:
         enum class Baudrate : uint32_t
@@ -82,7 +82,7 @@ namespace hal::tiva
             Parity parity = Parity::none;
             StopBits stopbits = StopBits::one;
             NumberOfBytes numberOfBytes = NumberOfBytes::_8_bytes;
-            std::optional<InterruptPriority> priority;
+            std::optional<hal::cortex::InterruptPriority> priority;
         };
 
     protected:
@@ -131,7 +131,7 @@ namespace hal::tiva
         bool sending = false;
 
         infra::MemoryRange<UART0_Type* const> uartArray;
-        infra::MemoryRange<IRQn_Type const> irqArray;
+        infra::MemoryRange<int32_t const> irqArray;
     };
 }
 

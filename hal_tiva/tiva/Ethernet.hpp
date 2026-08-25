@@ -4,7 +4,7 @@
 #include DEVICE_HEADER
 #include "hal/interfaces/Ethernet.hpp"
 #include "hal/interfaces/MacAddress.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <optional>
 
@@ -138,7 +138,7 @@ namespace hal::tiva
         hal::MacAddress macAddress;
         uint8_t phyId = 0;
         volatile bool EEELinkActive = false;
-        DispatchedInterruptHandler interrupt;
+        hal::cortex::DispatchedInterruptHandler interrupt;
         std::optional<ReceiveDescriptors> receiveDescriptors;
         std::optional<SendDescriptors> sendDescriptors;
     };

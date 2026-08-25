@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/interfaces/Eeprom.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "infra/timer/Timer.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Function.hpp"
@@ -11,7 +11,7 @@ namespace hal::tiva
 {
     class Eeprom
         : public hal::Eeprom
-        , private hal::ImmediateInterruptHandler
+        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         Eeprom();

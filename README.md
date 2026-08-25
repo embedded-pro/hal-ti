@@ -44,7 +44,7 @@ target_link_libraries(myprogram PUBLIC
 )
 
 hal_ti_target_default_linker_scripts(myprogram)
-hal_ti_target_default_init(myprogram)
+hal_ti_target_bringup(myprogram)
 
 ```
 

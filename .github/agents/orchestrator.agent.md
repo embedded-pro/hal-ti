@@ -34,11 +34,11 @@ You triage incoming development requests and route them to the right specialist 
 ## Context to Gather Before Routing
 
 - Which layer is affected?
-  - `hal_tiva/cortex/` — ARM Cortex-M core (SystemTick, EventDispatcher, InterruptTable, Reset, DWT)
+  - `hal_tiva/{Reset,SystemTick,SystemTickTimerService,TimeKeeper}` — generic ARM Cortex-M core services (local until EMIL hosts family-agnostic versions); `InterruptTable`/`InterruptHandler`/`DataWatchpointAndTrace`/`EventDispatcher` come from EMIL's `hal::cortex::*`
   - `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
   - `hal_tiva/synchronous_tiva/` — Blocking driver variants (SynchronousAdc, SynchronousPwm, SynchronousQuadratureEncoder)
   - `hal_tiva/instantiations/` — Board Support Packages (LaunchPadBsp, EventInfrastructure)
-  - `hal_tiva/default_init/` — Startup, atomics shim, hardware init hooks
+  - `hal_tiva/bringup/` — Startup, atomics shim, hardware init hooks
   - `tiva/CMSIS/` — Device headers, startup vector tables, linker scripts
 - Which MCU family? TM4C123 / TM4C129 / both
 - Is this asynchronous (event-driven) or synchronous (blocking/polling)?
@@ -51,5 +51,5 @@ You triage incoming development requests and route them to the right specialist 
 - Project guidelines: [copilot-instructions.md](../../.github/copilot-instructions.md)
 - Board documentation: [`doc/`](../../doc/)
 - Existing peripheral drivers: [`hal_tiva/tiva/`](../../hal_tiva/tiva/)
-- Cortex-M core: [`hal_tiva/cortex/`](../../hal_tiva/cortex/)
+- Cortex-M core services: [`hal_tiva/`](../../hal_tiva/) (top level) and EMIL's `hal::cortex::*`
 - Startup files: [`tiva/CMSIS/`](../../tiva/CMSIS/)

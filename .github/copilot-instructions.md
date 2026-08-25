@@ -6,11 +6,12 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 
 ## Repository Structure
 
-- **hal_tiva/cortex/**: ARM Cortex-M core abstractions (InterruptTable, SystemTick, EventDispatcher, Reset, DWT)
+- **hal_tiva/{Reset,SystemTick,SystemTickTimerService,TimeKeeper}**: Generic ARM Cortex-M core services, kept local until EMIL hosts family-agnostic equivalents under `hal/cortex_m/`
 - **hal_tiva/tiva/**: TM4C-specific peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
 - **hal_tiva/synchronous_tiva/**: Blocking/polling driver variants (SynchronousAdc, SynchronousUart)
 - **hal_tiva/instantiations/**: Board Support Packages and infrastructure (LaunchPadBsp, EventInfrastructure)
-- **hal_tiva/default_init/**: Startup code, atomic operations shim, hardware initialization hooks
+- **hal_tiva/bringup/**: Startup glue (`HardwareInitialization()`, weak `Default_Handler_Forwarded()`) — generic runtime (atomics shim, syscall stubs, `abort`/`__assert_func`) comes from EMIL's `hal.cortex_m.runtime`
+- **InterruptTable/InterruptHandler/DataWatchpointAndTrace/EventDispatcher**: `hal::cortex::*` from EMIL (`embedded-infra-lib`), not this repo
 - **tiva/CMSIS/Device/TI/**: CMSIS device headers, register structs, startup vector tables, linker scripts
 - **integration_test/**: Host-side integration tests (GoogleTest)
 - **examples/**: Reference applications (blink, terminal, FreeRTOS)
@@ -151,7 +152,7 @@ The `+1` is required by `QueueForOneReaderOneIrqWriter` which uses one slot as a
 - `hal_tiva.cortex` — Cortex-M core
 - `hal_tiva.synchronous_tiva` — Blocking drivers
 - `hal_tiva.instantiations` — BSP
-- `hal_tiva.default_init` — Startup (linked as object files, not static library)
+- `hal_tiva.bringup` — Startup (linked as object files, not static library)
 - `ti.hal_driver` — CMSIS device headers and linker scripts
 
 ### MCU Family Conditionals
