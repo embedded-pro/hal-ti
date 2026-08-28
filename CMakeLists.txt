@@ -37,7 +37,7 @@ if (HAL_TI_STANDALONE)
     FetchContent_MakeAvailable(emil)
 endif()
 
-project(hal_ti LANGUAGES C CXX ASM VERSION 2.0.0) # x-release-please-version
+project(hal_ti LANGUAGES C CXX ASM VERSION 2.1.0) # x-release-please-version
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
