@@ -11,7 +11,7 @@ target_link_libraries(hal_tiva.tiva PUBLIC
     hal.interfaces
     infra.timer
     ti.hal_driver
-    hal_tiva.cortex
+    hal.cortex_m
 )
 
 target_sources(hal_tiva.tiva PRIVATE

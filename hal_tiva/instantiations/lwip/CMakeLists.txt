@@ -7,7 +7,7 @@ target_include_directories(hal_tiva.instantiations.lwip PUBLIC
 )
 
 target_link_libraries(hal_tiva.instantiations.lwip PUBLIC
-    hal_tiva.cortex
+    hal.cortex_m
     hal_tiva.tiva
     hal_tiva.synchronous_tiva
     infra.event

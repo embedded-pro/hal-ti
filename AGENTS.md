@@ -6,7 +6,7 @@ hal-ti is a Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4
 
 ## Architecture
 
-- `hal_tiva/{Reset,SystemTick,SystemTickTimerService,TimeKeeper}.{hpp,cpp}` — generic ARM Cortex-M core services, kept local only until EMIL hosts family-agnostic equivalents under `hal/cortex_m/` (tracked upstream; `hal::cortex::InterruptTable`/`InterruptHandler`/`DataWatchpointAndTrace`/`EventDispatcher` already come from EMIL directly, not from this repo)
+- `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher all come from EMIL's `hal/cortex_m/`, not from this repo — hal_tiva/ has no local copies
 - `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Pwm, Dma, Eeprom, Ethernet, AnalogComparator, Clock), namespace `hal::tiva`
 - `hal_tiva/synchronous_tiva/` — Blocking/polling driver variants (`SynchronousUart`, `SynchronousQuadratureEncoder`, …)
 - `hal_tiva/instantiations/` — Board support packages and event infrastructure (`LaunchPadBsp`, `EventInfrastructure`, `TracingReset`)
@@ -71,7 +71,9 @@ ctest --preset host
 
 ## Dependency: EMIL (embedded-infra-lib)
 
-Pulled via `FetchContent` in the top-level `CMakeLists.txt`, pinned to a specific commit (`GIT_TAG`), auto-bumped by `.github/workflows/update-emil-git-tag.yml`. `hal::cortex::*` (InterruptTable, InterruptHandler, DataWatchpointAndTrace, FaultTracer) and the generic runtime (`hal.cortex_m.runtime`: atomics shim, syscall stubs, `abort`/`__assert_func`) come from EMIL, not from this repo — don't reintroduce local copies of these.
+Pulled via `FetchContent` in the top-level `CMakeLists.txt`, pinned to a specific commit (`GIT_TAG`), auto-bumped by `.github/workflows/update-emil-git-tag.yml`. `hal::cortex::*` (InterruptTable, InterruptHandler, DataWatchpointAndTrace, FaultTracer, Reset, SystemTick, SystemTickTimerService) and the generic runtime (`hal.cortex_m.runtime`: atomics shim, syscall stubs, `abort`/`__assert_func`) come from EMIL, not from this repo — don't reintroduce local copies of these. Note EMIL has no `TimeKeeper` explicitly injecting a `SystemTickTimerService&`; `hal::TimeKeeperGeneric` (`hal/generic/`, built on the ambient `infra::Now()`) is the closest equivalent if a concrete `hal::TimeKeeper` is ever needed here.
+
+`hal_ti_target_bringup()` (in `hal_tiva/bringup/CMakeLists.txt`) must explicitly list `$<TARGET_OBJECTS:hal.cortex_m.runtime>` on any target it's applied to — `hal.cortex_m.runtime` is an EMIL `OBJECT` library, and its object files do **not** propagate through the intermediate `hal.cortex_m` `STATIC` library automatically; omitting it produces link errors for `_sbrk`/`_read`/`_write`/etc. only at the final executable-link step (the host preset can't catch this — `hal.cortex_m` doesn't build there, it needs ARM instructions the host assembler rejects).
 
 ## Assistant behavior — be terse
 

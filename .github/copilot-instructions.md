@@ -6,7 +6,7 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 
 ## Repository Structure
 
-- **hal_tiva/{Reset,SystemTick,SystemTickTimerService,TimeKeeper}**: Generic ARM Cortex-M core services, kept local until EMIL hosts family-agnostic equivalents under `hal/cortex_m/`
+- **hal::cortex::***: Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL's `hal/cortex_m/`, not this repo
 - **hal_tiva/tiva/**: TM4C-specific peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
 - **hal_tiva/synchronous_tiva/**: Blocking/polling driver variants (SynchronousAdc, SynchronousUart)
 - **hal_tiva/instantiations/**: Board Support Packages and infrastructure (LaunchPadBsp, EventInfrastructure)
@@ -149,7 +149,7 @@ The `+1` is required by `QueueForOneReaderOneIrqWriter` which uses one slot as a
 ### CMake Targets
 
 - `hal_tiva.tiva` — Peripheral drivers
-- `hal_tiva.cortex` — Cortex-M core
+- `hal.cortex_m` — Cortex-M core (from EMIL)
 - `hal_tiva.synchronous_tiva` — Blocking drivers
 - `hal_tiva.instantiations` — BSP
 - `hal_tiva.bringup` — Startup (linked as object files, not static library)

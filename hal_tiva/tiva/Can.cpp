@@ -539,7 +539,7 @@ namespace hal::tiva
         EnterInitMode(can);
         DisableInterrupts(can);
 
-        const auto irq = peripheralIrqCan[canIndex];
+        const auto irq = static_cast<IRQn_Type>(peripheralIrqCan[canIndex]);
         NVIC_DisableIRQ(irq);
         NVIC_ClearPendingIRQ(irq);
 

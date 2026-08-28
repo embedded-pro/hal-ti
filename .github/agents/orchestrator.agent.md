@@ -34,7 +34,7 @@ You triage incoming development requests and route them to the right specialist 
 ## Context to Gather Before Routing
 
 - Which layer is affected?
-  - `hal_tiva/{Reset,SystemTick,SystemTickTimerService,TimeKeeper}` — generic ARM Cortex-M core services (local until EMIL hosts family-agnostic versions); `InterruptTable`/`InterruptHandler`/`DataWatchpointAndTrace`/`EventDispatcher` come from EMIL's `hal::cortex::*`
+  - `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL, not this repo
   - `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
   - `hal_tiva/synchronous_tiva/` — Blocking driver variants (SynchronousAdc, SynchronousPwm, SynchronousQuadratureEncoder)
   - `hal_tiva/instantiations/` — Board Support Packages (LaunchPadBsp, EventInfrastructure)

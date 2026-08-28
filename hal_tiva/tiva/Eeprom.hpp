@@ -1,5 +1,6 @@
 #pragma once
 
+#include DEVICE_HEADER
 #include "hal/interfaces/Eeprom.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "infra/timer/Timer.hpp"

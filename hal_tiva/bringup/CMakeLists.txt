@@ -1,4 +1,4 @@
-add_library(hal_tiva.bringup STATIC)
+add_library(hal_tiva.bringup OBJECT)
 emil_build_for(hal_tiva.bringup TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STANDALONE)
 
 target_include_directories(hal_tiva.bringup PUBLIC
@@ -8,7 +8,6 @@ target_include_directories(hal_tiva.bringup PUBLIC
 
 target_link_libraries(hal_tiva.bringup PUBLIC
     hal.cortex_m
-    hal_tiva.cortex
     hal_tiva.tiva
     ti.hal_driver
 )
@@ -31,8 +30,8 @@ endif()
 function(hal_ti_target_bringup target)
     target_link_libraries(${target} PUBLIC
         $<TARGET_OBJECTS:hal_tiva.bringup>
+        $<TARGET_OBJECTS:hal.cortex_m.runtime>
         hal.cortex_m
-        hal_tiva.cortex
         hal_tiva.tiva
         ti.hal_driver
     )

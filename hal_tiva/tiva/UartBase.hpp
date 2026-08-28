@@ -64,7 +64,7 @@ namespace hal::tiva
                 , enableRx(enableRx)
             {}
 
-            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, std::optional<InterruptPriority> priority)
+            Config(bool enableTx, bool enableRx, Baudrate baudrate, FlowControl hwFlowControl, Parity parity, StopBits stopbits, NumberOfBytes numberOfBytes, std::optional<hal::cortex::InterruptPriority> priority)
                 : enableTx(enableTx)
                 , enableRx(enableRx)
                 , baudrate(baudrate)
