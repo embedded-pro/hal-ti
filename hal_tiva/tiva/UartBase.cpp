@@ -9,42 +9,42 @@ namespace
 {
     extern "C" void Uart0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART0_IRQn);
     }
 
     extern "C" void Uart1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART1_IRQn);
     }
 
     extern "C" void Uart2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART2_IRQn);
     }
 
     extern "C" void Uart3_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART3_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART3_IRQn);
     }
 
     extern "C" void Uart4_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART4_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART4_IRQn);
     }
 
     extern "C" void Uart5_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART5_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART5_IRQn);
     }
 
     extern "C" void Uart6_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART6_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART6_IRQn);
     }
 
     extern "C" void Uart7_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(UART7_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(UART7_IRQn);
     }
 }
 
@@ -126,7 +126,7 @@ namespace hal::tiva
             UART7_BASE,
         } };
 
-        constexpr std::array<IRQn_Type, 8> peripheralIrqUartArray{ {
+        constexpr std::array<int32_t, 8> peripheralIrqUartArray{ {
             UART0_IRQn,
             UART1_IRQn,
             UART2_IRQn,

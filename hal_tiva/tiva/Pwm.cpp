@@ -9,53 +9,53 @@ namespace
 {
     extern "C" void Pwm0Generator0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM0_0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM0_0_IRQn);
     }
 
     extern "C" void Pwm0Generator1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM0_1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM0_1_IRQn);
     }
 
     extern "C" void Pwm0Generator2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM0_2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM0_2_IRQn);
     }
 
     extern "C" void Pwm0Generator3_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM0_3_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM0_3_IRQn);
     }
 
     extern "C" void Pwm0Fault_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM0_FAULT_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM0_FAULT_IRQn);
     }
 
 #if defined(TM4C123)
     extern "C" void Pwm1Generator0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM1_0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM1_0_IRQn);
     }
 
     extern "C" void Pwm1Generator1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM1_1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM1_1_IRQn);
     }
 
     extern "C" void Pwm1Generator2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM1_2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM1_2_IRQn);
     }
 
     extern "C" void Pwm1Generator3_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM1_3_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM1_3_IRQn);
     }
 
     extern "C" void Pwm1Fault_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(PWM1_FAULT_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(PWM1_FAULT_IRQn);
     }
 #endif
 
@@ -78,8 +78,8 @@ namespace
 
     struct PwmIrqInfo
     {
-        std::array<IRQn_Type, 4> generatorIrqs;
-        IRQn_Type faultIrq;
+        std::array<int32_t, 4> generatorIrqs;
+        int32_t faultIrq;
     };
 
     constexpr std::array<PwmIrqInfo, numberOfPwms> peripheralPwmIrqs = { {
@@ -265,7 +265,7 @@ namespace hal::tiva
         return value & 0x7fffe;
     }
 
-    Pwm::GeneratorInterruptSlot::GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority, GeneratorIndex gen)
+    Pwm::GeneratorInterruptSlot::GeneratorInterruptSlot(Pwm& owner, int32_t irq, hal::cortex::InterruptPriority priority, GeneratorIndex gen)
         : owner(owner)
         , gen(gen)
         , handler(irq, priority, [this]()
@@ -274,7 +274,7 @@ namespace hal::tiva
               })
     {}
 
-    Pwm::FaultInterruptSlot::FaultInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority)
+    Pwm::FaultInterruptSlot::FaultInterruptSlot(Pwm& owner, int32_t irq, hal::cortex::InterruptPriority priority)
         : owner(owner)
         , handler(irq, priority, [this]()
               {

@@ -2,9 +2,11 @@
 
 namespace instantiations
 {
-    EventInfrastructure::EventInfrastructure(infra::Duration tickDuration)
-        : systemTick(tickDuration)
-    {}
+    EventInfrastructure::EventInfrastructure(infra::Duration tickDuration, uint32_t coreClockHz)
+        : systemTick(coreClockHz, tickDuration)
+    {
+        systemTick.Start();
+    }
 
     void EventInfrastructure::Run()
     {

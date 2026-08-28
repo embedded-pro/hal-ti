@@ -6,7 +6,7 @@ endif()
 
 option(CMAKE_COMPILE_WARNING_AS_ERROR "Enable warnings-as-error" ON)
 option(HAL_TI_BUILD_TESTS "Enable building the tests" Off)
-option(HAL_TI_INCLUDE_DEFAULT_INIT "Include default initialization code; turn off when providing custom initialization" ON)
+option(HAL_TI_INCLUDE_BRINGUP "Include default bringup code; turn off when providing custom initialization" ON)
 option(HAL_TI_BUILD_EXAMPLES "Enable build of the examples" OFF)
 option(HAL_TI_BUILD_EXAMPLES_FREERTOS "Enable build of the FreeRTOS example" OFF)
 
@@ -24,7 +24,7 @@ if (HAL_TI_STANDALONE)
     FetchContent_Declare(
         emil
         GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
-        GIT_TAG        9c3d4c32bba0123abdc0013b8b9d5aea26e1f103 # Unreleased
+        GIT_TAG        b2ac7ed7f6121f9aa1b1e15a68986af0cfca63de # Unreleased
     )
 
     add_definitions(-DEMIL_ENABLE_TRACING=1)

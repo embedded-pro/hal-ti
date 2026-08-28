@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/interfaces/AnalogComparator.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Function.hpp"
 #include <cstdint>
@@ -66,7 +66,7 @@ namespace hal::tiva
             std::optional<PwmFaultRouting> routeToPwmFault;
             InterruptSense interruptSense = InterruptSense::both;
             bool interruptLevelHigh = true;
-            InterruptPriority priority = InterruptPriority::Normal;
+            hal::cortex::InterruptPriority priority = hal::cortex::InterruptPriority::normal;
         };
 
         AnalogComparator(uint8_t index, GpioPin& vinPositive, GpioPin& vinNegative, GpioPin& outputPin, const Config& config);
@@ -92,7 +92,7 @@ namespace hal::tiva
         std::optional<AnalogPin> vinPositivePin;
         std::optional<AnalogPin> vinNegativePin;
         std::optional<PeripheralPin> outputPeripheralPin;
-        std::optional<hal::ImmediateInterruptHandler> irqHandler;
+        std::optional<hal::cortex::ImmediateInterruptHandler> irqHandler;
         infra::Function<void(bool)> onOutputChanged;
     };
 }

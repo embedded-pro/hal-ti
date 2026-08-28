@@ -4,7 +4,7 @@
 #include <cstdint>
 #include DEVICE_HEADER
 #include "hal/interfaces/AdcMultiChannel.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <optional>
 
@@ -12,7 +12,7 @@ namespace hal::tiva
 {
     class Adc
         : public hal::AdcMultiChannel
-        , private hal::ImmediateInterruptHandler
+        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         enum class Trigger : uint8_t
@@ -97,7 +97,7 @@ namespace hal::tiva
             std::optional<Oversampling> oversampling;
             std::optional<SamplingDelay> samplingDelay;
             infra::MemoryRange<const DigitalComparatorConfig> digitalComparators;
-            hal::InterruptPriority interruptPriority = hal::InterruptPriority::Normal;
+            hal::cortex::InterruptPriority interruptPriority = hal::cortex::InterruptPriority::normal;
         };
 
         Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config);

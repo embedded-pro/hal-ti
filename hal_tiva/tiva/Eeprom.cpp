@@ -1,10 +1,9 @@
 #include "hal_tiva/tiva/Eeprom.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 extern "C" void Eeprom_Handler()
 {
-    hal::InterruptTable::Instance().Invoke(FLASH_CTRL_IRQn);
+    hal::cortex::InterruptTable::Instance().Invoke(FLASH_CTRL_IRQn);
 }
 
 namespace

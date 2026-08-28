@@ -2,7 +2,7 @@
 #define HAL_QUADRATURE_ENCODER_TIVA_HPP
 
 #include "hal/synchronous_interfaces/SynchronousQuadratureEncoder.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Function.hpp"
 #include <optional>
@@ -76,10 +76,10 @@ namespace hal::tiva
         PeripheralPin index;
 
         infra::MemoryRange<QEI0_Type* const> qeiArray;
-        infra::MemoryRange<IRQn_Type const> irqArray;
+        infra::MemoryRange<int32_t const> irqArray;
 
         infra::Function<void(MotionDirection)> onDirectionChange;
-        std::optional<ImmediateInterruptHandler> qeiInterruptRegistration;
+        std::optional<hal::cortex::ImmediateInterruptHandler> qeiInterruptRegistration;
     };
 }
 

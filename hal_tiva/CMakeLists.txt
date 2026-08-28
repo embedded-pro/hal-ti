@@ -1,5 +1,7 @@
-add_subdirectory(cortex)
 add_subdirectory(synchronous_tiva)
 add_subdirectory(tiva)
 add_subdirectory(instantiations)
-add_subdirectory(default_init)
+
+if (HAL_TI_INCLUDE_BRINGUP)
+    add_subdirectory(bringup)
+endif()

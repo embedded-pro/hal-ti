@@ -5,29 +5,29 @@ namespace
 {
     extern "C" void Comp0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(COMP0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(COMP0_IRQn);
     }
 
     extern "C" void Comp1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(COMP1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(COMP1_IRQn);
     }
 
 #if defined(TM4C129)
     extern "C" void Comp2_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(COMP2_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(COMP2_IRQn);
     }
 #endif
 
 #if defined(TM4C129)
-    constexpr std::array<IRQn_Type, 3> peripheralIrqComp = { {
+    constexpr std::array<int32_t, 3> peripheralIrqComp = { {
         COMP0_IRQn,
         COMP1_IRQn,
         COMP2_IRQn,
     } };
 #else
-    constexpr std::array<IRQn_Type, 2> peripheralIrqComp = { {
+    constexpr std::array<int32_t, 2> peripheralIrqComp = { {
         COMP0_IRQn,
         COMP1_IRQn,
     } };

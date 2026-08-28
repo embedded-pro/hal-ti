@@ -2,7 +2,7 @@
 #define HAL_SPI_MASTER_TIVA_HPP
 
 #include "hal/interfaces/Spi.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/AutoResetFunction.hpp"
 #include <optional>
@@ -44,12 +44,12 @@ namespace hal::tiva
         PeripheralPin slaveSelect;
 
         infra::MemoryRange<SSI0_Type* const> ssiArray;
-        infra::MemoryRange<IRQn_Type const> irqArray;
+        infra::MemoryRange<int32_t const> irqArray;
 
         infra::AutoResetFunction<void()> onDone;
         ChipSelectConfigurator* chipSelectConfigurator = nullptr;
         CommunicationConfigurator* communicationConfigurator = nullptr;
-        std::optional<ImmediateInterruptHandler> spiInterruptRegistration;
+        std::optional<hal::cortex::ImmediateInterruptHandler> spiInterruptRegistration;
         infra::ConstByteRange sendData;
         infra::ByteRange receiveData;
         bool sending;

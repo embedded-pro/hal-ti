@@ -4,13 +4,13 @@
 #include "infra/util/InterfaceConnector.hpp"
 #include <optional>
 #include DEVICE_HEADER
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 
 namespace hal::tiva
 {
     class Dma
         : public infra::InterfaceConnector<Dma>
-        , private InterruptHandler
+        , private hal::cortex::InterruptHandler
     {
     public:
         explicit Dma(const infra::Function<void()>& onError);

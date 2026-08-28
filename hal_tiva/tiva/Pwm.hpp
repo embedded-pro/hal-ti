@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/interfaces/Pwm.hpp"
-#include "hal_tiva/cortex/InterruptCortex.hpp"
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
@@ -97,7 +97,7 @@ namespace hal::tiva
 
                 infra::BoundedVector<GeneratorInterrupt>::WithMaxSize<4> normalSources;
                 infra::BoundedVector<FaultConfig>::WithMaxSize<4> faultConfigs;
-                InterruptPriority priority = InterruptPriority::Normal;
+                hal::cortex::InterruptPriority priority = hal::cortex::InterruptPriority::normal;
             };
 
             bool channelAInverted = false;
@@ -235,19 +235,19 @@ namespace hal::tiva
 
         struct GeneratorInterruptSlot
         {
-            GeneratorInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority, GeneratorIndex gen);
+            GeneratorInterruptSlot(Pwm& owner, int32_t irq, hal::cortex::InterruptPriority priority, GeneratorIndex gen);
 
             Pwm& owner;
             GeneratorIndex gen;
-            hal::ImmediateInterruptHandler handler;
+            hal::cortex::ImmediateInterruptHandler handler;
         };
 
         struct FaultInterruptSlot
         {
-            FaultInterruptSlot(Pwm& owner, IRQn_Type irq, hal::InterruptPriority priority);
+            FaultInterruptSlot(Pwm& owner, int32_t irq, hal::cortex::InterruptPriority priority);
 
             Pwm& owner;
-            hal::ImmediateInterruptHandler handler;
+            hal::cortex::ImmediateInterruptHandler handler;
         };
 
         uint8_t pwmIndex;

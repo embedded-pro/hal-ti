@@ -9,6 +9,6 @@ target_link_libraries(hal_tiva.terminal_and_peripherals PRIVATE
 )
 
 hal_ti_target_default_linker_scripts(hal_tiva.terminal_and_peripherals)
-hal_ti_target_default_init(hal_tiva.terminal_and_peripherals)
+hal_ti_target_bringup(hal_tiva.terminal_and_peripherals)
 
 emil_generate_artifacts(TARGET hal_tiva.terminal_and_peripherals LST MAP BIN HEX)

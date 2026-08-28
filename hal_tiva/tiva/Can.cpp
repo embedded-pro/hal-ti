@@ -6,12 +6,12 @@ namespace
 {
     extern "C" void Can0_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(CAN0_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(CAN0_IRQn);
     }
 
     extern "C" void Can1_Handler()
     {
-        hal::InterruptTable::Instance().Invoke(CAN1_IRQn);
+        hal::cortex::InterruptTable::Instance().Invoke(CAN1_IRQn);
     }
 
     const std::array<CAN0_Type*, 2> peripheralCan = { {
@@ -19,7 +19,7 @@ namespace
         reinterpret_cast<CAN0_Type*>(CAN1_BASE),
     } };
 
-    constexpr std::array<IRQn_Type, 2> peripheralIrqCan = { {
+    constexpr std::array<int32_t, 2> peripheralIrqCan = { {
         CAN0_IRQn,
         CAN1_IRQn,
     } };
@@ -539,7 +539,7 @@ namespace hal::tiva
         EnterInitMode(can);
         DisableInterrupts(can);
 
-        const auto irq = peripheralIrqCan[canIndex];
+        const auto irq = static_cast<IRQn_Type>(peripheralIrqCan[canIndex]);
         NVIC_DisableIRQ(irq);
         NVIC_ClearPendingIRQ(irq);
 
