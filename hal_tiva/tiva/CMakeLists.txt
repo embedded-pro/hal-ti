@@ -49,4 +49,6 @@ target_sources(hal_tiva.tiva PRIVATE
     UartWithDma.hpp
     UniqueDeviceId.cpp
     UniqueDeviceId.hpp
+    WatchDog.cpp
+    WatchDog.hpp
 )
