@@ -55,6 +55,7 @@ namespace hal::tiva
         , onExpired(onExpired)
     {
         really_assert(watchDogIndex < numberOfWatchDogs);
+        really_assert(config.feedTimerInterval > infra::Duration::zero());
 
         EnablePeripheralClock();
 
@@ -68,11 +69,9 @@ namespace hal::tiva
         watchDog.ICR = 0;
         WaitForWriteComplete();
 
-        if (config.resetOnMissedInterrupt)
-        {
-            watchDog.CTL |= ctlResetEnable;
-            WaitForWriteComplete();
-        }
+        // The destructor only gates the clock, so CTL keeps its previous contents and has to be written in full rather than or-ed into
+        watchDog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
+        WaitForWriteComplete();
 
         watchDog.CTL |= ctlIntEnable;
         WaitForWriteComplete();
