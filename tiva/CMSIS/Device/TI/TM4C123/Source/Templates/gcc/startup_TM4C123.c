@@ -53,6 +53,7 @@ void Can0_Handler() __attribute__((weak, alias("Default_Handler")));
 void Can1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Eeprom_Handler() __attribute__((weak, alias("Default_Handler")));
 void UdmaError_Handler() __attribute__((weak, alias("Default_Handler")));
+void WatchDog_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart0_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart1_Handler() __attribute__((weak, alias("Default_Handler")));
 void Uart2_Handler() __attribute__((weak, alias("Default_Handler")));
@@ -143,7 +144,7 @@ __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
     Adc0Sequence1_Handler, /*!< ADC0SS1_Handler,           ADC Sequence 1 */
     Adc0Sequence2_Handler, /*!< ADC0SS2_Handler,           ADC Sequence 2 */
     Adc0Sequence3_Handler, /*!< ADC0SS3_Handler,           ADC Sequence 3 */
-    Default_Handler,       /*!< WDT_Handler,               Watchdog timer */
+    WatchDog_Handler,      /*!< WatchDog_Handler,          Watchdog timer */
     Default_Handler,       /*!< TIMER0A_Handler,           Timer 0 subtimer A */
     Default_Handler,       /*!< TIMER0B_Handler,           Timer 0 subtimer B */
     Default_Handler,       /*!< TIMER1A_Handler,           Timer 1 subtimer A */
