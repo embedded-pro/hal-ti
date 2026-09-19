@@ -12,6 +12,7 @@ extern "C" void WatchDog_Handler()
 
 namespace
 {
+    constexpr uint32_t misTimeout = 1u << 0;
     constexpr uint32_t ctlIntEnable = 1u << 0;
     constexpr uint32_t ctlResetEnable = 1u << 1;
     constexpr uint32_t ctlWriteComplete = 1u << 31;
@@ -148,6 +149,10 @@ namespace hal::tiva
 
     void WatchDog::HandleInterrupt()
     {
+        // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to count or clear
+        if ((Peripheral().MIS & misTimeout) == 0)
+            return;
+
         Refresh();
 
         if (++missedFeeds == expirationCount)
