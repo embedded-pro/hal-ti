@@ -473,7 +473,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void SynchronousPwm::Start(hal::FractionalPercent dutyCycle)
+    void SynchronousPwm::Start(hal::DutyCycle dutyCycle)
     {
         really_assert(generators.size() >= 1);
 
@@ -483,7 +483,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void SynchronousPwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2)
+    void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2)
     {
         really_assert(generators.size() == 2);
 
@@ -493,7 +493,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void SynchronousPwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2, hal::FractionalPercent dutyCycle3)
+    void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3)
     {
         really_assert(generators.size() == 3);
 
@@ -504,7 +504,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void SynchronousPwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2, hal::FractionalPercent dutyCycle3, hal::FractionalPercent dutyCycle4)
+    void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4)
     {
         really_assert(generators.size() == 4);
 
@@ -545,18 +545,12 @@ namespace hal::tiva
         }
     }
 
-    void SynchronousPwm::SetComparator(Generator& generator, const hal::FractionalPercent& dutyCycle) const
+    void SynchronousPwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
     {
-        really_assert(dutyCycle.Value() >= 0.0f && dutyCycle.Value() <= 100.0f);
-
-        auto scaledWidth = static_cast<float>(GetLoad(generator)) * dutyCycle.Value() / 100.0f;
-
-        if (IsCenterAligned(config.control.mode))
-            scaledWidth /= 2.0f;
-
-        auto width = static_cast<uint32_t>(scaledWidth + 0.5f);
+        really_assert(dutyCycle.IsValid());
 
         auto load = generator.address->LOAD;
+        auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad(generator)));
 
         if (width > load)
             width = load;
