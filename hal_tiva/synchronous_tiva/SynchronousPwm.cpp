@@ -558,7 +558,8 @@ namespace hal::tiva
 
         auto load = generator.address->LOAD;
 
-        really_assert(width < load);
+        if (width > load)
+            width = load;
 
         if (generator.a)
             generator.address->CMPA = load - width;
