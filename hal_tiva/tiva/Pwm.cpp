@@ -410,7 +410,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle)
+    void Pwm::Start(hal::FractionalPercent dutyCycle)
     {
         really_assert(generators.size() >= 1);
 
@@ -420,7 +420,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2)
+    void Pwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2)
     {
         really_assert(generators.size() == 2);
 
@@ -430,7 +430,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3)
+    void Pwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2, hal::FractionalPercent dutyCycle3)
     {
         really_assert(generators.size() == 3);
 
@@ -441,7 +441,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4)
+    void Pwm::Start(hal::FractionalPercent dutyCycle1, hal::FractionalPercent dutyCycle2, hal::FractionalPercent dutyCycle3, hal::FractionalPercent dutyCycle4)
     {
         really_assert(generators.size() == 4);
 
@@ -513,14 +513,16 @@ namespace hal::tiva
         peripheralPwm[pwmIndex]->ENABLE &= ~generator.enable;
     }
 
-    void Pwm::SetComparator(Generator& generator, const hal::Percent& dutyCycle) const
+    void Pwm::SetComparator(Generator& generator, const hal::FractionalPercent& dutyCycle) const
     {
-        really_assert(dutyCycle.Value() <= 100);
+        really_assert(dutyCycle.Value() >= 0.0f && dutyCycle.Value() <= 100.0f);
 
-        auto width = GetLoad(generator) * dutyCycle.Value() / 100;
+        auto scaledWidth = static_cast<float>(GetLoad(generator)) * dutyCycle.Value() / 100.0f;
 
         if (IsCenterAligned(config.control.mode))
-            width /= 2;
+            scaledWidth /= 2.0f;
+
+        auto width = static_cast<uint32_t>(scaledWidth + 0.5f);
 
         auto load = generator.address->LOAD;
 
