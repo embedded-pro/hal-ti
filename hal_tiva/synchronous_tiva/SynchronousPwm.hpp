@@ -99,10 +99,10 @@ namespace hal::tiva
         ~SynchronousPwm();
 
         void SetBaseFrequency(hal::Hertz baseFrequency) override;
-        void Start(hal::Percent globalDutyCycle) override;
-        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2) override;
-        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3) override;
-        void Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4) override;
+        void Start(hal::DutyCycle globalDutyCycle) override;
+        void Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2) override;
+        void Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3) override;
+        void Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4) override;
         void Stop() override;
 
         static uint16_t CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor);
@@ -165,7 +165,7 @@ namespace hal::tiva
         void DisableGenerator(Generator& generator) const;
         void EnableOutput(const Generator& generator) const;
         void DisableOutput(const Generator& generator) const;
-        void SetComparator(Generator& generator, const hal::Percent& dutyCycle) const;
+        void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const;
         void Sync() const;
         uint32_t GetLoad(const Generator& generator) const;
         void EnableClock() const;

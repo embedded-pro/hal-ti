@@ -410,7 +410,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle)
+    void Pwm::Start(hal::DutyCycle dutyCycle)
     {
         really_assert(generators.size() >= 1);
 
@@ -420,7 +420,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2)
+    void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2)
     {
         really_assert(generators.size() == 2);
 
@@ -430,7 +430,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3)
+    void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3)
     {
         really_assert(generators.size() == 3);
 
@@ -441,7 +441,7 @@ namespace hal::tiva
         Sync();
     }
 
-    void Pwm::Start(hal::Percent dutyCycle1, hal::Percent dutyCycle2, hal::Percent dutyCycle3, hal::Percent dutyCycle4)
+    void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4)
     {
         really_assert(generators.size() == 4);
 
@@ -513,16 +513,12 @@ namespace hal::tiva
         peripheralPwm[pwmIndex]->ENABLE &= ~generator.enable;
     }
 
-    void Pwm::SetComparator(Generator& generator, const hal::Percent& dutyCycle) const
+    void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
     {
-        really_assert(dutyCycle.Value() <= 100);
-
-        auto width = GetLoad(generator) * dutyCycle.Value() / 100;
-
-        if (IsCenterAligned(config.control.mode))
-            width /= 2;
+        really_assert(dutyCycle.IsValid());
 
         auto load = generator.address->LOAD;
+        auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad(generator)));
 
         if (width > load)
             width = load;
