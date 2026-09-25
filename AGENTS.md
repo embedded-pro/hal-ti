@@ -7,7 +7,7 @@ hal-ti is a Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4
 ## Architecture
 
 - `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher all come from EMIL's `hal/cortex_m/`, not from this repo — hal_tiva/ has no local copies
-- `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Pwm, Dma, Eeprom, Ethernet, AnalogComparator, WatchDog, Clock), namespace `hal::tiva`
+- `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Pwm, Dma, Eeprom, Ethernet, AnalogComparator, Watchdog, Clock), namespace `hal::tiva`
 - `hal_tiva/synchronous_tiva/` — Blocking/polling driver variants (`SynchronousUart`, `SynchronousQuadratureEncoder`, …)
 - `hal_tiva/instantiations/` — Board support packages and event infrastructure (`LaunchPadBsp`, `EventInfrastructure`, `TracingReset`)
 - `hal_tiva/bringup/` — Startup glue: `HardwareInitialization()` (constructs the interrupt table + default GPIO pinout) and the weak `Default_Handler_Forwarded()`. Generic runtime (atomics shim, `abort`/`__assert_func`, libc syscall stubs) comes from EMIL's `hal.cortex_m.runtime`, not from this repo.
