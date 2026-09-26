@@ -1,4 +1,4 @@
-#include "hal_tiva/tiva/Watchdog.hpp"
+#include "hal_tiva/tiva/WatchDog.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <limits>
 
@@ -16,14 +16,19 @@ namespace
     constexpr uint32_t ctlResetEnable = 1u << 1;
     constexpr uint32_t ctlWriteComplete = 1u << 31;
     constexpr uint32_t lockUnlockKey = 0x1ACCE551u;
-    constexpr uint32_t numberOfWatchdogs = 2u;
+    constexpr uint32_t numberOfWatchDogs = 2u;
     constexpr uint32_t precisionInternalOscillatorFrequency = 16000000u;
 
-    uint32_t ToTicks(uint32_t clockFrequency, infra::Duration duration)
+    uint64_t ToMicroseconds(infra::Duration duration)
     {
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
         really_assert(microseconds > 0);
-        auto ticks = (static_cast<uint64_t>(clockFrequency) * static_cast<uint64_t>(microseconds)) / 1000000u;
+        return static_cast<uint64_t>(microseconds);
+    }
+
+    uint32_t ToTicks(uint32_t clockFrequency, infra::Duration duration)
+    {
+        auto ticks = (static_cast<uint64_t>(clockFrequency) * ToMicroseconds(duration)) / 1000000u;
         really_assert(ticks > 0 && ticks <= std::numeric_limits<uint32_t>::max());
         return static_cast<uint32_t>(ticks);
     }
@@ -31,34 +36,35 @@ namespace
 
 namespace hal::tiva
 {
-    Watchdog::Watchdog(uint8_t watchdogIndex, const Config& config)
+    WatchDog::WatchDog(uint8_t watchDogIndex, const Config& config)
         : ImmediateInterruptHandler(WATCHDOG0_IRQn, config.interruptPriority, [this]()
               {
                   HandleInterrupt();
               })
-        , watchdogIndex(watchdogIndex)
+        , watchDogIndex(watchDogIndex)
         , timeout(config.timeout)
+        , reloadValue(ToTicks(ClockFrequency(), config.timeout))
     {
-        really_assert(watchdogIndex < numberOfWatchdogs);
+        really_assert(watchDogIndex < numberOfWatchDogs);
 
         EnablePeripheralClock();
 
-        auto& watchdog = Peripheral();
+        auto& watchDog = Peripheral();
 
         Unlock();
 
-        watchdog.LOAD = ToTicks(ClockFrequency(), config.timeout);
+        watchDog.LOAD = reloadValue;
         WaitForWriteComplete();
 
-        watchdog.ICR = 0;
+        watchDog.ICR = 0;
         WaitForWriteComplete();
 
         // The destructor only gates the clock, so CTL keeps its previous contents and has to be written in full rather than or-ed into
-        watchdog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
+        watchDog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
         WaitForWriteComplete();
     }
 
-    Watchdog::~Watchdog()
+    WatchDog::~WatchDog()
     {
         NVIC_DisableIRQ(WATCHDOG0_IRQn);
         NVIC_ClearPendingIRQ(WATCHDOG0_IRQn);
@@ -66,61 +72,61 @@ namespace hal::tiva
         DisablePeripheralClock();
     }
 
-    void Watchdog::Refresh()
+    infra::Duration WatchDog::EarlyWarningPeriod() const
+    {
+        return timeout;
+    }
+
+    void WatchDog::Start(const infra::Function<void()>& onEarlyWarning)
+    {
+        this->onEarlyWarning = onEarlyWarning;
+
+        // Setting INTEN starts the counter, and only a reset clears it again
+        Peripheral().CTL |= ctlIntEnable;
+        WaitForWriteComplete();
+    }
+
+    void WatchDog::Refresh()
     {
         Peripheral().ICR = 0;
         WaitForWriteComplete();
     }
 
-    infra::Duration Watchdog::EarlyWarningPeriod() const
+    WATCHDOG0_Type& WatchDog::Peripheral() const
     {
-        return timeout;
+        return watchDogIndex == 0 ? *WATCHDOG0 : *WATCHDOG1;
     }
 
-    void Watchdog::Start(const infra::Function<void()>& onEarlyWarning)
+    uint32_t WatchDog::ClockFrequency() const
     {
-        this->onEarlyWarning = onEarlyWarning;
-
-        // Setting INTEN starts the counter, and it can only be cleared again by a reset
-        Peripheral().CTL |= ctlIntEnable;
-        WaitForWriteComplete();
+        return watchDogIndex == 0 ? SystemCoreClock : precisionInternalOscillatorFrequency;
     }
 
-    WATCHDOG0_Type& Watchdog::Peripheral() const
+    void WatchDog::EnablePeripheralClock() const
     {
-        return watchdogIndex == 0 ? *WATCHDOG0 : *WATCHDOG1;
-    }
+        SYSCTL->RCGCWD |= 1u << watchDogIndex;
 
-    uint32_t Watchdog::ClockFrequency() const
-    {
-        return watchdogIndex == 0 ? SystemCoreClock : precisionInternalOscillatorFrequency;
-    }
-
-    void Watchdog::EnablePeripheralClock() const
-    {
-        SYSCTL->RCGCWD |= 1u << watchdogIndex;
-
-        while ((SYSCTL->PRWD & (1u << watchdogIndex)) == 0)
+        while ((SYSCTL->PRWD & (1u << watchDogIndex)) == 0)
         {
             // Wait for peripheral clock to be ready
         }
     }
 
-    void Watchdog::DisablePeripheralClock() const
+    void WatchDog::DisablePeripheralClock() const
     {
-        SYSCTL->RCGCWD &= ~(1u << watchdogIndex);
+        SYSCTL->RCGCWD &= ~(1u << watchDogIndex);
     }
 
-    void Watchdog::Unlock() const
+    void WatchDog::Unlock() const
     {
         // Registers are left unlocked because the interrupt handler has to write ICR on every timeout
         Peripheral().LOCK = lockUnlockKey;
         WaitForWriteComplete();
     }
 
-    void Watchdog::WaitForWriteComplete() const
+    void WatchDog::WaitForWriteComplete() const
     {
-        if (watchdogIndex == 0)
+        if (watchDogIndex == 0)
             return;
 
         while ((Peripheral().CTL & ctlWriteComplete) == 0)
@@ -129,7 +135,7 @@ namespace hal::tiva
         }
     }
 
-    void Watchdog::HandleInterrupt()
+    void WatchDog::HandleInterrupt()
     {
         // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to report
         if ((Peripheral().MIS & misTimeout) == 0)

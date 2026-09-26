@@ -10,7 +10,7 @@
 
 namespace hal::tiva
 {
-    class Watchdog
+    class WatchDog
         : public hal::Watchdog
         , private hal::cortex::ImmediateInterruptHandler
     {
@@ -25,12 +25,12 @@ namespace hal::tiva
             hal::cortex::InterruptPriority interruptPriority{ hal::cortex::InterruptPriority::normal };
         };
 
-        explicit Watchdog(uint8_t watchdogIndex, const Config& config = Config());
-        ~Watchdog();
+        explicit WatchDog(uint8_t watchDogIndex, const Config& config = Config());
+        ~WatchDog();
 
-        void Refresh() override;
         infra::Duration EarlyWarningPeriod() const override;
         void Start(const infra::Function<void()>& onEarlyWarning) override;
+        void Refresh() override;
 
     private:
         WATCHDOG0_Type& Peripheral() const;
@@ -41,8 +41,9 @@ namespace hal::tiva
         void WaitForWriteComplete() const;
         void HandleInterrupt();
 
-        uint8_t watchdogIndex;
+        uint8_t watchDogIndex;
         infra::Duration timeout;
+        uint32_t reloadValue{ 0 };
         infra::Function<void()> onEarlyWarning;
     };
 }
