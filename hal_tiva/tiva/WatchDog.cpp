@@ -1,6 +1,5 @@
 #include "hal_tiva/tiva/WatchDog.hpp"
 #include "infra/util/ReallyAssert.hpp"
-#include <algorithm>
 #include <limits>
 
 extern "C" uint32_t SystemCoreClock;
@@ -33,29 +32,20 @@ namespace
         really_assert(ticks > 0 && ticks <= std::numeric_limits<uint32_t>::max());
         return static_cast<uint32_t>(ticks);
     }
-
-    uint32_t ToNumberOfTimeouts(infra::Duration expirationTimeout, infra::Duration timeout)
-    {
-        auto timeoutMicroseconds = ToMicroseconds(timeout);
-        auto count = (ToMicroseconds(expirationTimeout) + timeoutMicroseconds - 1) / timeoutMicroseconds;
-        return static_cast<uint32_t>(std::max<uint64_t>(count, 1));
-    }
 }
 
 namespace hal::tiva
 {
-    WatchDog::WatchDog(uint8_t watchDogIndex, const infra::Function<void()>& onExpired, const Config& config)
+    WatchDog::WatchDog(uint8_t watchDogIndex, const Config& config)
         : ImmediateInterruptHandler(WATCHDOG0_IRQn, config.interruptPriority, [this]()
               {
                   HandleInterrupt();
               })
         , watchDogIndex(watchDogIndex)
+        , timeout(config.timeout)
         , reloadValue(ToTicks(ClockFrequency(), config.timeout))
-        , expirationCount(ToNumberOfTimeouts(config.expirationTimeout, config.timeout))
-        , onExpired(onExpired)
     {
         really_assert(watchDogIndex < numberOfWatchDogs);
-        really_assert(config.feedTimerInterval > infra::Duration::zero());
 
         EnablePeripheralClock();
 
@@ -72,24 +62,27 @@ namespace hal::tiva
         // The destructor only gates the clock, so CTL keeps its previous contents and has to be written in full rather than or-ed into
         watchDog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
         WaitForWriteComplete();
-
-        watchDog.CTL |= ctlIntEnable;
-        WaitForWriteComplete();
-
-        feedTimer.Start(config.feedTimerInterval, [this]()
-            {
-                Feed();
-            });
     }
 
     WatchDog::~WatchDog()
     {
-        feedTimer.Cancel();
-
         NVIC_DisableIRQ(WATCHDOG0_IRQn);
         NVIC_ClearPendingIRQ(WATCHDOG0_IRQn);
 
         DisablePeripheralClock();
+    }
+
+    infra::Duration WatchDog::EarlyWarningPeriod() const
+    {
+        return timeout;
+    }
+
+    void WatchDog::Start(const infra::Function<void()>& onEarlyWarning)
+    {
+        this->onEarlyWarning = onEarlyWarning;
+
+        Peripheral().CTL |= ctlIntEnable;
+        WaitForWriteComplete();
     }
 
     void WatchDog::Refresh()
@@ -141,20 +134,12 @@ namespace hal::tiva
         }
     }
 
-    void WatchDog::Feed()
-    {
-        missedFeeds = 0;
-    }
-
     void WatchDog::HandleInterrupt()
     {
         // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to count or clear
         if ((Peripheral().MIS & misTimeout) == 0)
             return;
 
-        Refresh();
-
-        if (++missedFeeds == expirationCount)
-            onExpired();
+        onEarlyWarning();
     }
 }

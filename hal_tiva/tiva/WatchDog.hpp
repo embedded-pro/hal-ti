@@ -3,16 +3,16 @@
 
 #include DEVICE_HEADER
 #include "hal/cortex_m/InterruptCortex.hpp"
-#include "infra/timer/Timer.hpp"
+#include "hal/interfaces/Watchdog.hpp"
 #include "infra/util/Function.hpp"
-#include <atomic>
 #include <chrono>
 #include <cstdint>
 
 namespace hal::tiva
 {
     class WatchDog
-        : private hal::cortex::ImmediateInterruptHandler
+        : public hal::Watchdog
+        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         struct Config
@@ -21,16 +21,16 @@ namespace hal::tiva
             {}
 
             infra::Duration timeout{ std::chrono::milliseconds(50) };
-            infra::Duration feedTimerInterval{ std::chrono::milliseconds(25) };
-            infra::Duration expirationTimeout{ std::chrono::milliseconds(1500) };
             bool resetOnMissedInterrupt{ true };
             hal::cortex::InterruptPriority interruptPriority{ hal::cortex::InterruptPriority::normal };
         };
 
-        WatchDog(uint8_t watchDogIndex, const infra::Function<void()>& onExpired, const Config& config = Config());
+        explicit WatchDog(uint8_t watchDogIndex, const Config& config = Config());
         ~WatchDog();
 
-        void Refresh();
+        infra::Duration EarlyWarningPeriod() const override;
+        void Start(const infra::Function<void()>& onEarlyWarning) override;
+        void Refresh() override;
 
     private:
         WATCHDOG0_Type& Peripheral() const;
@@ -39,15 +39,12 @@ namespace hal::tiva
         void DisablePeripheralClock() const;
         void Unlock() const;
         void WaitForWriteComplete() const;
-        void Feed();
         void HandleInterrupt();
 
         uint8_t watchDogIndex;
+        infra::Duration timeout;
         uint32_t reloadValue{ 0 };
-        uint32_t expirationCount{ 1 };
-        std::atomic<uint32_t> missedFeeds{ 0 };
-        infra::Function<void()> onExpired;
-        infra::TimerRepeating feedTimer;
+        infra::Function<void()> onEarlyWarning;
     };
 }
 
