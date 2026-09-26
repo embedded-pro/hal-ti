@@ -81,7 +81,6 @@ namespace hal::tiva
     {
         this->onEarlyWarning = onEarlyWarning;
 
-        // Setting INTEN starts the counter, and only a reset clears it again
         Peripheral().CTL |= ctlIntEnable;
         WaitForWriteComplete();
     }
@@ -137,7 +136,7 @@ namespace hal::tiva
 
     void WatchDog::HandleInterrupt()
     {
-        // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to report
+        // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to count or clear
         if ((Peripheral().MIS & misTimeout) == 0)
             return;
 
