@@ -11,7 +11,7 @@
 namespace hal::tiva
 {
     class Watchdog
-        : public hal::WatchdogWithEarlyWarning
+        : public hal::Watchdog
         , private hal::cortex::ImmediateInterruptHandler
     {
     public:
