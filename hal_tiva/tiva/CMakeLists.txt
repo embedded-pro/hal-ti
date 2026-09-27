@@ -4,7 +4,7 @@ emil_build_for(hal_tiva.tiva TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_STAND
 target_include_directories(hal_tiva.tiva PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../..>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/family/${TARGET_MCU_FAMILY}>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/family/$<LOWER_CASE:${TARGET_MCU_FAMILY}>>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
@@ -55,18 +55,18 @@ target_sources(hal_tiva.tiva PRIVATE
     UniqueDeviceId.hpp
     WatchDog.cpp
     WatchDog.hpp
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/AnalogComparatorFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/GpioFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/PwmFamily.cpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/PwmFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/QuadratureEncoderFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/UartWithDmaFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/TM4C123/UniqueDeviceIdFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/AnalogComparatorFamily.cpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/AnalogComparatorFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/GpioFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/PwmFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/QuadratureEncoderFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/UartWithDmaFamily.hpp>
-    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/TM4C129/UniqueDeviceIdFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/AnalogComparatorFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/GpioFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/PwmFamily.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/PwmFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/QuadratureEncoderFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/UartWithDmaFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/UniqueDeviceIdFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/AnalogComparatorFamily.cpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/AnalogComparatorFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/GpioFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/PwmFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/QuadratureEncoderFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/UartWithDmaFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/UniqueDeviceIdFamily.hpp>
 )

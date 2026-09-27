@@ -172,7 +172,7 @@ $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>
 $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.cpp>
 ```
 
-Family-specific constants, types and small register-access helpers live in `hal_tiva/tiva/family/<FAMILY>/<Driver>Family.hpp` (BSP: `hal_tiva/instantiations/family/<FAMILY>/LaunchPadFamily.hpp`) — one file per family with the same API, included as `#include "<Driver>Family.hpp"`. CMake puts only `family/${TARGET_MCU_FAMILY}` on the include path, so drivers contain no family `#ifdef`s.
+Family-specific constants, types and small register-access helpers live in `hal_tiva/tiva/family/<family>/<Driver>Family.hpp` (BSP: `hal_tiva/instantiations/family/<family>/LaunchPadFamily.hpp`) — one file per family with the same API, included as `#include "<Driver>Family.hpp"`. CMake puts only `family/<family>` (`tm4c123` or `tm4c129`) on the include path, so drivers contain no family `#ifdef`s.
 
 ### Documentation — MANDATORY
 

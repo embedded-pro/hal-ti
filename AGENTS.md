@@ -41,8 +41,8 @@ Full detail lives in `.github/instructions/hal-ti-cpp.instructions.md` and `.git
 - Interrupt dispatch: no vector-table entry or weak alias is needed for a new ISR. `Default_Handler` in both startup files calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`) → `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`; the few named handlers (`Can0_Handler`, `Uart0_Handler`, …) call `Invoke(IRQn)` too
 - Interrupt table size: `HardwareInitialization()` builds `InterruptTable::WithStorage<155>` (indexed by IRQn + 16) — an IRQ outside it, or one that fires with no registered handler, hits `really_assert`
 - MCU family conditionals: use CMake generator expressions (`$<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:...>`), never `#ifdef TM4C123`/`#ifdef TM4C129` in C++
-  - Family-specific constants, types and register helpers go in `hal_tiva/tiva/family/<FAMILY>/<Driver>Family.hpp` (same API for both families, included as `#include "<Driver>Family.hpp"`)
-  - CMake adds only `family/${TARGET_MCU_FAMILY}` to the include path; family-only sources live in the same directory and are listed with generator expressions
+  - Family-specific constants, types and register helpers go in `hal_tiva/tiva/family/<family>/<Driver>Family.hpp` (same API for both families, included as `#include "<Driver>Family.hpp"`)
+  - CMake adds only `family/<family>` (`tm4c123` or `tm4c129`, i.e. the lower-cased `TARGET_MCU_FAMILY`) to the include path; family-only sources live in the same directory and are listed with generator expressions
 
 ## Style
 
