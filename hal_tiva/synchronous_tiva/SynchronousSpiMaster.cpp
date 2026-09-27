@@ -112,6 +112,37 @@ namespace hal::tiva
             return phasePolarity;
         }
 
+        struct SpiClockConfig
+        {
+            uint32_t cpsdvsr;
+            uint32_t scr;
+        };
+
+        SpiClockConfig ComputeSpiClockDivisors(uint32_t systemClock, uint32_t baudRate)
+        {
+            really_assert(baudRate > 0 && baudRate <= systemClock / 2);
+
+            SpiClockConfig best = { 0, 0 };
+            uint32_t bestActual = 0;
+
+            for (uint32_t cpsdvsr = 2; cpsdvsr <= 254; cpsdvsr += 2)
+            {
+                const uint64_t product = static_cast<uint64_t>(cpsdvsr) * baudRate;
+                const uint32_t scrPlusOne = static_cast<uint32_t>((static_cast<uint64_t>(systemClock) + product - 1) / product);
+                if ((scrPlusOne - 1) > 255)
+                    continue;
+                const uint32_t actual = static_cast<uint32_t>(static_cast<uint64_t>(systemClock) / (static_cast<uint64_t>(cpsdvsr) * scrPlusOne));
+                if (actual > bestActual)
+                {
+                    bestActual = actual;
+                    best = { cpsdvsr, scrPlusOne - 1 };
+                }
+            }
+
+            really_assert(best.cpsdvsr != 0);
+            return best;
+        }
+
         constexpr std::array<uint32_t, 4> peripheralSsiArray = { {
             SSI0_BASE,
             SSI1_BASE,
@@ -132,28 +163,22 @@ namespace hal::tiva
 
         EnableClock();
 
-        auto max = SystemCoreClock / config.baudRate;
-        uint32_t div = 0;
-        uint32_t scr = 0;
-        do
-        {
-            div += 2;
-            scr = (max / div) - 1;
-        } while (scr > 255);
+        const SpiClockConfig clk = ComputeSpiClockDivisors(SystemCoreClock, config.baudRate);
 
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE;                                                                                        /* Disable SPI */
-        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;                                                                                      /* SSI clock is sourced by main system clock  */
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;                                                                                         /* Enable master mode */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;                                           /* Configure number of bits */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                        /* Configure to SPI freescale format */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                         /* Sets clock rate */
-        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | (div & 0xff);                                     /* Sets prescaler */
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE;
+        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow);
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | (clk.scr << SSI_CR0_SCR_S);
+        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | clk.cpsdvsr;
 
-        ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
+        ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE;
 
         while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE))
         {
+            (void)ssiArray[ssiIndex]->DR;
         }
     }
 
