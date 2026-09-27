@@ -4,7 +4,7 @@
 #include "hal/cortex_m/Reset.hpp"
 #include "services/tracer/TracingReset.hpp"
 
-namespace instatiations
+namespace instantiations
 {
     struct TracingReset
     {

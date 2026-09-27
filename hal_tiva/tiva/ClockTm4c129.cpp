@@ -349,6 +349,8 @@ namespace
         really_assert(SYSCTL->PLLSTAT & SYSCTL_PLLSTAT_LOCK);
 
         SYSCTL->RSCLKCFG |= (1 << SYSCTL_RSCLKCFG_PSYSDIV_S) | oscillatorSelection | SYSCTL_RSCLKCFG_USEPLL | SYSCTL_RSCLKCFG_MEMTIMU;
+
+        frequency = CalculateSystemFrequency(oscillator) / 2;
     }
 
     void DisablePll(uint32_t& frequency, uint32_t& oscillator, uint32_t& oscillatorSelection)
@@ -417,8 +419,6 @@ namespace hal::tiva
         }
         else
             DisablePll(frequency, oscillator, oscillatorSelection);
-
-        SYSCTL->RSCLKCFG &= ~SYSCTL_RSCLKCFG_OSCSRC_M;
 
         SystemCoreClock = frequency;
     }

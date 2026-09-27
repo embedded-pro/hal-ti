@@ -20,7 +20,7 @@ namespace instantiations
     {
         LaunchPad()
         {
-            hal::tiva::ConfigureClock(clock.crystal, clock.oscSource);
+            hal::tiva::ConfigureClock(clock.crystal, clock.oscSource, clock.systemClockDivisor, clock.usesPll);
         }
 
         hal::tiva::GpioPin& DebugLed()

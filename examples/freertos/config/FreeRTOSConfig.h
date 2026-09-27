@@ -125,7 +125,7 @@ extern void vAssertCalled(const char* const pcFileName,
 
 #define configUSE_MALLOC_FAILED_HOOK 1
 
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 1
 
 #ifdef __NVIC_PRIO_BITS
 /* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
