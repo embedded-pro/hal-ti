@@ -201,8 +201,13 @@ namespace hal::tiva
         {
         }
 
+#if defined(TM4C129)
+        if (((GpioTiva(port) == GPIOD) && (index == 7)) ||
+            ((GpioTiva(port) == GPIOE) && (index == 7)))
+#else
         if (((GpioTiva(port) == GPIOF) && (index == 0)) ||
             ((GpioTiva(port) == GPIOD) && (index == 7)))
+#endif
         {
             GpioTiva(port)->LOCK = 0x4C4F434B;
             infra::ReplaceBit(GpioTiva(port)->CR, true, index);
@@ -227,7 +232,7 @@ namespace hal::tiva
 
     void GpioPin::SetAsInput()
     {
-        infra::ReplaceBit(GpioTiva(port)->DIR, true, index);
+        infra::ReplaceBit(GpioTiva(port)->DIR, false, index);
     }
 
     bool GpioPin::IsInput() const
@@ -238,8 +243,6 @@ namespace hal::tiva
     void GpioPin::Config(PinConfigType config)
     {
         Gpio::Instance().ReservePin(port, index);
-
-        auto gpio = GpioTiva(port);
 
         infra::ReplaceBit(GpioTiva(port)->DIR, modeTiva[static_cast<uint8_t>(config)].dir, index);
         infra::ReplaceBit(GpioTiva(port)->AFSEL, false, index);
@@ -421,8 +424,13 @@ namespace hal::tiva
             {
             }
 
+#if defined(TM4C129)
+            if (((GpioTiva(portAndIndex.first) == GPIOD) && (portAndIndex.second == 7)) ||
+                ((GpioTiva(portAndIndex.first) == GPIOE) && (portAndIndex.second == 7))) // NOLINT
+#else
             if (((GpioTiva(portAndIndex.first) == GPIOF) && (portAndIndex.second == 0)) ||
                 ((GpioTiva(portAndIndex.first) == GPIOD) && (portAndIndex.second == 7))) // NOLINT
+#endif
             {
                 GpioTiva(portAndIndex.first)->LOCK = 0x4C4F434B;
                 infra::ReplaceBit(GpioTiva(portAndIndex.first)->CR, true, portAndIndex.second);
@@ -512,17 +520,17 @@ namespace hal::tiva
         , analogTable(analogTable)
         , assignedPins()
         , interruptDispatcherA(GPIOA_IRQn, [this]()
-            { ExtiInterrupt(GPIOA, 0, 8); })
+            { ExtiInterrupt(GPIOA, 0, 0, 8); })
         , interruptDispatcherB(GPIOB_IRQn, [this]()
-            { ExtiInterrupt(GPIOB, 0, 8); })
+            { ExtiInterrupt(GPIOB, 1, 0, 8); })
         , interruptDispatcherC(GPIOC_IRQn, [this]()
-            { ExtiInterrupt(GPIOC, 0, 8); })
+            { ExtiInterrupt(GPIOC, 2, 0, 8); })
         , interruptDispatcherD(GPIOD_IRQn, [this]()
-            { ExtiInterrupt(GPIOD, 0, 8); })
+            { ExtiInterrupt(GPIOD, 3, 0, 8); })
         , interruptDispatcherE(GPIOE_IRQn, [this]()
-            { ExtiInterrupt(GPIOE, 0, 8); })
+            { ExtiInterrupt(GPIOE, 4, 0, 8); })
         , interruptDispatcherF(GPIOF_IRQn, [this]()
-            { ExtiInterrupt(GPIOF, 0, 8); })
+            { ExtiInterrupt(GPIOF, 5, 0, 8); })
     { }
 
     // clang-format on
@@ -556,10 +564,11 @@ namespace hal::tiva
         infra::ReplaceBit(GpioTiva(port)->IS, interruptTiva[static_cast<uint8_t>(trigger)].is, index);
         infra::ReplaceBit(GpioTiva(port)->IEV, interruptTiva[static_cast<uint8_t>(trigger)].iev, index);
 
-        really_assert(!handlers[index]);
-        handlers[index] = action;
+        const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
+        really_assert(handlerIndex < handlers.size());
+        really_assert(!handlers[handlerIndex]);
+        handlers[handlerIndex] = action;
 
-        infra::ReplaceBit(GpioTiva(port)->RIS, false, index);
         infra::ReplaceBit(GpioTiva(port)->ICR, true, index);
         infra::ReplaceBit(GpioTiva(port)->IM, true, index);
     }
@@ -568,10 +577,12 @@ namespace hal::tiva
     {
         infra::ReplaceBit(GpioTiva(port)->IM, false, index);
 
-        handlers[index] = nullptr;
+        const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
+        really_assert(handlerIndex < handlers.size());
+        handlers[handlerIndex] = nullptr;
     }
 
-    void Gpio::ExtiInterrupt(GPIOA_Type* gpio, std::size_t from, std::size_t to)
+    void Gpio::ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to)
     {
         for (std::size_t line = from; line != to; ++line)
         {
@@ -579,8 +590,8 @@ namespace hal::tiva
             {
                 infra::ReplaceBit(gpio->ICR, true, line);
 
-                if (handlers[line])
-                    infra::EventDispatcher::Instance().Schedule(handlers[line]);
+                if (handlers[portIndex * 8 + line])
+                    infra::EventDispatcher::Instance().Schedule(handlers[portIndex * 8 + line]);
             }
         }
     }

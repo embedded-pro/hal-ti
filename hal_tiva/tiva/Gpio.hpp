@@ -236,7 +236,7 @@ namespace hal::tiva
         void ClearPinReservation(Port port, uint8_t index);
 
     private:
-        void ExtiInterrupt(GPIOA_Type* gpio, std::size_t from, std::size_t to);
+        void ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to);
 
         infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable;
         infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable;

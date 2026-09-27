@@ -216,9 +216,9 @@ namespace hal::tiva
             0x00000100,
         } };
 
-        static volatile PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
+        static volatile PwmChannelType* PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
         {
-            return reinterpret_cast<volatile PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
+            return reinterpret_cast<volatile PwmChannelType*>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
         struct Generator
