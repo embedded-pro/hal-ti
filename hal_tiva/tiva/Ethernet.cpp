@@ -479,6 +479,9 @@ namespace
     constexpr uint32_t DES1_RX_CTRL_BUFF1_SIZE_M = 0x00001FFF;
     constexpr uint32_t DES1_RX_CTRL_BUFF1_SIZE_S = 0;
 
+    constexpr uint32_t DES1_TX_CTRL_BUFF1_SIZE_M = 0x00001FFF;
+    constexpr uint32_t DES1_TX_CTRL_BUFF1_SIZE_S = 0;
+
     constexpr uint32_t EPHY_SCR_INPOL_EXT = 0x00000008;
     constexpr uint32_t EPHY_SCR_TINT_EXT = 0x00000004;
     constexpr uint32_t EPHY_SCR_INTEN_EXT = 0x00000002;
@@ -623,7 +626,7 @@ namespace
                                              EMAC_INT_EARLY_TRANSMIT |
                                              EMAC_INT_BUS_ERROR);
 
-    constexpr uint32_t EMAC_CONFIG = (EMAC_CONFIG_FULL_DUPLEX | EMAC_CONFIG_CHECKSUM_OFFLOAD | EMAC_CONFIG_7BYTE_PREAMBLE | EMAC_CONFIG_IF_GAP_96BITS | EMAC_CONFIG_USE_MACADDR0 | EMAC_CONFIG_SA_FROM_DESCRIPTOR | EMAC_CONFIG_BO_LIMIT_1024);
+    constexpr uint32_t EMAC_CONFIG = (EMAC_CONFIG_FULL_DUPLEX | EMAC_CONFIG_CHECKSUM_OFFLOAD | EMAC_CONFIG_STRIP_CRC | EMAC_CONFIG_7BYTE_PREAMBLE | EMAC_CONFIG_IF_GAP_96BITS | EMAC_CONFIG_USE_MACADDR0 | EMAC_CONFIG_SA_FROM_DESCRIPTOR | EMAC_CONFIG_BO_LIMIT_1024);
     constexpr uint32_t EMAC_MODE = (EMAC_MODE_RX_STORE_FORWARD | EMAC_MODE_TX_STORE_FORWARD | EMAC_MODE_TX_THRESHOLD_64_BYTES | EMAC_MODE_RX_THRESHOLD_64_BYTES);
 
     constexpr uint16_t DEV_ADDR(const uint16_t& address)
@@ -680,6 +683,9 @@ namespace hal::tiva
 
     Ethernet::~Ethernet()
     {
+        NVIC_DisableIRQ(EMAC0_IRQn);
+        NVIC_ClearPendingIRQ(EMAC0_IRQn);
+        EMAC0->DMAIM = 0;
         EMAC0->DMABUSMOD |= EMAC_DMABUSMOD_SWR;
         while (EMAC0->DMABUSMOD & EMAC_DMABUSMOD_SWR)
             ;
@@ -773,14 +779,14 @@ namespace hal::tiva
         auto status = GetInterruptStatus(true);
 
         if (status & EMAC_INT_LPI)
-            auto content = EMAC0->PMTCTLSTAT;
+            (void)EMAC0->LPICTLSTAT;
 
         if (status & EMAC_INT_POWER_MGMNT)
         {
             EnableTxInterrupts();
             EnableRxInterrupts();
 
-            auto content = EMAC0->PMTCTLSTAT & (EMAC_PMTCTLSTAT_WUPRX | EMAC_PMTCTLSTAT_MGKPRX | EMAC_PMTCTLSTAT_PWRDWN);
+            (void)EMAC0->PMTCTLSTAT;
 
             status &= ~EMAC_INT_POWER_MGMNT;
         }
@@ -789,7 +795,7 @@ namespace hal::tiva
             ClearInterruptPending(status);
 
         if (status & EMAC_INT_TIMESTAMP)
-            auto content = EMAC0->TIMSTAT;
+            (void)EMAC0->TIMSTAT;
 
         if (status)
             ProcessInterrupt(status);
@@ -804,15 +810,18 @@ namespace hal::tiva
     {
         infra::ReplaceBit(SYSCTL->SREMAC, true, 0);
 
-        for (uint32_t delay = 0; delay < 16; delay++)
+        for (volatile uint32_t delay = 0; delay < 16; delay++)
             ;
 
         infra::ReplaceBit(SYSCTL->SREMAC, false, 0);
+
+        while (!infra::IsBitSet(SYSCTL->PREMAC, 0))
+            ;
     }
 
     bool Ethernet::IsEMACReady() const
     {
-        return infra::IsBitSet(SYSCTL->RCGCEMAC, 0);
+        return infra::IsBitSet(SYSCTL->PREMAC, 0);
     }
 
     void Ethernet::EnableEPHYClock() const
@@ -824,10 +833,13 @@ namespace hal::tiva
     {
         infra::ReplaceBit(SYSCTL->SREPHY, true, 0);
 
-        for (uint32_t delay = 0; delay < 16; delay++)
+        for (volatile uint32_t delay = 0; delay < 16; delay++)
             ;
 
         infra::ReplaceBit(SYSCTL->SREPHY, false, 0);
+
+        while (!infra::IsBitSet(SYSCTL->PREPHY, 0))
+            ;
     }
 
     bool Ethernet::IsEPHYPresent() const
@@ -837,7 +849,7 @@ namespace hal::tiva
 
     bool Ethernet::IsEPHYReady() const
     {
-        return infra::IsBitSet(SYSCTL->RCGCEPHY, 0);
+        return infra::IsBitSet(SYSCTL->PREPHY, 0);
     }
 
     void Ethernet::SelectPhy(PhySelection phySelection, hal::LinkSpeed linkSpeed) const
@@ -1061,8 +1073,8 @@ namespace hal::tiva
 
     void Ethernet::GetEthernetMacConfiguration(uint32_t& config, uint32_t& mode, uint32_t& maxRxFrameSize)
     {
-        config = EMAC0->DMAOPMODE;
-        mode = EMAC0->CFG & (VALID_CONFIG_FLAGS | EMAC_CONFIG_TX_ENABLED | EMAC_CONFIG_RX_ENABLED);
+        config = EMAC0->CFG & (VALID_CONFIG_FLAGS | EMAC_CONFIG_TX_ENABLED | EMAC_CONFIG_RX_ENABLED);
+        mode = EMAC0->DMAOPMODE;
         auto value = EMAC0->WDOGTO;
 
         if (value & EMAC_WDOGTO_PWE)
@@ -1087,7 +1099,7 @@ namespace hal::tiva
 
     void Ethernet::ConfigureLPITimers(bool config, uint16_t lsTimerInMs, uint16_t twTimerInMs)
     {
-        auto timerValue = ((lsTimerInMs << EMAC_LPITIMERCTL_LST_S) & EMAC_LPITIMERCTL_LST_M) | twTimerInMs & EMAC_LPITIMERCTL_TWT_M;
+        auto timerValue = ((lsTimerInMs << EMAC_LPITIMERCTL_LST_S) & EMAC_LPITIMERCTL_LST_M) | (twTimerInMs & EMAC_LPITIMERCTL_TWT_M);
 
         EMAC0->LPITIMERCTL = timerValue;
 
@@ -1156,7 +1168,7 @@ namespace hal::tiva
             }
         }
 
-        if (interruptStatus & (EPHY_MISR1_SPEED | EPHY_MISR1_SPEED | EPHY_MISR1_ANC))
+        if (interruptStatus & (EPHY_MISR1_SPEED | EPHY_MISR1_DUPLEXM | EPHY_MISR1_ANC))
         {
             uint32_t config = 0;
             uint32_t mode = 0;
@@ -1183,8 +1195,9 @@ namespace hal::tiva
     {
         for (auto& descriptor : descriptors)
         {
-            descriptor.Desc0 = DES0_RX_CTRL_OWN;
+            descriptor.Desc0 = 0;
             descriptor.Desc1 = DES1_RX_CTRL_CHAINED;
+            descriptor.Desc2 = nullptr;
             descriptor.Desc3.link = &descriptor + 1;
             descriptor.Desc4 = 0;
         }
@@ -1247,10 +1260,8 @@ namespace hal::tiva
         descriptors[receiveDescriptorAllocatedIndex].Desc2 = buffer.begin();
         descriptors[receiveDescriptorAllocatedIndex].Desc0 |= DES0_RX_CTRL_OWN;
 
-#if 0 // Check if it is necessary...
         __DSB();
         EMAC0->RXPOLLD = 0;
-#endif
 
         ++receivedFramesAllocated;
         ++receiveDescriptorAllocatedIndex;
@@ -1279,7 +1290,8 @@ namespace hal::tiva
     void Ethernet::SendDescriptors::SendBuffer(infra::ConstByteRange data, bool last)
     {
         really_assert((descriptors[sendDescriptorIndex].Desc0 & DES0_TX_CTRL_OWN) == 0);
-        descriptors[sendDescriptorIndex].Desc1 = data.size();
+        really_assert(data.size() <= DES1_TX_CTRL_BUFF1_SIZE_M);
+        descriptors[sendDescriptorIndex].Desc1 = (data.size() << DES1_TX_CTRL_BUFF1_SIZE_S) & DES1_TX_CTRL_BUFF1_SIZE_M;
         descriptors[sendDescriptorIndex].Desc2 = const_cast<uint8_t*>(data.begin()); //NOSONAR
 
         if (sendFirst)
@@ -1298,7 +1310,10 @@ namespace hal::tiva
             descriptors[sendDescriptorIndex].Desc0 |= DES0_TX_CTRL_OWN;
 
         if (last)
+        {
+            sendDescriptorIndexLast = sendDescriptorIndex;
             descriptors[sendDescriptorIndexFirst].Desc0 |= DES0_TX_CTRL_OWN;
+        }
 
         __DSB();
         sendFirst = last;
@@ -1311,15 +1326,13 @@ namespace hal::tiva
 
     void Ethernet::SendDescriptors::SentFrame()
     {
-        uint32_t previousDescriptor = sendDescriptorIndex != 0 ? sendDescriptorIndex - 1 : descriptors.size() - 1;
-
-        bool sentDone = (descriptors[previousDescriptor].Desc0 & DES0_TX_CTRL_OWN) == 0;
+        bool sentDone = (descriptors[sendDescriptorIndexLast].Desc0 & DES0_TX_CTRL_OWN) == 0;
 
         really_assert(sentDone);
 
         if (sentDone)
         {
-            descriptors[previousDescriptor].Desc0 &= ~DES0_TX_CTRL_LAST_SEG;
+            descriptors[sendDescriptorIndexLast].Desc0 &= ~DES0_TX_CTRL_LAST_SEG;
             ethernetMac.EthernetMac::GetObserver().SentFrame();
         }
     }

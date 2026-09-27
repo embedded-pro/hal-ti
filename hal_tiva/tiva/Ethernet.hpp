@@ -97,6 +97,7 @@ namespace hal::tiva
 
             uint32_t sendDescriptorIndexFirst = 0;
             uint32_t sendDescriptorIndex = 0;
+            uint32_t sendDescriptorIndexLast = 0;
             bool sendFirst = true;
         };
 
