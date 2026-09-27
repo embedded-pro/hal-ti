@@ -8,9 +8,10 @@ namespace hal::tiva
 {
     namespace
     {
-        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;    // SSI Serial Clock Rate
-        constexpr const uint32_t SSI_CR0_SPH = 0x00000080;      // SSI Serial Clock Phase
-        constexpr const uint32_t SSI_CR0_SPO = 0x00000040;      // SSI Serial Clock Polarity
+        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;       // SSI Serial Clock Rate
+        constexpr const uint32_t SSI_CR0_SPH_SPO_M = 0x000000C0; // SSI Serial Clock Phase and Polarity
+        constexpr const uint32_t SSI_CR0_SPH = 0x00000080;       // SSI Serial Clock Phase
+        constexpr const uint32_t SSI_CR0_SPO = 0x00000040;       // SSI Serial Clock Polarity
         constexpr const uint32_t SSI_CR0_FRF_M = 0x00000030;    // SSI Frame Format Select
         constexpr const uint32_t SSI_CR0_FRF_MOTO = 0x00000000; // Freescale SPI Frame Format
         constexpr const uint32_t SSI_CR0_FRF_TI = 0x00000010;   // Synchronous Serial Frame Format
@@ -156,7 +157,7 @@ namespace hal::tiva
         ssiArray[ssiIndex]->CR1 |= SSI_CR1_EOT;                                                                                     /* Enable end of transmission */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;                                       /* Configure number of bits */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                    /* Configure to SPI freescale format */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                     /* Sets clock rate */
         ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div;                                          /* Sets prescaler */
 
@@ -179,13 +180,16 @@ namespace hal::tiva
         assert(sendData.size() == receiveData.size() || sendData.empty() || receiveData.empty());
         this->sendData = sendData;
         this->receiveData = receiveData;
-        sending = !sendData.empty();
-        receiving = !receiveData.empty();
 
-        if (!sending)
-            dummyToSend = receiveData.size();
-        if (!receiving)
-            dummyToReceive = sendData.size();
+        if (sendData.empty())
+            dummyToSend = static_cast<uint32_t>(receiveData.size());
+        else
+            dummyToSend = 0;
+
+        if (receiveData.empty())
+            dummyToReceive = static_cast<uint32_t>(sendData.size());
+        else
+            dummyToReceive = 0;
 
         really_assert(!spiInterruptRegistration);
         spiInterruptRegistration.emplace(irqArray[ssiIndex], [this]()
@@ -193,7 +197,8 @@ namespace hal::tiva
                 HandleInterrupt();
             });
 
-        ssiArray[ssiIndex]->IM |= SSI_IM_TXIM | SSI_IM_RXIM | SSI_IM_RORIM; /* Enable RX/TX interrupt */
+        StartBatch();
+        ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RORIM;
     }
 
     void SpiMaster::SetChipSelectConfigurator(ChipSelectConfigurator& configurator)
@@ -215,60 +220,70 @@ namespace hal::tiva
         communicationConfigurator = nullptr;
     }
 
-    void SpiMaster::HandleInterrupt()
+    void SpiMaster::StartBatch()
     {
-        uint32_t status = ssiArray[ssiIndex]->SR;
+        const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
+        batchSize = remaining < 8 ? remaining : 8;
 
-        if ((status & SSI_RIS_RORRIS))
+        for (uint32_t i = 0; i < batchSize; ++i)
         {
-            ssiArray[ssiIndex]->ICR |= SSI_ICR_RORIC;
-
-            really_assert(status & SSI_RIS_RORRIS);
-        }
-
-        if ((status & SSI_RIS_RXRIS))
-        {
-            if (dummyToReceive != 0)
+            if (!sendData.empty())
             {
-                (void)ssiArray[ssiIndex]->DR;
-                --dummyToReceive;
-            }
-            else if (receiving)
-            {
-                receiveData.front() = ssiArray[ssiIndex]->DR;
-                receiveData.pop_front();
-            }
-
-            receiving &= !receiveData.empty();
-
-            if (dummyToReceive == 0 && !receiving)
-                ssiArray[ssiIndex]->IM &= ~SSI_IM_RXIM;
-        }
-
-        if ((status & SSI_RIS_TXRIS) != 0)
-        {
-            if (dummyToSend != 0)
-            {
-                reinterpret_cast<volatile uint8_t&>(ssiArray[ssiIndex]->DR) = 0;
-                --dummyToSend;
-            }
-            else if (sending)
-            {
-                reinterpret_cast<volatile uint8_t&>(ssiArray[ssiIndex]->DR) = sendData.front();
+                ssiArray[ssiIndex]->DR = sendData.front();
                 sendData.pop_front();
             }
+            else
+            {
+                ssiArray[ssiIndex]->DR = 0;
+                --dummyToSend;
+            }
+        }
+    }
 
-            sending &= !sendData.empty();
+    void SpiMaster::HandleInterrupt()
+    {
+        const uint32_t mis = ssiArray[ssiIndex]->MIS;
 
-            // After the first transmit, disable interrupt on transmit buffer empty,
-            // so that a receive is done before each transmit
-            ssiArray[ssiIndex]->IM &= ~SSI_IM_TXIM;
+        if (mis & SSI_MIS_RORMIS)
+        {
+            ssiArray[ssiIndex]->ICR = SSI_ICR_RORIC;
+            really_assert(false);
         }
 
-        spiInterruptRegistration->ClearPending();
-
-        if (!sending && !receiving && dummyToSend == 0 && dummyToReceive == 0)
+        if ((mis & SSI_MIS_TXMIS) == 0)
         {
+            spiInterruptRegistration->ClearPending();
+            return;
+        }
+
+        for (uint32_t i = 0; i < batchSize; ++i)
+        {
+            while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE) == 0)
+            {
+            }
+
+            const uint32_t data = ssiArray[ssiIndex]->DR;
+            if (!receiveData.empty())
+            {
+                receiveData.front() = static_cast<uint8_t>(data);
+                receiveData.pop_front();
+            }
+            else if (dummyToReceive > 0)
+            {
+                --dummyToReceive;
+            }
+        }
+
+        const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
+        if (remaining > 0)
+        {
+            StartBatch();
+            spiInterruptRegistration->ClearPending();
+        }
+        else
+        {
+            ssiArray[ssiIndex]->IM = 0;
+            spiInterruptRegistration->ClearPending();
             spiInterruptRegistration = std::nullopt;
             if (chipSelectConfigurator && !continuedSession)
                 chipSelectConfigurator->EndSession();

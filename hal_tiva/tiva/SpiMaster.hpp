@@ -33,6 +33,7 @@ namespace hal::tiva
 
     private:
         void HandleInterrupt();
+        void StartBatch();
         void EnableClock();
         void DisableClock();
 
@@ -52,10 +53,9 @@ namespace hal::tiva
         std::optional<hal::cortex::ImmediateInterruptHandler> spiInterruptRegistration;
         infra::ConstByteRange sendData;
         infra::ByteRange receiveData;
-        bool sending;
-        bool receiving;
         uint32_t dummyToSend = 0;
         uint32_t dummyToReceive = 0;
+        uint32_t batchSize = 0;
         bool continuedSession = false;
     };
 }
