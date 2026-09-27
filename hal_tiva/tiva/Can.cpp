@@ -430,7 +430,7 @@ namespace
     void ApplyAcceptAllFilter(CAN0_Type& can)
     {
         can.IF2MSK1 = 0;
-        can.IF2MSK2 = ifmsk::Mxtd;
+        can.IF2MSK2 = 0;
         can.IF2ARB1 = 0;
         can.IF2ARB2 = ifarb::MsgVal;
     }
@@ -470,9 +470,17 @@ namespace
 
     void ClearMessageObjectInterrupt(CAN0_Type& can, uint32_t objectId)
     {
-        WaitWhileBusy(can.IF1CRQ);
-        can.IF1CMSK = ifcmsk::ClrIntPnd;
-        can.IF1CRQ = objectId & ifcrq::MnumMask;
+        WaitWhileBusy(can.IF2CRQ);
+        can.IF2CMSK = ifcmsk::ClrIntPnd;
+        can.IF2CRQ = objectId & ifcrq::MnumMask;
+    }
+
+    void ClearTxRequestViaIf2(CAN0_Type& can)
+    {
+        WaitWhileBusy(can.IF2CRQ);
+        can.IF2CMSK = ifcmsk::WrNRd | ifcmsk::Control;
+        can.IF2MCTL = 0;
+        can.IF2CRQ = txMessageObject;
     }
 
     RxReadResult ReadRxMessageObject(CAN0_Type& can)
@@ -499,11 +507,7 @@ namespace
 namespace hal::tiva
 {
     Can::Can(infra::MemoryRange<CanRxEntry> rxStorage, uint8_t canIndex, GpioPin& rxPin, GpioPin& txPin, const Config& config, const infra::Function<void(Error)>& onError)
-        : ImmediateInterruptHandler(peripheralIrqCan[canIndex], config.interruptPriority, [this]()
-              {
-                  HandleInterrupt();
-              })
-        , rxQueue(rxStorage, [this]()
+        : rxQueue(rxStorage, [this]()
               {
                   ProcessRxBuffer();
               })
@@ -530,13 +534,17 @@ namespace hal::tiva
 
         EnableInterrupts(can);
         ExitInitMode(can);
+
+        NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(peripheralIrqCan[canIndex]));
+        handler.emplace(peripheralIrqCan[canIndex], this->config.interruptPriority, [this]()
+            {
+                HandleInterrupt();
+            });
     }
 
     Can::~Can()
     {
-        const auto irq = static_cast<IRQn_Type>(peripheralIrqCan[canIndex]);
-        NVIC_DisableIRQ(irq);
-        NVIC_ClearPendingIRQ(irq);
+        handler.reset();
 
         auto& can = Peripheral();
 
@@ -611,6 +619,7 @@ namespace hal::tiva
         if ((status & sts::BOff) != 0)
         {
             ScheduleError(Error::busOff);
+            ClearTxRequestViaIf2(can);
             NotifySendFailedFromInterrupt();
 
             if (config.autoBusOffRecovery)

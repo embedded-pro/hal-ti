@@ -22,7 +22,6 @@ namespace hal::tiva
 
     class Can
         : public hal::Can
-        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         template<std::size_t StorageSize>
@@ -102,5 +101,6 @@ namespace hal::tiva
         std::atomic<bool> sending{ false };
         bool prevEWarn = false;
         bool prevEPass = false;
+        std::optional<hal::cortex::ImmediateInterruptHandler> handler;
     };
 }
