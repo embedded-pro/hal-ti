@@ -18,7 +18,7 @@ extern "C"
 
     void HardwareInitialization()
     {
-        static hal::cortex::InterruptTable::WithStorage<128> interruptTable;
+        static hal::cortex::InterruptTable::WithStorage<155> interruptTable;
         static hal::tiva::Gpio gpio{ hal::tiva::pinoutTableDefault, hal::tiva::analogTableDefault };
     }
 }

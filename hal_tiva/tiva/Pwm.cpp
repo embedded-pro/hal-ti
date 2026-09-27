@@ -122,10 +122,12 @@ namespace
 
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTCMPAU_ONE  = 0x00000030;
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTCMPAD_ZERO = 0x00000080;
+    constexpr const uint32_t PWM_CHANNEL_GENA_ACTLOAD_ZERO  = 0x00000008;
     constexpr const uint32_t PWM_CHANNEL_GENA_ACTLOAD_ONE   = 0x0000000C;
 
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTCMPBU_ONE  = 0x00000300;
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTCMPBD_ZERO = 0x00000800;
+    constexpr const uint32_t PWM_CHANNEL_GENB_ACTLOAD_ZERO  = 0x00000008;
     constexpr const uint32_t PWM_CHANNEL_GENB_ACTLOAD_ONE   = 0x0000000C;
 
     constexpr const uint32_t PWM_CHANNEL_DBCTL_ENABLE = 0x00000001;
@@ -181,6 +183,13 @@ namespace
         PWM_INTEN_INTFAULT1,
         PWM_INTEN_INTFAULT2,
         PWM_INTEN_INTFAULT3,
+    } };
+
+    constexpr const std::array<uint32_t, 4> generatorIntEnBit = { {
+        0x00000001u,
+        0x00000002u,
+        0x00000004u,
+        0x00000008u,
     } };
 
     constexpr const std::array<uint32_t, 7> clockDivisor = { {
@@ -332,6 +341,16 @@ namespace hal::tiva
 
         peripheralPwm[pwmIndex]->INTEN = 0;
 
+        uint32_t invertMask = 0;
+        for (const auto& gen : generators)
+        {
+            if (config.channelAInverted)
+                invertMask |= gen.enable & 0x55u;
+            if (config.channelBInverted)
+                invertMask |= gen.enable & 0xAAu;
+        }
+        peripheralPwm[pwmIndex]->INVERT &= ~invertMask;
+
         DisableClock();
     }
 
@@ -342,6 +361,8 @@ namespace hal::tiva
 
         for (auto& gen : generators)
             GeneratorConfiguration(gen);
+
+        ConfigureInvert();
 
         if (!config.interruptConfig.has_value())
             return;
@@ -359,6 +380,7 @@ namespace hal::tiva
 
             auto* channel = PwmChannel(peripheralPwmArray[pwmIndex], normalSource.generator);
             channel->INTEN |= normalInterruptBit[static_cast<uint8_t>(normalSource.source)];
+            peripheralPwm[pwmIndex]->INTEN |= generatorIntEnBit[genIdx];
 
             if (!generatorHandlers[genIdx].has_value())
                 generatorHandlers[genIdx].emplace(*this, peripheralPwmIrqs[pwmIndex].generatorIrqs[genIdx], interruptConfig.priority, normalSource.generator);
@@ -523,10 +545,30 @@ namespace hal::tiva
         if (width > load)
             width = load;
 
-        if (generator.a)
-            generator.address->CMPA = load - width;
-        if (generator.b)
-            generator.address->CMPB = load - width;
+        if (width == 0)
+        {
+            generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ZERO;
+            generator.address->GENB = PWM_CHANNEL_GENB_ACTLOAD_ZERO;
+        }
+        else if (width == load)
+        {
+            generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ONE;
+            generator.address->GENB = PWM_CHANNEL_GENB_ACTLOAD_ONE;
+        }
+        else
+        {
+            generator.address->GENA = IsCenterAligned(config.control.mode)
+                ? (PWM_CHANNEL_GENA_ACTCMPAU_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO)
+                : (PWM_CHANNEL_GENA_ACTLOAD_ONE  | PWM_CHANNEL_GENA_ACTCMPAD_ZERO);
+            generator.address->GENB = IsCenterAligned(config.control.mode)
+                ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO)
+                : (PWM_CHANNEL_GENB_ACTLOAD_ONE  | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
+
+            if (generator.a)
+                generator.address->CMPA = load - width;
+            if (generator.b)
+                generator.address->CMPB = load - width;
+        }
 
         EnableOutput(generator);
         EnableGenerator(generator);
@@ -562,6 +604,19 @@ namespace hal::tiva
     void Pwm::DisableClock() const
     {
         SYSCTL->RCGCPWM &= ~(1 << pwmIndex);
+    }
+
+    void Pwm::ConfigureInvert() const
+    {
+        uint32_t invertMask = 0;
+        for (const auto& gen : generators)
+        {
+            if (config.channelAInverted)
+                invertMask |= gen.enable & 0x55u;
+            if (config.channelBInverted)
+                invertMask |= gen.enable & 0xAAu;
+        }
+        peripheralPwm[pwmIndex]->INVERT |= invertMask;
     }
 
     void Pwm::HandleGeneratorIrq(GeneratorIndex gen)

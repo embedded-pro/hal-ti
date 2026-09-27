@@ -251,7 +251,7 @@ namespace hal::tiva
         };
 
         uint8_t pwmIndex;
-        const Config& config;
+        Config config;
         infra::BoundedVector<Generator>::WithMaxSize<4> generators;
         infra::Function<void(NormalEvent)> onNormalInterrupt;
         infra::Function<void(FaultEvent)> onFault;
@@ -272,6 +272,7 @@ namespace hal::tiva
         uint32_t GetLoad(const Generator& generator) const;
         void EnableClock() const;
         void DisableClock() const;
+        void ConfigureInvert() const;
         void HandleGeneratorIrq(GeneratorIndex gen);
         void HandleFaultIrq();
     };

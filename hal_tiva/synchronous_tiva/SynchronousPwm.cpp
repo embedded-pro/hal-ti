@@ -448,6 +448,17 @@ namespace hal::tiva
     SynchronousPwm::~SynchronousPwm()
     {
         Stop();
+
+        uint32_t invertMask = 0;
+        for (const auto& gen : generators)
+        {
+            if (config.channelAInverted)
+                invertMask |= gen.enable & 0x55u;
+            if (config.channelBInverted)
+                invertMask |= gen.enable & 0xAAu;
+        }
+        peripheralPwm[pwmIndex]->INVERT &= ~invertMask;
+
         DisableClock();
     }
 
@@ -458,6 +469,8 @@ namespace hal::tiva
 
         for (auto& generator : generators)
             GeneratorConfiguration(generator);
+
+        ConfigureInvert();
     }
 
     void SynchronousPwm::SetBaseFrequency(hal::Hertz baseFrequency)
@@ -555,10 +568,30 @@ namespace hal::tiva
         if (width > load)
             width = load;
 
-        if (generator.a)
-            generator.address->CMPA = load - width;
-        if (generator.b)
-            generator.address->CMPB = load - width;
+        if (width == 0)
+        {
+            generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ZERO;
+            generator.address->GENB = PWM_CHANNEL_GENB_ACTLOAD_ZERO;
+        }
+        else if (width == load)
+        {
+            generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ONE;
+            generator.address->GENB = PWM_CHANNEL_GENB_ACTLOAD_ONE;
+        }
+        else
+        {
+            generator.address->GENA = IsCenterAligned(config.control.mode)
+                ? (PWM_CHANNEL_GENA_ACTCMPAU_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO)
+                : (PWM_CHANNEL_GENA_ACTLOAD_ONE  | PWM_CHANNEL_GENA_ACTCMPAD_ZERO);
+            generator.address->GENB = IsCenterAligned(config.control.mode)
+                ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO)
+                : (PWM_CHANNEL_GENB_ACTLOAD_ONE  | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
+
+            if (generator.a)
+                generator.address->CMPA = load - width;
+            if (generator.b)
+                generator.address->CMPB = load - width;
+        }
 
         EnableOutput(generator);
         EnableGenerator(generator);
@@ -594,6 +627,19 @@ namespace hal::tiva
     void SynchronousPwm::DisableClock() const
     {
         SYSCTL->RCGCPWM &= ~(1 << pwmIndex);
+    }
+
+    void SynchronousPwm::ConfigureInvert() const
+    {
+        uint32_t invertMask = 0;
+        for (const auto& gen : generators)
+        {
+            if (config.channelAInverted)
+                invertMask |= gen.enable & 0x55u;
+            if (config.channelBInverted)
+                invertMask |= gen.enable & 0xAAu;
+        }
+        peripheralPwm[pwmIndex]->INVERT |= invertMask;
     }
 
     void SynchronousPwm::EnableDeadBand(Generator& generator) const
