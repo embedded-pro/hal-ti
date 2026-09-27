@@ -88,7 +88,7 @@ namespace hal::tiva
         void HandleIrq();
 
         uint8_t index;
-        const Config& config;
+        Config config;
         std::optional<AnalogPin> vinPositivePin;
         std::optional<AnalogPin> vinNegativePin;
         std::optional<PeripheralPin> outputPeripheralPin;

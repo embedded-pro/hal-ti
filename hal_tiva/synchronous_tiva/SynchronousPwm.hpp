@@ -135,9 +135,9 @@ namespace hal::tiva
             0x00000100, /* Channel 3 */
         } };
 
-        static volatile PwmChannelType* const PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
+        static volatile PwmChannelType* PwmChannel(uint32_t pwmBaseAddress, GeneratorIndex generatorIndex)
         {
-            return reinterpret_cast<volatile PwmChannelType* const>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
+            return reinterpret_cast<volatile PwmChannelType*>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
         struct Generator
@@ -155,7 +155,6 @@ namespace hal::tiva
         uint8_t pwmIndex;
         const Config& config;
         infra::BoundedVector<Generator>::WithMaxSize<4> generators;
-        infra::MemoryRange<PWM0_Type* const> pwmArray;
 
     private:
         void Initialize();

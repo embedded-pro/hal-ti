@@ -19,6 +19,10 @@ endif()
 if (HAL_TI_STANDALONE)
     set(EMIL_INCLUDE_FREERTOS ${HAL_TI_BUILD_EXAMPLES_FREERTOS})
 
+    if (HAL_TI_BUILD_EXAMPLES_FREERTOS)
+        set(FREERTOS_CONFIG_FILE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples/freertos/config" CACHE STRING "")
+    endif()
+
     include(FetchContent)
 
     FetchContent_Declare(

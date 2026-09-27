@@ -1,4 +1,6 @@
 #include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
+#include "infra/util/ReallyAssert.hpp"
+#include <limits>
 
 #if defined(TM4C129)
 #define NUMBER_OF_QEI 1
@@ -108,6 +110,15 @@ namespace hal::tiva
         EnableClock();
 
         qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
+
+        {
+            const auto us = std::chrono::duration_cast<std::chrono::microseconds>(config.velocityPeriod).count();
+            really_assert(us > 0);
+            const uint64_t ticks = (static_cast<uint64_t>(SystemCoreClock) * static_cast<uint64_t>(us)) / 1000000u;
+            really_assert(ticks > 0 && ticks <= std::numeric_limits<uint32_t>::max());
+            qeiArray[qeiIndex]->LOAD = static_cast<uint32_t>(ticks) - 1u;
+        }
+
         qeiArray[qeiIndex]->CTL |= QEI_CTL_VELEN;
 
         SetRegister(config.invertPhaseA, qeiArray[qeiIndex]->CTL, QEI_CTL_INVA);
@@ -119,8 +130,8 @@ namespace hal::tiva
         SetRegister(config.signalMode == Config::SignalMode::clockAndDirection, qeiArray[qeiIndex]->CTL, QEI_CTL_SIGMODE);
 
         qeiArray[qeiIndex]->MAXPOS = config.resolution - 1;
-        qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
         qeiArray[qeiIndex]->POS = config.offset;
+        qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
     }
 
     QuadratureEncoder::~QuadratureEncoder()

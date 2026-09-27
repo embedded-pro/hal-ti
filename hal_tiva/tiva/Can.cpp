@@ -534,15 +534,14 @@ namespace hal::tiva
 
     Can::~Can()
     {
-        auto& can = Peripheral();
-
-        EnterInitMode(can);
-        DisableInterrupts(can);
-
         const auto irq = static_cast<IRQn_Type>(peripheralIrqCan[canIndex]);
         NVIC_DisableIRQ(irq);
         NVIC_ClearPendingIRQ(irq);
 
+        auto& can = Peripheral();
+
+        EnterInitMode(can);
+        DisableInterrupts(can);
         DisablePeripheralClock(canIndex);
     }
 
@@ -599,11 +598,15 @@ namespace hal::tiva
         if (auto lecError = LecToError(status & sts::LecMask))
             ScheduleError(*lecError);
 
-        if ((status & sts::EWarn) != 0)
+        const bool ewarn = (status & sts::EWarn) != 0;
+        if (ewarn && !prevEWarn)
             ScheduleError(Error::errorWarning);
+        prevEWarn = ewarn;
 
-        if ((status & sts::EPass) != 0)
+        const bool epass = (status & sts::EPass) != 0;
+        if (epass && !prevEPass)
             ScheduleError(Error::errorPassive);
+        prevEPass = epass;
 
         if ((status & sts::BOff) != 0)
         {

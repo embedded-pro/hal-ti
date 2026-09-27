@@ -345,19 +345,19 @@ namespace
     uint32_t GetClockDivisor(PWM0_Type* const pwmBase)
     {
 #if defined(TM4C123)
-        volatile auto result = (SYSCTL->RCC & SYSCTL_RCC_PWMDIV_M) >> 17;
+        auto result = (SYSCTL->RCC & SYSCTL_RCC_PWMDIV_M) >> 17;
 
         if (!(SYSCTL->RCC & SYSCTL_RCC_USEPWMDIV))
             return 1;
         else
-            return 1U << ((result >> 1) + 1);
+            return 1U << ((result > 5U ? 5U : result) + 1);
 #else
         auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
 
         if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
             return 1;
         else
-            return 1U << (result + 1);
+            return 1U << ((result > 5U ? 5U : result) + 1);
 #endif
     }
 
@@ -464,7 +464,7 @@ namespace hal::tiva
     {
         auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
-        really_assert(load <= 0xffff);
+        really_assert(load > 0 && load <= 0xffff);
 
         for (auto& generator : generators)
             if (generator.a || generator.b)

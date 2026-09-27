@@ -161,10 +161,10 @@ namespace hal::tiva
     constexpr std::array<const Gpio::PinPosition, 12> pinoutTableI2cSclPins = { {
         { 0, Port::B, 2, 0x02 },
         { 1, Port::G, 0, 0x02 },
-        { 2, Port::L, 0, 0x02 },
+        { 2, Port::L, 1, 0x02 },
         { 2, Port::P, 5, 0x02 },
         { 2, Port::N, 5, 0x03 },
-        { 3, Port::K, 5, 0x02 },
+        { 3, Port::K, 4, 0x02 },
         { 4, Port::K, 6, 0x02 },
         { 5, Port::B, 0, 0x02 },
         { 5, Port::B, 4, 0x02 },
@@ -281,7 +281,7 @@ namespace hal::tiva
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableCan = pinoutTableCanArray;
 
     constexpr std::array<const Gpio::PinPosition, 4> pinoutTablePwmFaultPins = { {
-        { 0, Port::F, 0, 0x06 },
+        { 0, Port::F, 4, 0x06 },
         { 0, Port::K, 6, 0x06 },
         { 0, Port::K, 7, 0x06 },
         { 0, Port::L, 0, 0x06 },

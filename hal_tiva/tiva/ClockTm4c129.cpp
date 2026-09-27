@@ -302,7 +302,7 @@ namespace
 
         uint32_t mainOscillatorControl = SYSCTL->MOSCCTL & ~(SYSCTL_MOSCCTL_OSCRNG | SYSCTL_MOSCCTL_PWRDN | SYSCTL_MOSCCTL_NOXTAL);
 
-        if (crystalIndex >= (CrystalToIndexArray(hal::tiva::crystalFrequency::_10_MHz) - (CrystalToIndexArray(hal::tiva::crystalFrequency::_5_MHz))))
+        if (crystalIndex >= CrystalToIndexArray(hal::tiva::crystalFrequency::_10_MHz))
             mainOscillatorControl |= SYSCTL_MOSCCTL_OSCRNG;
 
         SYSCTL->MOSCCTL = mainOscillatorControl;
@@ -390,8 +390,6 @@ namespace hal::tiva
         uint32_t oscillator = 0;
         uint32_t oscillatorSelection = 0;
         uint32_t crystalIndex = CrystalToIndexArray(hseValue);
-
-        SYSCTL->MOSCCTL = SYSCTL_MOSC_HIGHFREQ;
 
         switch (oscSource)
         {

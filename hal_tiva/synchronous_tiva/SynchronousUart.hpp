@@ -40,6 +40,12 @@ namespace hal::tiva
         bool Full() const;
         bool Empty() const;
 
+        void Initialization(uint32_t baudrate, HwFlowControl flowControl) const;
+        void EnableClock() const;
+        void DisableClock() const;
+        void EnableUart() const;
+        void DisableUart() const;
+
     private:
         uint8_t uartIndex;
         PeripheralPin uartTx;
@@ -50,6 +56,7 @@ namespace hal::tiva
         infra::ByteRange readBuffer;
         std::atomic<uint8_t*> contentsBegin;
         std::atomic<uint8_t*> contentsEnd;
+        infra::MemoryRange<UART0_Type* const> uartArray;
     };
 
     class SynchronousUartSendOnly
@@ -70,12 +77,12 @@ namespace hal::tiva
             _4800_bps,
             _9600_bps,
             _19200_bps,
-            _38600_bps,
-            _56700_bps,
+            _38400_bps,
+            _57600_bps,
             _115200_bps,
             _230400_bps,
             _460800_bps,
-            _921000_bps,
+            _921600_bps,
         };
 
         enum class Parity : uint32_t

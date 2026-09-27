@@ -106,7 +106,7 @@ extern unsigned _estack;
 #pragma GCC diagnostic ignored "-Wpedantic"
 
 __attribute__((section(".isr_vector"))) void (*const g_pfnVectors[])(void) = {
-    (void*)&_estack,       /*!< The initial stack pointer, 0x20008000 32K */
+    (void*)&_estack,       /*!< The initial stack pointer, 0x20040000 256K */
     Reset_Handler,         /*!< The reset handler */
     Default_Handler,       /*!< NMI_Handler,               The NMI handler */
     HardFault_Handler,     /*!< HardFault_Handler,         The hard fault handler */
@@ -307,8 +307,6 @@ void Reset_Handler()
     //
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));
 
-    __asm volatile("cpsie i");
-
     //
     // C/C++ objects, sections .fini, .fini_array and .dtors.
     //
@@ -318,6 +316,9 @@ void Reset_Handler()
     // Call the hardware's initialization function.
     //
     HardwareInitialization();
+
+    // Interrupts stay masked until the interrupt table exists, otherwise an early IRQ would dispatch through it
+    __asm volatile("cpsie i");
 
     //
     // Call the application's entry point.

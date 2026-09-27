@@ -1,10 +1,9 @@
-#include "generated/tiva/PinoutTableDefault.hpp"
-#include "hal_tiva/instantiations/NucleoUi.hpp"
-#include "hal_tiva/instantiations/StmEventInfrastructure.hpp"
+#include "hal/interfaces/Gpio.hpp"
+#include "hal_tiva/instantiations/LaunchPadBsp.hpp"
+#include "infra/timer/Timer.hpp"
 #include "osal/Osal.hpp"
 #include "osal/freertos/LowPowerStrategyFreeRtos.hpp"
 #include "osal/freertos_system_time/TimerServiceFreeRtos.hpp"
-#include "services/peripheral/DebugLed.hpp"
 #include <chrono>
 #include <thread>
 
@@ -29,12 +28,21 @@ extern "C" [[gnu::naked]] void SysTick_Handler()
     asm("b xPortSysTickHandler");
 };
 
+namespace
+{
+    hal::tiva::GpioPin& SecondLed(instantiations::LaunchPad& launchPad)
+    {
+#if defined(TM4C123)
+        return launchPad.ui.ledRed;
+#else
+        return launchPad.ui.led2;
+#endif
+    }
+}
+
 int main()
 {
-    HAL_Init();
-
-    // Configure your clock here
-    // ConfigureDefaultClockNucleo767ZI();
+    static instantiations::LaunchPad launchPad;
 
     static hal::TimerServiceFreeRtos timerService;
     static hal::LowPowerStrategyFreeRtos lowPowerStrategy;
@@ -42,12 +50,9 @@ int main()
 
     osal::Init();
 
-    static main_::Nucleo144Ui ui;
-    static hal::OutputPin pinGreen{ ui.ledGreen };
-
     static std::thread t1([]()
         {
-            hal::OutputPin pin(ui.ledBlue);
+            hal::OutputPin pin(launchPad.DebugLed());
 
             while (true)
             {
@@ -60,7 +65,7 @@ int main()
 
     static std::thread t2([]()
         {
-            hal::OutputPin pin(ui.ledRed);
+            hal::OutputPin pin(SecondLed(launchPad));
 
             infra::TimerRepeating toggle(500ms, [&]()
                 {

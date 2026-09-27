@@ -100,5 +100,7 @@ namespace hal::tiva
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
         std::atomic<bool> sending{ false };
+        bool prevEWarn = false;
+        bool prevEPass = false;
     };
 }

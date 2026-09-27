@@ -60,6 +60,13 @@ namespace hal::tiva
             // Wait for peripheral clock to be ready
         }
 
+        while ((EEPROM->EEDONE & EedoneWorking) != 0)
+        {
+            // Wait for any in-progress operation before reset
+        }
+
+        AssertNoEepromErrors();
+
         SYSCTL->SREEPROM |= 1u;
         SYSCTL->SREEPROM &= ~1u;
 
@@ -92,10 +99,11 @@ namespace hal::tiva
 
     Eeprom::~Eeprom()
     {
+        NVIC_DisableIRQ(FLASH_CTRL_IRQn);
+        NVIC_ClearPendingIRQ(FLASH_CTRL_IRQn);
         EEPROM->EEINT = 0u;
         FLASH_CTRL->FCIM &= ~FlashFcimEeprom;
         ClearEepromInterrupt();
-        NVIC_DisableIRQ(FLASH_CTRL_IRQn);
         DisableClock();
     }
 

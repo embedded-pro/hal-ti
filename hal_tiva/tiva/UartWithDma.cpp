@@ -7,10 +7,12 @@ namespace hal::tiva
     namespace
     {
         constexpr const uint32_t UART_FR_RXFE = 0x00000010;      // Receive FIFO Empty
+        constexpr const uint32_t UART_RIS_OERIS = 0x00000400;    // UART Overrun Error Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMARXRIS = 0x00010000; // Receive DMA Raw Interrupt Status
         constexpr const uint32_t UART_RIS_RTRIS = 0x00000040;    // UART Receive Time-Out Raw Interrupt Status
 
+        constexpr const uint32_t UART_ICR_OEIC = 0x00000400;    // Overrun Error Interrupt Clear
         constexpr const uint32_t UART_ICR_DMATXIC = 0x00020000; // Transmit DMA Interrupt Clear
         constexpr const uint32_t UART_ICR_DMARXIC = 0x00010000; // Receive DMA Interrupt Clear
         constexpr const uint32_t UART_ICR_RTIC = 0x00000040;    // Receive Time-Out Interrupt Clear
@@ -60,6 +62,8 @@ namespace hal::tiva
 
     UartWithDma::~UartWithDma()
     {
+        Unregister();
+        uartArray[uartIndex]->IM = 0;
         DisableTxDma();
         DisableRxDma();
         DisableUart();
@@ -113,11 +117,7 @@ namespace hal::tiva
             SendData();
 
         if (sendData.empty())
-        {
-            sending = false;
-            infra::EventDispatcher::Instance().Schedule(transferDataComplete);
-            transferDataComplete = nullptr;
-        }
+            TransferComplete();
     }
 
     void UartWithDma::ProcessDmaRx() const
@@ -141,10 +141,10 @@ namespace hal::tiva
 
     void UartWithDma::ProcessRxTimeout() const
     {
+        dmaRx.StopTransfer();
         bool fillingAlternate = dmaRx.IsPrimaryTransferCompleted();
         auto activeBuffer = fillingAlternate ? rxBufferAlternate : rxBufferPrimary;
         std::size_t bytesReceived = activeBuffer.size() - dmaRx.RemainingTransfers(fillingAlternate);
-        dmaRx.StopTransfer();
 
         while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
         {
@@ -164,6 +164,22 @@ namespace hal::tiva
         auto rawStatus = InterruptStatus();
         auto maskedStatus = MaskedInterruptStatus();
 
+        if (rawStatus & UART_RIS_OERIS)
+            InterruptClear(UART_ICR_OEIC);
+
+#if defined(TM4C123)
+        if (dmaTx.IsCompletionPending())
+        {
+            dmaTx.ClearCompletion();
+            ProcessDmaTx();
+        }
+
+        if (dmaRx.IsCompletionPending())
+        {
+            dmaRx.ClearCompletion();
+            ProcessDmaRx();
+        }
+#else
         if (rawStatus & UART_RIS_DMATXRIS)
         {
             InterruptClear(UART_ICR_DMATXIC);
@@ -175,6 +191,7 @@ namespace hal::tiva
             InterruptClear(UART_ICR_DMARXIC);
             ProcessDmaRx();
         }
+#endif
 
         if (maskedStatus & UART_RIS_RTRIS)
         {

@@ -220,13 +220,13 @@ namespace
         if (!(SYSCTL->RCC & SYSCTL_RCC_USEPWMDIV))
             return 1;
         else
-            return 1U << (result + 1);
+            return 1U << ((result > 5U ? 5U : result) + 1);
 #else
         auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
         if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
             return 1;
         else
-            return 1U << (result + 1);
+            return 1U << ((result > 5U ? 5U : result) + 1);
 #endif
     }
 
@@ -321,16 +321,16 @@ namespace hal::tiva
 
     Pwm::~Pwm()
     {
+        for (auto& h : generatorHandlers)
+            h.reset();
+        faultHandler.reset();
+
         Stop();
 
         for (auto& gen : generators)
             gen.address->INTEN &= ~PWM_CHANNEL_ISC_NORMAL_MASK;
 
         peripheralPwm[pwmIndex]->INTEN = 0;
-
-        for (auto& h : generatorHandlers)
-            h.reset();
-        faultHandler.reset();
 
         DisableClock();
     }

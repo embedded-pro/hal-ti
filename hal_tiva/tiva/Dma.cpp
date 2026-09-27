@@ -130,16 +130,16 @@ namespace hal::tiva
             auto mask = 1 << channelNumber;
 
             if (attributes.useBurst)
-                UDMA->USEBURSTSET |= mask;
+                UDMA->USEBURSTSET = mask;
 
             if (attributes.alternate)
-                UDMA->ALTSET |= mask;
+                UDMA->ALTSET = mask;
 
             if (attributes.highPriority)
-                UDMA->PRIOSET |= mask;
+                UDMA->PRIOSET = mask;
 
             if (attributes.requestMask)
-                UDMA->REQMASKSET |= mask;
+                UDMA->REQMASKSET = mask;
         }
 
         void ChannelAttributeDisable(uint8_t channelNumber, DmaChannel::Attributes attributes)
@@ -148,16 +148,16 @@ namespace hal::tiva
             auto mask = 1 << channelNumber;
 
             if (attributes.useBurst)
-                UDMA->USEBURSTCLR |= mask;
+                UDMA->USEBURSTCLR = mask;
 
             if (attributes.alternate)
-                UDMA->ALTCLR |= mask;
+                UDMA->ALTCLR = mask;
 
             if (attributes.highPriority)
-                UDMA->PRIOCLR |= mask;
+                UDMA->PRIOCLR = mask;
 
             if (attributes.requestMask)
-                UDMA->REQMASKCLR |= mask;
+                UDMA->REQMASKCLR = mask;
         }
 
         void ChannelControlSet(uint8_t channelNumber, const DmaChannel::ControlBlock& control)
@@ -328,8 +328,23 @@ namespace hal::tiva
     {
         auto controlArray = reinterpret_cast<volatile Control*>(UDMA->CTLBASE);
         auto controlIndex = alternate ? channel.number + 32 : channel.number;
-        return ((controlArray[controlIndex].channelControl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
+        auto ctrl = controlArray[controlIndex].channelControl;
+        if ((ctrl & UDMA_CHCTL_XFERMODE_M) == static_cast<uint32_t>(Transfer::stop))
+            return 0;
+        return ((ctrl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
     }
+
+#if defined(TM4C123)
+    bool DmaChannel::IsCompletionPending() const
+    {
+        return (UDMA->CHIS & (1u << channel.number)) != 0;
+    }
+
+    void DmaChannel::ClearCompletion() const
+    {
+        UDMA->CHIS = 1u << channel.number;
+    }
+#endif
 
     void DmaChannel::ForceRequest() const
     {

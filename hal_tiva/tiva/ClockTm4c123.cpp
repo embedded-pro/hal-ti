@@ -338,12 +338,12 @@ namespace
         12000000, /* 17 */
         12288000, /* 18 */
         13560000, /* 19 */
-        13560000, /* 20 */
-        14318180, /* 21 */
-        16000000, /* 22 */
-        16384000, /* 23 */
-        18000000, /* 24 */
-        20000000, /* 25 */
+        14318180, /* 20 */
+        16000000, /* 21 */
+        16384000, /* 22 */
+        18000000, /* 23 */
+        20000000, /* 24 */
+        24000000, /* 25 */
         25000000, /* 26 */
         0,        /* 27 */
         0,        /* 28 */
@@ -459,6 +459,8 @@ namespace
                 if ((SYSCTL->PLLSTAT & SYSCTL_PLLSTAT_LOCK_B) != 0)
                     break;
 
+            really_assert((SYSCTL->PLLSTAT & SYSCTL_PLLSTAT_LOCK_B) != 0);
+
             rcc &= ~(SYSCTL_RCC_BYPASS_B);
             rcc2 &= ~(SYSCTL_RCC2_BYPASS2_B);
         }
@@ -477,7 +479,7 @@ namespace
         switch ((rcc2 & SYSCTL_RCC2_USERCC2_B) != 0 ? (rcc2 & SYSCTL_RCC2_OSCSRC2_M) : (rcc & SYSCTL_RCC_OSCSRC_M))
         {
             case SYSCTL_RCC_OSCSRC_MAIN:
-                return crystalLookupTable.at((((rcc & SYSCTL_RCC_XTAL_M) >> SYSCTL_RCC_XTAL_S) & 0x1F) + 1);
+                return crystalLookupTable.at(((rcc & SYSCTL_RCC_XTAL_M) >> SYSCTL_RCC_XTAL_S) & 0x1F);
                 break;
             case SYSCTL_RCC_OSCSRC_INT:
                 return 16000000;
@@ -544,12 +546,14 @@ namespace
 
         SystemCoreClock = CoreFrequency(rcc, rcc2, inputFrequency);
 
-        really_assert(SystemCoreClock == 80000000);
+        really_assert(SystemCoreClock != 0 && SystemCoreClock <= CLOCK_FREQ_MAX);
     }
 
     void Delay(uint32_t value)
     {
-        while (value-- != 0)
+        volatile uint32_t count = value;
+
+        while (count-- != 0)
         {
         }
     }
