@@ -336,8 +336,6 @@ void Reset_Handler()
     //
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));
 
-    __asm volatile("cpsie i");
-
     //
     // C/C++ objects, sections .fini, .fini_array and .dtors.
     //
@@ -347,6 +345,9 @@ void Reset_Handler()
     // Call the hardware's initialization function.
     //
     HardwareInitialization();
+
+    // Interrupts stay masked until the interrupt table exists, otherwise an early IRQ would dispatch through it
+    __asm volatile("cpsie i");
 
     //
     // Call the application's entry point.

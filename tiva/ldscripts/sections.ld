@@ -44,15 +44,25 @@ SECTIONS
         __fini_array_end = .;
 
         . = ALIGN(4);
-        _etext = .;
     } > REGION_TEXT
 
-    .data : AT(ADDR(.text) + SIZEOF(.text))
+    .ARM.exidx :
+    {
+        PROVIDE_HIDDEN (__exidx_start = .);
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+        PROVIDE_HIDDEN (__exidx_end = .);
+        . = ALIGN(4);
+    } > REGION_TEXT
+
+    _etext = ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx);
+
+    .data : AT(_etext)
     {
         . = ALIGN(4);
         _data = .;
         *(vtable)
         *(.data .data* .gnu.linkonce.d.*)
+        . = ALIGN(4);
         _edata = .;
     } > REGION_RAM
 
@@ -77,13 +87,6 @@ SECTIONS
         _estack = .;
     } > REGION_RAM
 */
-
-    PROVIDE_HIDDEN (__exidx_start = .);
-    .ARM.exidx :
-    {
-      *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-    } > REGION_RAM
-    PROVIDE_HIDDEN (__exidx_end = .);
 
     . = ALIGN(4);
     _end = . ;

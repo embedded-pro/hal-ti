@@ -22,8 +22,8 @@ namespace instantiations
         hal::tiva::GpioPin led1{ hal::tiva::Port::N, 1, hal::tiva::Drive::Up };
         hal::tiva::GpioPin led2{ hal::tiva::Port::N, 0, hal::tiva::Drive::Up };
 
-        hal::tiva::GpioPin sw1{ hal::tiva::Port::J, 0 };
-        hal::tiva::GpioPin sw2{ hal::tiva::Port::J, 1 };
+        hal::tiva::GpioPin sw1{ hal::tiva::Port::J, 0, hal::tiva::Drive::Up };
+        hal::tiva::GpioPin sw2{ hal::tiva::Port::J, 1, hal::tiva::Drive::Up };
     };
 
     struct LaunchPadTerminalAndTracer

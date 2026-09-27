@@ -2,8 +2,8 @@ add_executable(hal_tiva.freertos Main.cpp)
 emil_build_for(hal_tiva.freertos TARGET_MCU_VENDOR ti PREREQUISITE_BOOL HAL_TI_BUILD_EXAMPLES_FREERTOS)
 
 target_link_libraries(hal_tiva.freertos PRIVATE
-    #hal_tiva.instantiations
-    services.peripheral
+    hal_tiva.instantiations
+    hal_tiva.tiva
     osal.thread
     osal.freertos_system_time
 )
