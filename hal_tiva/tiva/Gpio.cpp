@@ -24,6 +24,8 @@ namespace hal::tiva
         {
             GPIOA_Type* address;
             uint32_t rcgc;
+            int32_t irq;
+            bool perPin;
         };
 
         struct PushPull
@@ -62,58 +64,72 @@ namespace hal::tiva
 
         // clang-format off
         const std::array<Peripheral, 15> portAndRcgc {{
-            { GPIOA, 0x00000001, },
-            { GPIOB, 0x00000002, },
-            { GPIOC, 0x00000004, },
-            { GPIOD, 0x00000008, },
-            { GPIOE, 0x00000010, },
-            { GPIOF, 0x00000020, },
+            { GPIOA, 0x00000001, GPIOA_IRQn, false },
+            { GPIOB, 0x00000002, GPIOB_IRQn, false },
+            { GPIOC, 0x00000004, GPIOC_IRQn, false },
+            { GPIOD, 0x00000008, GPIOD_IRQn, false },
+            { GPIOE, 0x00000010, GPIOE_IRQn, false },
+            { GPIOF, 0x00000020, GPIOF_IRQn, false },
 #if defined(GPIOG)
-            { GPIOG, 0x00000040, },
+            { GPIOG, 0x00000040, GPIOG_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOH)
-            { GPIOH, 0x00000080, },
+            { GPIOH, 0x00000080, GPIOH_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOJ)
-            { GPIOJ, 0x00000100, },
+            { GPIOJ, 0x00000100, GPIOJ_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOK)
-            { GPIOK, 0x00000200, },
+            { GPIOK, 0x00000200, GPIOK_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOL)
-            { GPIOL, 0x00000400, },
+            { GPIOL, 0x00000400, GPIOL_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOM)
-            { GPIOM, 0x00000800, },
+            { GPIOM, 0x00000800, GPIOM_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPION)
-            { GPION, 0x00001000, },
+            { GPION, 0x00001000, GPION_IRQn, false },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOP)
-            { GPIOP, 0x00002000, },
+            { GPIOP, 0x00002000, -1, true },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
 #if defined(GPIOQ)
-            { GPIOQ, 0x00004000, },
+            { GPIOQ, 0x00004000, -1, true },
 #else
-            { nullptr, 0, },
+            { nullptr, 0, -1, false },
 #endif
         }};
+
+#if defined(GPIOP)
+        constexpr std::array<int32_t, 16> perPinIrqs {{
+            GPIOP0_IRQn, GPIOP1_IRQn, GPIOP2_IRQn, GPIOP3_IRQn,
+            GPIOP4_IRQn, GPIOP5_IRQn, GPIOP6_IRQn, GPIOP7_IRQn,
+            GPIOQ0_IRQn, GPIOQ1_IRQn, GPIOQ2_IRQn, GPIOQ3_IRQn,
+            GPIOQ4_IRQn, GPIOQ5_IRQn, GPIOQ6_IRQn, GPIOQ7_IRQn,
+        }};
+#else
+        constexpr std::array<int32_t, 16> perPinIrqs {{
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+        }};
+#endif
 
         const std::array<PushPull, 4> pushPullTiva{ {
             { false, true, false },     /* up */
@@ -222,7 +238,7 @@ namespace hal::tiva
 
     void GpioPin::Set(bool value)
     {
-        infra::ReplaceBit(GpioTiva(port)->DATA, value, index);
+        reinterpret_cast<volatile uint32_t*>(GpioTiva(port))[1u << index] = value ? (1u << index) : 0u;
     }
 
     bool GpioPin::GetOutputLatch() const
@@ -270,8 +286,8 @@ namespace hal::tiva
 
     void GpioPin::ResetConfig()
     {
-        infra::ReplaceBit(GpioTiva(port)->DIR, true, index);
-        infra::ReplaceBit(GpioTiva(port)->DEN, true, index);
+        infra::ReplaceBit(GpioTiva(port)->DIR, false, index);
+        infra::ReplaceBit(GpioTiva(port)->DEN, false, index);
         infra::ReplaceBit(GpioTiva(port)->AMSEL, false, index);
 
         infra::ReplaceBit(GpioTiva(port)->PUR, false, index);
@@ -290,7 +306,7 @@ namespace hal::tiva
 
     void GpioPin::EnableInterrupt(const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type)
     {
-        Gpio::Instance().EnableInterrupt(port, index, action, trigger);
+        Gpio::Instance().EnableInterrupt(port, index, action, trigger, type);
     }
 
     void GpioPin::DisableInterrupt()
@@ -302,8 +318,9 @@ namespace hal::tiva
     {
         Gpio::Instance().ReservePin(port, index);
 
-        infra::ReplaceBit(GpioTiva(port)->DIR, true, index);
+        infra::ReplaceBit(GpioTiva(port)->DIR, false, index);
         infra::ReplaceBit(GpioTiva(port)->DEN, false, index);
+        infra::ReplaceBit(GpioTiva(port)->AFSEL, true, index);
         infra::ReplaceBit(GpioTiva(port)->AMSEL, true, index);
     }
 
@@ -443,8 +460,8 @@ namespace hal::tiva
     {
         for (const auto& portAndIndex : table)
         {
-            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, true, portAndIndex.second);
-            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DEN, true, portAndIndex.second);
+            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, false, portAndIndex.second);
+            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DEN, false, portAndIndex.second);
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->AMSEL, false, portAndIndex.second);
 
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->PUR, false, portAndIndex.second);
@@ -468,8 +485,9 @@ namespace hal::tiva
         {
             Gpio::Instance().ReservePin(portAndIndex.first, portAndIndex.second);
 
-            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, true, portAndIndex.second);
+            infra::ReplaceBit(GpioTiva(portAndIndex.first)->DIR, false, portAndIndex.second);
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->DEN, false, portAndIndex.second);
+            infra::ReplaceBit(GpioTiva(portAndIndex.first)->AFSEL, true, portAndIndex.second);
             infra::ReplaceBit(GpioTiva(portAndIndex.first)->AMSEL, true, portAndIndex.second);
         }
     }
@@ -518,20 +536,29 @@ namespace hal::tiva
     Gpio::Gpio(infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable, infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable)
         : pinoutTable(pinoutTable)
         , analogTable(analogTable)
+        , interruptTypes{}
         , assignedPins()
-        , interruptDispatcherA(GPIOA_IRQn, [this]()
-            { ExtiInterrupt(GPIOA, 0, 0, 8); })
-        , interruptDispatcherB(GPIOB_IRQn, [this]()
-            { ExtiInterrupt(GPIOB, 1, 0, 8); })
-        , interruptDispatcherC(GPIOC_IRQn, [this]()
-            { ExtiInterrupt(GPIOC, 2, 0, 8); })
-        , interruptDispatcherD(GPIOD_IRQn, [this]()
-            { ExtiInterrupt(GPIOD, 3, 0, 8); })
-        , interruptDispatcherE(GPIOE_IRQn, [this]()
-            { ExtiInterrupt(GPIOE, 4, 0, 8); })
-        , interruptDispatcherF(GPIOF_IRQn, [this]()
-            { ExtiInterrupt(GPIOF, 5, 0, 8); })
-    { }
+    {
+        for (std::size_t i = 0; i < portAndRcgc.size(); ++i)
+        {
+            if (portAndRcgc[i].address == nullptr || portAndRcgc[i].irq < 0)
+                continue;
+            portHandlers[i].emplace(portAndRcgc[i].irq, [this, i]() { ExtiInterruptPort(i); });
+        }
+
+        for (std::size_t i = 0; i < portAndRcgc.size(); ++i)
+        {
+            if (portAndRcgc[i].address == nullptr || !portAndRcgc[i].perPin)
+                continue;
+            const std::size_t pinBase = (i - static_cast<std::size_t>(Port::P)) * 8;
+            for (std::size_t pin = 0; pin < 8; ++pin)
+            {
+                const std::size_t ph = pinBase + pin;
+                if (perPinIrqs[ph] >= 0)
+                    pinHandlers[ph].emplace(perPinIrqs[ph], [this, h = i * 8 + pin]() { ExtiInterruptSinglePin(h); });
+            }
+        }
+    }
 
     // clang-format on
 
@@ -556,18 +583,23 @@ namespace hal::tiva
         abort();
     }
 
-    void Gpio::EnableInterrupt(Port port, uint8_t index, const infra::Function<void()>& action, InterruptTrigger trigger)
+    void Gpio::EnableInterrupt(Port port, uint8_t index, const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type)
     {
+        const std::size_t portIdx = static_cast<uint8_t>(port);
+        really_assert(portAndRcgc[portIdx].address != nullptr);
+        really_assert(portAndRcgc[portIdx].irq >= 0 || portAndRcgc[portIdx].perPin);
+
         infra::ReplaceBit(GpioTiva(port)->IM, false, index);
 
         infra::ReplaceBit(GpioTiva(port)->IBE, interruptTiva[static_cast<uint8_t>(trigger)].ibe, index);
         infra::ReplaceBit(GpioTiva(port)->IS, interruptTiva[static_cast<uint8_t>(trigger)].is, index);
         infra::ReplaceBit(GpioTiva(port)->IEV, interruptTiva[static_cast<uint8_t>(trigger)].iev, index);
 
-        const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
+        const std::size_t handlerIndex = portIdx * 8 + index;
         really_assert(handlerIndex < handlers.size());
         really_assert(!handlers[handlerIndex]);
         handlers[handlerIndex] = action;
+        interruptTypes[handlerIndex] = type;
 
         infra::ReplaceBit(GpioTiva(port)->ICR, true, index);
         infra::ReplaceBit(GpioTiva(port)->IM, true, index);
@@ -590,24 +622,42 @@ namespace hal::tiva
             {
                 infra::ReplaceBit(gpio->ICR, true, line);
 
-                if (handlers[portIndex * 8 + line])
-                    infra::EventDispatcher::Instance().Schedule(handlers[portIndex * 8 + line]);
+                const std::size_t h = portIndex * 8 + line;
+                if (handlers[h])
+                {
+                    if (interruptTypes[h] == InterruptType::immediate)
+                        handlers[h]();
+                    else
+                        infra::EventDispatcher::Instance().Schedule(handlers[h]);
+                }
             }
         }
     }
 
+    void Gpio::ExtiInterruptPort(std::size_t portIndex)
+    {
+        ExtiInterrupt(portAndRcgc[portIndex].address, portIndex, 0, 8);
+    }
+
+    void Gpio::ExtiInterruptSinglePin(std::size_t handlerIndex)
+    {
+        const std::size_t portIndex = handlerIndex / 8;
+        const std::size_t pin = handlerIndex % 8;
+        ExtiInterrupt(portAndRcgc[portIndex].address, portIndex, pin, pin + 1);
+    }
+
     void Gpio::ReservePin(Port port, uint8_t index)
     {
-        assert(static_cast<uint8_t>(port) < assignedPins.size());
-        assert(index < 8 && index >= 0);
-        assert((assignedPins[static_cast<uint8_t>(port)] & (1 << index)) == 0);
+        really_assert(static_cast<uint8_t>(port) < assignedPins.size());
+        really_assert(index < 8);
+        really_assert((assignedPins[static_cast<uint8_t>(port)] & (1 << index)) == 0);
         assignedPins[static_cast<uint8_t>(port)] |= 1 << index;
     }
 
     void Gpio::ClearPinReservation(Port port, uint8_t index)
     {
-        assert(static_cast<uint8_t>(port) < assignedPins.size());
-        assert(index < 8 && index >= 0);
+        really_assert(static_cast<uint8_t>(port) < assignedPins.size());
+        really_assert(index < 8);
         assignedPins[static_cast<uint8_t>(port)] &= ~(1 << index);
     }
 }

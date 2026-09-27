@@ -6,6 +6,7 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include <cstdint>
+#include <optional>
 
 #if defined(TM4C129)
 #define GPIOA_Type GPIOA_AHB_Type
@@ -229,7 +230,7 @@ namespace hal::tiva
         std::pair<const PinPosition&, const PinoutTable&> GetPeripheralPinConfig(Port port, uint8_t index, PinConfigPeripheral pinConfigType) const;
         uint32_t AdcChannel(Port port, uint8_t index) const;
 
-        void EnableInterrupt(Port port, uint8_t index, const infra::Function<void()>& action, InterruptTrigger trigger);
+        void EnableInterrupt(Port port, uint8_t index, const infra::Function<void()>& action, InterruptTrigger trigger, InterruptType type = InterruptType::dispatched);
         void DisableInterrupt(Port port, uint8_t index);
 
         void ReservePin(Port port, uint8_t index);
@@ -237,19 +238,18 @@ namespace hal::tiva
 
     private:
         void ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to);
+        void ExtiInterruptPort(std::size_t portIndex);
+        void ExtiInterruptSinglePin(std::size_t handlerIndex);
 
         infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable;
         infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable;
 
-        std::array<infra::Function<void()>, 8 * 6> handlers;
+        std::array<infra::Function<void()>, 8 * 15> handlers;
+        std::array<InterruptType, 8 * 15> interruptTypes;
         std::array<uint32_t, 15> assignedPins;
 
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherA;
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherB;
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherC;
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherD;
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherE;
-        hal::cortex::DispatchedInterruptHandler interruptDispatcherF;
+        std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 15> portHandlers;
+        std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 16> pinHandlers;
     };
 }
 
