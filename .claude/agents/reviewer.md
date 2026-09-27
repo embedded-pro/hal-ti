@@ -114,7 +114,7 @@ End with a summary: total criticals, warnings, suggestions, and overall verdict 
 
 ### 10. MCU Family Conditionals (WARNING)
 
-- [ ] Family-specific code uses CMake generator expressions — not `#ifdef TM4C123` in C++
+- [ ] Family-specific code uses CMake generator expressions — not `#ifdef TM4C123` in C++ (family data/helpers in `family/<FAMILY>/<Driver>Family.hpp`)
 - [ ] Both Clock variants (`ClockTm4c123`, `ClockTm4c129`) exist when clock behavior differs between families
 
 ### 11. Naming Conventions (WARNING)
