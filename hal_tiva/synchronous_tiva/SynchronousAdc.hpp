@@ -59,7 +59,7 @@ namespace hal::tiva
         void DisableClock() const;
 
     private:
-        constexpr static uint32_t maxSamples = 23;
+        constexpr static uint32_t maxSamples = 8;
 
         uint8_t adcIndex;
         uint8_t adcSequencer;

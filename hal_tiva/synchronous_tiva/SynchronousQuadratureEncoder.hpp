@@ -4,6 +4,7 @@
 #include "hal/synchronous_interfaces/SynchronousQuadratureEncoder.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
+#include "infra/timer/Timer.hpp"
 #include "infra/util/Function.hpp"
 #include <optional>
 
@@ -55,6 +56,7 @@ namespace hal::tiva
             ResetMode resetMode = ResetMode::onMaxPosition;
             CaptureMode captureMode = CaptureMode::phaseAandPhaseB;
             SignalMode signalMode = SignalMode::quadrature;
+            infra::Duration velocityPeriod{ std::chrono::milliseconds(1) };
         };
 
         QuadratureEncoder(uint8_t aQeiIndex, GpioPin& phaseA = dummyPin, GpioPin& phaseB = dummyPin, GpioPin& index = dummyPin, const Config& config = Config());

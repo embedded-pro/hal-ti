@@ -115,6 +115,8 @@ namespace
         ADC_TRIGGER_PWM3,
     } };
 
+    constexpr std::array<uint8_t, 4> sequencerDepths = { { 8, 4, 4, 1 } };
+
     constexpr std::array<uint32_t, 7> sampleAndHoldFields = { {
         ADC_CTL_SHOLD_4,
         ADC_CTL_SHOLD_8,
@@ -291,7 +293,7 @@ namespace
     void ConfigureSequencerStepDc(volatile uint32_t* ssdc, volatile uint32_t* ssop, std::size_t step, uint8_t comparatorIndex)
     {
         const auto nibbleShift = step * 4;
-        const auto bitShift = step;
+        const auto bitShift = step * 4;
 
         if (comparatorIndex == hal::tiva::Adc::DigitalComparatorConfig::noComparator)
         {
@@ -341,6 +343,8 @@ namespace hal::tiva
         , numberOfChannels(inputs.size())
     {
         really_assert(inputs.size() > 0);
+        really_assert(adcSequencer < sequencerDepths.size());
+        really_assert(inputs.size() <= sequencerDepths[adcSequencer]);
 
         EnableClock();
 
@@ -371,6 +375,9 @@ namespace hal::tiva
 
     Adc::~Adc()
     {
+        const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer]);
+        NVIC_DisableIRQ(irqn);
+        NVIC_ClearPendingIRQ(irqn);
         SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
         InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
         DisableClock();

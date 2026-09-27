@@ -33,6 +33,8 @@ namespace
         ADC_CTL_SHOLD_256,
     } };
 
+    constexpr std::array<uint8_t, 4> sequencerDepths = { { 8, 4, 4, 1 } };
+
     const infra::MemoryRange<ADC0_Type* const> peripheralAdc = infra::ReinterpretCastMemoryRange<ADC0_Type* const>(infra::MakeRange(peripheralAdcArray));
 
     void SequenceDisable(ADC0_Type& adc, uint8_t sequencer)
@@ -109,6 +111,8 @@ namespace hal::tiva
     {
         really_assert(inputs.size() > 0);
         really_assert(adcIndex < peripheralAdc.size());
+        really_assert(adcSequencer < sequencerDepths.size());
+        really_assert(inputs.size() <= sequencerDepths[adcSequencer]);
 
         EnableClock();
 
@@ -133,8 +137,9 @@ namespace hal::tiva
         DisableClock();
     }
 
-    SynchronousAdc::Samples SynchronousAdc::Measure(std::size_t)
+    SynchronousAdc::Samples SynchronousAdc::Measure(std::size_t numberOfSamples)
     {
+        really_assert(numberOfSamples > 0 && numberOfSamples <= numberOfInputs);
         buffer.clear();
 
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
@@ -150,7 +155,7 @@ namespace hal::tiva
         DataGet(*peripheralAdc[adcIndex], adcSequencer, buffer, numberOfInputs);
         SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
 
-        return infra::MakeRange(buffer);
+        return infra::MakeRange(buffer.begin(), buffer.begin() + numberOfSamples);
     }
 
     void SynchronousAdc::EnableClock() const

@@ -89,6 +89,11 @@ namespace hal::tiva
     {
         Peripheral().ICR = 0;
         WaitForWriteComplete();
+        if (onEarlyWarning)
+        {
+            NVIC_ClearPendingIRQ(WATCHDOG0_IRQn);
+            NVIC_EnableIRQ(WATCHDOG0_IRQn);
+        }
     }
 
     WATCHDOG0_Type& WatchDog::Peripheral() const
@@ -140,6 +145,7 @@ namespace hal::tiva
         if ((Peripheral().MIS & misTimeout) == 0)
             return;
 
+        NVIC_DisableIRQ(WATCHDOG0_IRQn);
         onEarlyWarning();
     }
 }
