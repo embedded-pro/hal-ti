@@ -6,9 +6,9 @@ hal-ti is a Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4
 
 ## Architecture
 
-- `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher all come from EMIL's `hal/cortex_m/`, not from this repo — hal_tiva/ has no local copies
+- `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher all come from EMIL's `hal/cortex_m/`, not from this repo — hal_tiva/ has no local copies
 - `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Pwm, Dma, Eeprom, Ethernet, AnalogComparator, WatchDog, LowPowerMode, Clock), namespace `hal::tiva`
-- `hal_tiva/synchronous_tiva/` — Blocking/polling driver variants (`SynchronousUart`, `SynchronousQuadratureEncoder`, …)
+- `hal_tiva/synchronous_tiva/` — Blocking/polling driver variants (`SynchronousUart`, `QuadratureEncoder` in `SynchronousQuadratureEncoder.hpp`, …)
 - `hal_tiva/instantiations/` — Board support packages and event infrastructure (`LaunchPadBsp`, `EventInfrastructure`, `TracingReset`)
 - `hal_tiva/bringup/` — Startup glue: `HardwareInitialization()` (constructs the interrupt table + default GPIO pinout) and the weak `Default_Handler_Forwarded()`. Generic runtime (atomics shim, `abort`/`__assert_func`, libc syscall stubs) comes from EMIL's `hal.cortex_m.runtime`, not from this repo.
 - `tiva/CMSIS/Device/TI/` — CMSIS device headers, startup vector tables (`startup_TM4C123.c`, `startup_TM4C129.c`), linker scripts
@@ -28,17 +28,18 @@ Use: `infra::BoundedVector<T>`, `infra::BoundedString`, `infra::WithStorage<Base
 - ISR-to-main data transfer: `infra::QueueForOneReaderOneIrqWriter<T>` only — `T` must satisfy `std::is_trivial` (plain POD struct with fixed-size array members; no `BoundedVector`, no user-declared constructors)
 - `infra::BoundedDeque` is **not** ISR-safe across the ISR/main boundary
 - Shared flags written in ISR and read in main must be `volatile` (or `std::atomic`)
-- Always `NVIC_ClearPendingIRQ` before `NVIC_EnableIRQ`; clear interrupt status bits before returning from an ISR
+- Always `NVIC_ClearPendingIRQ` before registering the EMIL interrupt handler (registration is what enables the IRQ); clear interrupt status bits before returning from an ISR
 
 ## Peripheral driver conventions
 
 Full detail lives in `.github/instructions/hal-ti-cpp.instructions.md` and `.github/copilot-instructions.md` — read them before touching driver code. Key points:
 
-- Constructor body: `EnableClock()` first (`SYSCTL->RCGCxxx |= bit`, then poll `SYSCTL->PRxxx` until ready — never a fixed NOP delay), then register configuration, then `NVIC_ClearPendingIRQ` + `NVIC_EnableIRQ` last
-- Destructor body (reverse order): `NVIC_DisableIRQ` before `DisableClock()`
+- Constructor body: `EnableClock()` first (`SYSCTL->RCGCxxx |= bit`, then poll `SYSCTL->PRxxx` until ready — never a fixed NOP delay), then register configuration, then `NVIC_ClearPendingIRQ` and registering the EMIL interrupt handler **last**
+- Destructor body (reverse order): release the EMIL handler **first** (`handler.reset()` / `Unregister()`, which disables the IRQ), then disable the peripheral and `DisableClock()`
 - `PeripheralPin` members are constructed in the initializer list, before the constructor body runs
-- Interrupt handlers: inherit `hal::cortex::ImmediateInterruptHandler` (single-vector, ISR-context processing) or `hal::cortex::DispatchedInterruptHandler` (deferred to main); never call `NVIC_EnableIRQ` directly — use `Register()`
-- Vector table hygiene: every new ISR handler needs an `extern "C"` handler in the driver `.cpp`, a weak alias in **both** `startup_TM4C123.c` and `startup_TM4C129.c`, and the corresponding vector table slot updated in both files — missing any step means the interrupt silently falls through to `Default_Handler` on real hardware
+- Interrupt handlers: a `std::optional` member of `hal::cortex::ImmediateInterruptHandler` (ISR context) or `hal::cortex::DispatchedInterruptHandler` (deferred to main), emplaced with IRQ, priority and callback; or derive from `hal::cortex::InterruptHandler` and use `Register()`/`Unregister()`. Registration enables the IRQ — never call `NVIC_EnableIRQ` directly
+- Interrupt dispatch: no vector-table entry or weak alias is needed for a new ISR. `Default_Handler` in both startup files calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`) → `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`; the few named handlers (`Can0_Handler`, `Uart0_Handler`, …) call `Invoke(IRQn)` too
+- Interrupt table size: `HardwareInitialization()` builds `InterruptTable::WithStorage<155>` (indexed by IRQn + 16) — an IRQ outside it, or one that fires with no registered handler, hits `really_assert`
 - MCU family conditionals: use CMake generator expressions (`$<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:...>`), never `#ifdef TM4C123`/`#ifdef TM4C129` in C++
 
 ## Style
@@ -57,7 +58,7 @@ Full detail lives in `.github/instructions/hal-ti-cpp.instructions.md` and `.git
 
 ## Testing
 
-`integration_test/` runs GoogleTest on the host build (`HAL_TI_BUILD_TESTS`) — this is host-side interface/logic testing, not hardware-in-the-loop. There is no on-target test suite; hardware validation is manual (LaunchPad boards, logic analyser/scope). Don't add new unit tests for driver register-sequence changes that can only be verified on real hardware.
+`integration_test/` runs GoogleTest on the host build (`HAL_TI_BUILD_TESTS`, set by the host presets) — logic tests (CAN bit timing, SPI clock divisor), not hardware-in-the-loop. There is no on-target test suite; hardware validation is manual (LaunchPad boards, logic analyser/scope). Don't add new unit tests for driver register-sequence changes that can only be verified on real hardware.
 
 ## Build
 
@@ -68,6 +69,8 @@ cmake --preset host
 cmake --build --preset host-Debug
 ctest --preset host
 ```
+
+Target presets: `tm4c123gh6pm` / `tm4c1294ncpdt` (build: `<preset>-Debug`, `<preset>-RelWithDebInfo`). Options (top-level `CMakeLists.txt`): `HAL_TI_BUILD_TESTS`, `HAL_TI_INCLUDE_BRINGUP` (default ON), `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS`, `HAL_TI_INCLUDE_LWIP` (lwIP Ethernet instantiation, TM4C129 only).
 
 ## Dependency: EMIL (embedded-infra-lib)
 

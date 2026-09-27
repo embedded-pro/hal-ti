@@ -1,5 +1,5 @@
 ---
-description: "Use when implementing code changes in hal-ti. Writes production code following all project constraints: no heap allocation, ISR safety, TI Tiva C register sequences, ARM Cortex-M interrupt handling, vector table hygiene in both startup files, SOLID principles, and documentation alignment."
+description: "Use when implementing code changes in hal-ti. Writes production code following all project constraints: no heap allocation, ISR safety, TI Tiva C register sequences, ARM Cortex-M interrupt handling via EMIL InterruptTable handler registration, SOLID principles, and documentation alignment."
 tools: [read, edit, search, execute, todo]
 model: "Claude Sonnet 4.6"
 handoffs:
@@ -48,7 +48,7 @@ Follow these rules for EVERY change. Violations are unacceptable in this codebas
 - `T` must be `std::is_trivial` — plain POD struct with `std::array` members, no `BoundedVector`, no user-declared constructors
 - `volatile` on any flag read in main and written in ISR (or vice versa), unless std::atomic is used
 - Clear all interrupt status bits before returning from ISR (e.g., CAN status register write-back, UART ICR)
-- `NVIC_ClearPendingIRQ(irq)` called before `NVIC_EnableIRQ(irq)`
+- `NVIC_ClearPendingIRQ(irq)` called before registering the EMIL interrupt handler (registration enables the IRQ) — never `NVIC_EnableIRQ(irq)` directly
 
 ### Peripheral Initialization — REGISTER SEQUENCE
 
@@ -56,15 +56,17 @@ Always follow this exact constructor order:
 
 ```cpp
 MyDriver::MyDriver(std::size_t index, /* pins, callbacks */)
-    : ImmediateInterruptHandler(irqNumber)
-    , peripheralIndex(index)
+    : peripheralIndex(index)
     , txPin(/* PeripheralPin args */)
     , rxPin(/* PeripheralPin args */)
 {
     EnableClock();                        // SYSCTL->RCGCxxx |= bit, poll SYSCTL->PRxxx until ready
     ConfigureRegisters();                 // mode, baud rate, FIFO, control bits
     NVIC_ClearPendingIRQ(irqNumber);
-    NVIC_EnableIRQ(irqNumber);
+    handler.emplace(irqNumber, priority, [this]()   // std::optional<hal::cortex::ImmediateInterruptHandler>; registering enables the IRQ
+        {
+            HandleInterrupt();
+        });
 }
 ```
 
@@ -73,9 +75,9 @@ And this exact destructor order:
 ```cpp
 MyDriver::~MyDriver()
 {
-    NVIC_DisableIRQ(irqNumber);           // BEFORE clock disable
+    handler.reset();                      // FIRST: unregisters and disables the IRQ
     DisableClock();                       // SYSCTL->RCGCxxx &= ~bit
-    // txPin, rxPin, ImmediateInterruptHandler destructors run automatically
+    // txPin, rxPin destructors run automatically
 }
 ```
 
@@ -88,31 +90,16 @@ while ((SYSCTL->PRxxx & (1 << peripheralIndex)) == 0)
 }
 ```
 
-### Vector Table — BOTH STARTUP FILES
+### Interrupt Dispatch — EMIL InterruptTable
 
-For any new ISR, ALL three of these must be done:
-
-1. **In the driver `.cpp`** (anonymous namespace):
+No startup-file change is needed for a new ISR. `Default_Handler` in both `startup_TM4C123.c` and `startup_TM4C129.c` calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`):
 ```cpp
-namespace
-{
-    extern "C" void MyPeripheral0_Handler()
-    {
-        hal::InterruptTable::Instance().Invoke(MyPeripheral0_IRQn);
-    }
-}
+hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt());
 ```
 
-2. **In `tiva/CMSIS/.../startup_TM4C123.c`** — add weak alias AND vector table entry:
-```c
-void MyPeripheral0_Handler() __attribute__((weak, alias("Default_Handler")));
-// ... in the vector table array:
-MyPeripheral0_Handler,
-```
-
-3. **In `tiva/CMSIS/.../startup_TM4C129.c`** — same as above.
-
-If even one step is missing the interrupt silently falls through to `Default_Handler` (infinite loop) on hardware.
+- Register an EMIL handler for the `IRQn` (constructor snippet above, or derive from `hal::cortex::InterruptHandler` and call `Register(irq, priority)`)
+- The table is `hal::cortex::InterruptTable::WithStorage<155>` (indexed by IRQn + 16) — an out-of-range IRQ, or one firing with no registered handler, hits `really_assert`
+- Existing named `extern "C"` handlers (`Can0_Handler`, …) only call `Invoke(IRQn)`; if you add one, update both startup files
 
 ### Register Access Pattern
 
@@ -154,8 +141,7 @@ using WithMaxRxBuffer = infra::WithStorage<Can, std::array<CanRxEntry, N + 1>>;
 namespace hal::tiva
 {
     class SpiMaster
-        : private ImmediateInterruptHandler
-        , public hal::SynchronousSpiMaster
+        : public hal::SpiMaster
     {
     public:
         SpiMaster(std::size_t index, GpioPin& clock, GpioPin& miso, GpioPin& mosi);
@@ -164,9 +150,10 @@ namespace hal::tiva
     private:
         void EnableClock() const;
         void DisableClock() const;
-        void Invoke() override;
+        void HandleInterrupt();
 
         std::size_t peripheralIndex;
+        std::optional<hal::cortex::ImmediateInterruptHandler> handler;
     };
 }
 ```
@@ -202,10 +189,10 @@ For every new peripheral driver or significant change:
 2. **Look up the correct IRQ name** in the startup files and CMSIS device header before naming the handler
 3. **Search for the closest existing driver** in `hal_tiva/tiva/` — follow the same pattern exactly
 4. **Implement the driver** following constructor/destructor order above
-5. **Update BOTH startup files** with the weak alias and vector table entry
+5. **Register the EMIL interrupt handler** last in the constructor and release it first in the destructor (no startup-file change needed)
 6. **Update `CMakeLists.txt`** to add new source files and any MCU-family conditionals
 7. **Update documentation** in `doc/` if a new board or peripheral is introduced
-8. **Build and test**: `cmake --build --preset host-Debug` and `ctest --preset host-Debug`
+8. **Build and test**: `cmake --build --preset host-Debug` and `ctest --preset host`
 9. **Hand off to reviewer** using the handoff button
 
 ## What NOT to Do
@@ -214,5 +201,6 @@ For every new peripheral driver or significant change:
 - Do NOT refactor code not related to the task
 - Do NOT add docstrings or comments unless the API is non-obvious
 - Do NOT use magic numbers — always define `constexpr` bit constants
-- Do NOT update only one startup file — always update **both** TM4C123 and TM4C129
-- Do NOT disable the clock before disabling the NVIC interrupt
+- Do NOT update only one startup file — if a named handler is added, update **both** TM4C123 and TM4C129
+- Do NOT disable the clock before releasing the EMIL interrupt handler
+- Do NOT call `NVIC_EnableIRQ` directly — registering the EMIL handler enables the IRQ
