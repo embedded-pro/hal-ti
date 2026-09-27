@@ -319,6 +319,11 @@ namespace hal::tiva
         return ChannelGetMode(channel.number, ChannelType::alternate) == Transfer::stop;
     }
 
+    bool DmaChannel::IsAlternateActive() const
+    {
+        return (UDMA->ALTSET & (1u << channel.number)) != 0;
+    }
+
     void DmaChannel::StopTransfer() const
     {
         ChannelDisable(channel.number);

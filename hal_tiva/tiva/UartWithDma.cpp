@@ -35,9 +35,9 @@ namespace hal::tiva
         } };
 
         constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
-        constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
+        constexpr DmaChannel::Attributes rxAttributes{ false, false, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
-        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_2_items };
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
@@ -142,7 +142,7 @@ namespace hal::tiva
     void UartWithDma::ProcessRxTimeout() const
     {
         dmaRx.StopTransfer();
-        bool fillingAlternate = dmaRx.IsPrimaryTransferCompleted();
+        bool fillingAlternate = dmaRx.IsAlternateActive();
         auto activeBuffer = fillingAlternate ? rxBufferAlternate : rxBufferPrimary;
         std::size_t bytesReceived = activeBuffer.size() - dmaRx.RemainingTransfers(fillingAlternate);
 

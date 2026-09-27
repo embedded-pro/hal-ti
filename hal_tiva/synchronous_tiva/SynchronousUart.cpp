@@ -1,5 +1,6 @@
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
 #include "infra/util/BitLogic.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -429,6 +430,7 @@ namespace hal::tiva
         uint32_t div = (((SystemCoreClock * 8) / baudrate) + 1) / 2;
         uint32_t lcrh = parityTiva.at(static_cast<uint8_t>(config.parity));
         lcrh |= stopBitsTiva.at(static_cast<uint8_t>(config.stopbits));
+        really_assert(config.numberOfBytes == NumberOfBytes::_8_bytes);
         lcrh |= UART_LCRH_WLEN_8;
 
         DisableUart();

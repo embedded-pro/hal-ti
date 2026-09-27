@@ -116,6 +116,7 @@ namespace hal::tiva
         void ReArmPingPongHalf(bool alternate, const Buffers& buffer) const;
         bool IsPrimaryTransferCompleted() const;
         bool IsAlternateTransferCompleted() const;
+        bool IsAlternateActive() const;
         void StopTransfer() const;
         std::size_t RemainingTransfers(bool alternate) const;
         void ForceRequest() const;
@@ -126,7 +127,7 @@ namespace hal::tiva
 #endif
 
     private:
-        const Channel& channel;
+        Channel channel;
     };
 }
 
