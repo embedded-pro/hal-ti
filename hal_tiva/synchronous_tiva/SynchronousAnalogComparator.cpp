@@ -1,4 +1,5 @@
 #include "hal_tiva/synchronous_tiva/SynchronousAnalogComparator.hpp"
+#include "AnalogComparatorFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include DEVICE_HEADER
 
@@ -96,37 +97,11 @@ namespace hal::tiva
 
     volatile uint32_t& SynchronousAnalogComparator::Acctl() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACCTL0;
-            case 1:
-                return COMP->ACCTL1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACCTL2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACCTL0;
-        }
+        return hal::tiva::family::GetAcctl(index);
     }
 
     volatile uint32_t& SynchronousAnalogComparator::Acstat() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACSTAT0;
-            case 1:
-                return COMP->ACSTAT1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACSTAT2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACSTAT0;
-        }
+        return hal::tiva::family::GetAcstat(index);
     }
 }

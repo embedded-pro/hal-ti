@@ -2,15 +2,12 @@
 #define HAL_GPIO_STM_HPP
 
 #include DEVICE_HEADER
-#include "hal/interfaces/Gpio.hpp"
+#include "GpioFamily.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
+#include "hal/interfaces/Gpio.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include <cstdint>
 #include <optional>
-
-#if defined(TM4C129)
-#define GPIOA_Type GPIOA_AHB_Type
-#endif
 
 namespace hal::tiva
 {

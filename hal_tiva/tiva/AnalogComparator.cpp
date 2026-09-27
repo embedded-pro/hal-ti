@@ -1,8 +1,13 @@
 #include "hal_tiva/tiva/AnalogComparator.hpp"
+#include "AnalogComparatorFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 namespace
 {
+    namespace family = hal::tiva::family;
+
+    using family::peripheralIrqComp;
+
     extern "C" void Comp0_Handler()
     {
         hal::cortex::InterruptTable::Instance().Invoke(COMP0_IRQn);
@@ -12,26 +17,6 @@ namespace
     {
         hal::cortex::InterruptTable::Instance().Invoke(COMP1_IRQn);
     }
-
-#if defined(TM4C129)
-    extern "C" void Comp2_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(COMP2_IRQn);
-    }
-#endif
-
-#if defined(TM4C129)
-    constexpr std::array<int32_t, 3> peripheralIrqComp = { {
-        COMP0_IRQn,
-        COMP1_IRQn,
-        COMP2_IRQn,
-    } };
-#else
-    constexpr std::array<int32_t, 2> peripheralIrqComp = { {
-        COMP0_IRQn,
-        COMP1_IRQn,
-    } };
-#endif
 
     constexpr uint32_t AcctlAsrcpShift   = 9;
     constexpr uint32_t AcctlAsrcpMask    = 0x3u << AcctlAsrcpShift;
@@ -209,38 +194,12 @@ namespace hal::tiva
 
     volatile uint32_t& AnalogComparator::Acctl() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACCTL0;
-            case 1:
-                return COMP->ACCTL1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACCTL2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACCTL0;
-        }
+        return family::GetAcctl(index);
     }
 
     volatile uint32_t& AnalogComparator::Acstat() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACSTAT0;
-            case 1:
-                return COMP->ACSTAT1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACSTAT2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACSTAT0;
-        }
+        return family::GetAcstat(index);
     }
 
     void AnalogComparator::HandleIrq()

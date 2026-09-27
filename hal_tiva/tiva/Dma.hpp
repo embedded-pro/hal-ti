@@ -121,10 +121,7 @@ namespace hal::tiva
         std::size_t RemainingTransfers(bool alternate) const;
         void ForceRequest() const;
         std::size_t MaxTransferSize() const;
-#if defined(TM4C123)
-        bool IsCompletionPending() const;
-        void ClearCompletion() const;
-#endif
+        uint8_t ChannelNumber() const;
 
     private:
         Channel channel;

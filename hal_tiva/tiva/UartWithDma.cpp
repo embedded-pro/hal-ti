@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/UartWithDma.hpp"
+#include "UartWithDmaFamily.hpp"
 #include "hal_tiva/tiva/Dma.hpp"
 #include "infra/util/MemoryRange.hpp"
 
@@ -6,6 +7,7 @@ namespace hal::tiva
 {
     namespace
     {
+        namespace family = hal::tiva::family;
         constexpr const uint32_t UART_FR_RXFE = 0x00000010;      // Receive FIFO Empty
         constexpr const uint32_t UART_RIS_OERIS = 0x00000400;    // UART Overrun Error Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
@@ -167,31 +169,21 @@ namespace hal::tiva
         if (rawStatus & UART_RIS_OERIS)
             InterruptClear(UART_ICR_OEIC);
 
-#if defined(TM4C123)
-        if (dmaTx.IsCompletionPending())
+        if (family::DmaTxComplete(dmaTx, rawStatus))
         {
-            dmaTx.ClearCompletion();
+            family::ClearDmaTx(dmaTx);
+            if constexpr (family::DmaTxClearMask != 0)
+                InterruptClear(family::DmaTxClearMask);
             ProcessDmaTx();
         }
 
-        if (dmaRx.IsCompletionPending())
+        if (family::DmaRxComplete(dmaRx, rawStatus))
         {
-            dmaRx.ClearCompletion();
+            family::ClearDmaRx(dmaRx);
+            if constexpr (family::DmaRxClearMask != 0)
+                InterruptClear(family::DmaRxClearMask);
             ProcessDmaRx();
         }
-#else
-        if (rawStatus & UART_RIS_DMATXRIS)
-        {
-            InterruptClear(UART_ICR_DMATXIC);
-            ProcessDmaTx();
-        }
-
-        if (rawStatus & UART_RIS_DMARXRIS)
-        {
-            InterruptClear(UART_ICR_DMARXIC);
-            ProcessDmaRx();
-        }
-#endif
 
         if (maskedStatus & UART_RIS_RTRIS)
         {

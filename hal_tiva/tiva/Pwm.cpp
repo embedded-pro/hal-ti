@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/Pwm.hpp"
+#include "PwmFamily.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
@@ -7,6 +8,12 @@ extern "C" uint32_t SystemCoreClock;
 
 namespace
 {
+    namespace family = hal::tiva::family;
+
+    using family::numberOfPwms;
+    using family::peripheralPwmArray;
+    using family::peripheralPwmIrqs;
+
     extern "C" void Pwm0Generator0_Handler()
     {
         hal::cortex::InterruptTable::Instance().Invoke(PWM0_0_IRQn);
@@ -32,62 +39,8 @@ namespace
         hal::cortex::InterruptTable::Instance().Invoke(PWM0_FAULT_IRQn);
     }
 
-#if defined(TM4C123)
-    extern "C" void Pwm1Generator0_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(PWM1_0_IRQn);
-    }
-
-    extern "C" void Pwm1Generator1_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(PWM1_1_IRQn);
-    }
-
-    extern "C" void Pwm1Generator2_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(PWM1_2_IRQn);
-    }
-
-    extern "C" void Pwm1Generator3_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(PWM1_3_IRQn);
-    }
-
-    extern "C" void Pwm1Fault_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(PWM1_FAULT_IRQn);
-    }
-#endif
-
-
-#if defined(TM4C129)
-    constexpr std::size_t numberOfPwms = 1;
-#else
-    constexpr std::size_t numberOfPwms = 2;
-#endif
-
-    constexpr std::array<uint32_t, numberOfPwms> peripheralPwmArray = { {
-        PWM0_BASE,
-#if defined(TM4C123)
-        PWM1_BASE,
-#endif
-    } };
-
     const infra::MemoryRange<PWM0_Type* const> peripheralPwm =
         infra::ReinterpretCastMemoryRange<PWM0_Type* const>(infra::MakeRange(peripheralPwmArray));
-
-    struct PwmIrqInfo
-    {
-        std::array<int32_t, 4> generatorIrqs;
-        int32_t faultIrq;
-    };
-
-    constexpr std::array<PwmIrqInfo, numberOfPwms> peripheralPwmIrqs = { {
-        { { PWM0_0_IRQn, PWM0_1_IRQn, PWM0_2_IRQn, PWM0_3_IRQn }, PWM0_FAULT_IRQn },
-#if defined(TM4C123)
-        { { PWM1_0_IRQn, PWM1_1_IRQn, PWM1_2_IRQn, PWM1_3_IRQn }, PWM1_FAULT_IRQn },
-#endif
-    } };
 
     constexpr const uint32_t PWM_INTEN_INTFAULT3 = 0x00080000;
     constexpr const uint32_t PWM_INTEN_INTFAULT2 = 0x00040000;
@@ -132,27 +85,6 @@ namespace
 
     constexpr const uint32_t PWM_CHANNEL_DBCTL_ENABLE = 0x00000001;
 
-    constexpr const uint32_t SYSCTL_RCC_USEPWMDIV = 0x00100000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_M  = 0x000E0000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_2  = 0x00000000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_4  = 0x00020000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_8  = 0x00040000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_16 = 0x00060000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_32 = 0x00080000;
-    constexpr const uint32_t SYSCTL_RCC_PWMDIV_64 = 0x000A0000;
-
-    constexpr const uint32_t PWM_CC_USEPWMDIV = 0x00000100;
-    constexpr const uint32_t PWM_CC_PWMDIV_M  = 0x00000007;
-    constexpr const uint32_t PWM_CC_PWMDIV_2  = 0x00000000;
-    constexpr const uint32_t PWM_CC_PWMDIV_4  = 0x00000001;
-    constexpr const uint32_t PWM_CC_PWMDIV_8  = 0x00000002;
-    constexpr const uint32_t PWM_CC_PWMDIV_16 = 0x00000003;
-    constexpr const uint32_t PWM_CC_PWMDIV_32 = 0x00000004;
-    constexpr const uint32_t PWM_CC_PWMDIV_64 = 0x00000005;
-
-    constexpr const uint32_t SYSCTL_DC1_PWM1 = 0x00200000;
-    constexpr const uint32_t SYSCTL_DC1_PWM0 = 0x00100000;
-
     constexpr const std::array<uint32_t, 6> normalInterruptBit = { {
         PWM_CHANNEL_INTEN_INTCNTZERO,
         PWM_CHANNEL_INTEN_INTCNTLOAD,
@@ -192,53 +124,6 @@ namespace
         0x00000008u,
     } };
 
-    constexpr const std::array<uint32_t, 7> clockDivisor = { {
-#if defined(TM4C123)
-        0,
-        SYSCTL_RCC_PWMDIV_2  | SYSCTL_RCC_USEPWMDIV,
-        SYSCTL_RCC_PWMDIV_4  | SYSCTL_RCC_USEPWMDIV,
-        SYSCTL_RCC_PWMDIV_8  | SYSCTL_RCC_USEPWMDIV,
-        SYSCTL_RCC_PWMDIV_16 | SYSCTL_RCC_USEPWMDIV,
-        SYSCTL_RCC_PWMDIV_32 | SYSCTL_RCC_USEPWMDIV,
-        SYSCTL_RCC_PWMDIV_64 | SYSCTL_RCC_USEPWMDIV,
-#else
-        0,
-        PWM_CC_PWMDIV_2  | PWM_CC_USEPWMDIV,
-        PWM_CC_PWMDIV_4  | PWM_CC_USEPWMDIV,
-        PWM_CC_PWMDIV_8  | PWM_CC_USEPWMDIV,
-        PWM_CC_PWMDIV_16 | PWM_CC_USEPWMDIV,
-        PWM_CC_PWMDIV_32 | PWM_CC_USEPWMDIV,
-        PWM_CC_PWMDIV_64 | PWM_CC_USEPWMDIV,
-#endif
-    } };
-
-    void SetClockDivisor(PWM0_Type* const pwmBase, hal::tiva::Pwm::Config::ClockDivisor divisor)
-    {
-#if defined(TM4C123)
-        really_assert(SYSCTL->DC1 & (SYSCTL_DC1_PWM0 | SYSCTL_DC1_PWM1));
-        SYSCTL->RCC = ((SYSCTL->RCC & ~(SYSCTL_RCC_USEPWMDIV | SYSCTL_RCC_PWMDIV_M)) | clockDivisor[static_cast<std::size_t>(divisor)]);
-#else
-        pwmBase->CC = ((pwmBase->CC & ~(PWM_CC_USEPWMDIV | PWM_CC_PWMDIV_M)) | clockDivisor[static_cast<std::size_t>(divisor)]);
-#endif
-    }
-
-    uint32_t GetClockDivisor(PWM0_Type* const pwmBase)
-    {
-#if defined(TM4C123)
-        auto result = (SYSCTL->RCC & SYSCTL_RCC_PWMDIV_M) >> 17;
-        if (!(SYSCTL->RCC & SYSCTL_RCC_USEPWMDIV))
-            return 1;
-        else
-            return 1U << ((result > 5U ? 5U : result) + 1);
-#else
-        auto result = pwmBase->CC & PWM_CC_PWMDIV_M;
-        if (!(pwmBase->CC & PWM_CC_USEPWMDIV))
-            return 1;
-        else
-            return 1U << ((result > 5U ? 5U : result) + 1);
-#endif
-    }
-
     float GetSystemCoreClock()
     {
         return static_cast<float>(SystemCoreClock);
@@ -246,7 +131,7 @@ namespace
 
     uint32_t ToPeriod(PWM0_Type* const pwmBase, const hal::Hertz& baseFrequency)
     {
-        auto pwmClock = SystemCoreClock / GetClockDivisor(pwmBase);
+        auto pwmClock = SystemCoreClock / family::GetClockDivisor(pwmBase);
         return pwmClock / baseFrequency.Value();
     }
 
@@ -357,7 +242,7 @@ namespace hal::tiva
     void Pwm::Initialize()
     {
         EnableClock();
-        SetClockDivisor(peripheralPwm[pwmIndex], config.clockDivisor);
+        family::SetClockDivisor(peripheralPwm[pwmIndex], config.clockDivisor);
 
         for (auto& gen : generators)
             GeneratorConfiguration(gen);

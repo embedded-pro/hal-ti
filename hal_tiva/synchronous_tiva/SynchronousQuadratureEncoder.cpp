@@ -1,12 +1,7 @@
 #include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
+#include "QuadratureEncoderFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <limits>
-
-#if defined(TM4C129)
-#define NUMBER_OF_QEI 1
-#else
-#define NUMBER_OF_QEI 2
-#endif
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -72,19 +67,8 @@ namespace hal::tiva
         constexpr const uint32_t QEI_ISC_TIMER = 0x00000002; // Velocity Timer Expired Interrupt
         constexpr const uint32_t QEI_ISC_INDEX = 0x00000001; // Index Pulse Interrupt
 
-        constexpr std::array<uint32_t, NUMBER_OF_QEI> peripheralQeiArray = { {
-            QEI0_BASE,
-#if defined(TM4C123)
-            QEI1_BASE,
-#endif
-        } };
-
-        constexpr std::array<int32_t, NUMBER_OF_QEI> peripheralIrqQeiArray = { {
-            QEI0_IRQn,
-#if defined(TM4C123)
-            QEI1_IRQn,
-#endif
-        } };
+        using hal::tiva::family::peripheralIrqQeiArray;
+        using hal::tiva::family::peripheralQeiArray;
 
         const infra::MemoryRange<QEI0_Type* const> peripheralQei = infra::ReinterpretCastMemoryRange<QEI0_Type* const>(infra::MakeRange(peripheralQeiArray));
 

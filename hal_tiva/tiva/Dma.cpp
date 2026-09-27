@@ -339,17 +339,10 @@ namespace hal::tiva
         return ((ctrl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
     }
 
-#if defined(TM4C123)
-    bool DmaChannel::IsCompletionPending() const
+    uint8_t DmaChannel::ChannelNumber() const
     {
-        return (UDMA->CHIS & (1u << channel.number)) != 0;
+        return channel.number;
     }
-
-    void DmaChannel::ClearCompletion() const
-    {
-        UDMA->CHIS = 1u << channel.number;
-    }
-#endif
 
     void DmaChannel::ForceRequest() const
     {

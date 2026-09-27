@@ -4,29 +4,13 @@
 #include "infra/util/ReallyAssert.hpp"
 #include <array>
 
-#if defined(TM4C129)
-#define GPIOA GPIOA_AHB
-#define GPIOB GPIOB_AHB
-#define GPIOC GPIOC_AHB
-#define GPIOD GPIOD_AHB
-#define GPIOE GPIOE_AHB
-#define GPIOF GPIOF_AHB
-#define GPIOG GPIOG_AHB
-#define GPIOH GPIOH_AHB
-#define GPIOJ GPIOJ_AHB
-#endif
-
 namespace hal::tiva
 {
     namespace
     {
-        struct Peripheral
-        {
-            GPIOA_Type* address;
-            uint32_t rcgc;
-            int32_t irq;
-            bool perPin;
-        };
+        using Peripheral = hal::tiva::family::GpioPortEntry;
+        using hal::tiva::family::perPinIrqs;
+        using hal::tiva::family::portAndRcgc;
 
         struct PushPull
         {
@@ -62,104 +46,35 @@ namespace hal::tiva
             uint32_t bits;
         };
 
-        // clang-format off
-        const std::array<Peripheral, 15> portAndRcgc {{
-            { GPIOA, 0x00000001, GPIOA_IRQn, false },
-            { GPIOB, 0x00000002, GPIOB_IRQn, false },
-            { GPIOC, 0x00000004, GPIOC_IRQn, false },
-            { GPIOD, 0x00000008, GPIOD_IRQn, false },
-            { GPIOE, 0x00000010, GPIOE_IRQn, false },
-            { GPIOF, 0x00000020, GPIOF_IRQn, false },
-#if defined(GPIOG)
-            { GPIOG, 0x00000040, GPIOG_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOH)
-            { GPIOH, 0x00000080, GPIOH_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOJ)
-            { GPIOJ, 0x00000100, GPIOJ_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOK)
-            { GPIOK, 0x00000200, GPIOK_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOL)
-            { GPIOL, 0x00000400, GPIOL_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOM)
-            { GPIOM, 0x00000800, GPIOM_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPION)
-            { GPION, 0x00001000, GPION_IRQn, false },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOP)
-            { GPIOP, 0x00002000, -1, true },
-#else
-            { nullptr, 0, -1, false },
-#endif
-#if defined(GPIOQ)
-            { GPIOQ, 0x00004000, -1, true },
-#else
-            { nullptr, 0, -1, false },
-#endif
-        }};
-
-#if defined(GPIOP)
-        constexpr std::array<int32_t, 16> perPinIrqs {{
-            GPIOP0_IRQn, GPIOP1_IRQn, GPIOP2_IRQn, GPIOP3_IRQn,
-            GPIOP4_IRQn, GPIOP5_IRQn, GPIOP6_IRQn, GPIOP7_IRQn,
-            GPIOQ0_IRQn, GPIOQ1_IRQn, GPIOQ2_IRQn, GPIOQ3_IRQn,
-            GPIOQ4_IRQn, GPIOQ5_IRQn, GPIOQ6_IRQn, GPIOQ7_IRQn,
-        }};
-#else
-        constexpr std::array<int32_t, 16> perPinIrqs {{
-            -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1,
-        }};
-#endif
-
         const std::array<PushPull, 4> pushPullTiva{ {
-            { false, true, false },     /* up */
-            { false, false, true },     /* down */
-            { true, false, false },     /* open drain */
-            { false, false, false },    /* disable */
+            { false, true, false },  /* up */
+            { false, false, true },  /* down */
+            { true, false, false },  /* open drain */
+            { false, false, false }, /* disable */
         } };
 
         const std::array<Mode, 4> modeTiva{ {
-            { true, false, false },      /* in */
-            { true, false, true },     /* out */
-            { false, false, false },    /* alternate */
-            { false, true, true },      /* analog */
+            { true, false, false },  /* in */
+            { true, false, true },   /* out */
+            { false, false, false }, /* alternate */
+            { false, true, true },   /* analog */
         } };
 
         const std::array<CurrentDrive, 4> currentDriveTiva{ {
-            { true, false, false },    /* 2mA */
-            { false, true, false },    /* 4mA */
-            { false, false, true },    /* 8mA */
-            { true, false, false },    /* 2mA */
+            { true, false, false }, /* 2mA */
+            { false, true, false }, /* 4mA */
+            { false, false, true }, /* 8mA */
+            { true, false, false }, /* 2mA */
         } };
 
         const std::array<Interrupt, 4> interruptTiva{ {
-            { false, false, true },     /* rising */
-            { false, false, false },    /* falling */
-            { true, false, false },     /* both */
-            { false, false, false },    /* none */
+            { false, false, true },  /* rising */
+            { false, false, false }, /* falling */
+            { true, false, false },  /* both */
+            { false, false, false }, /* none */
         } };
 
-        const std::array<Pin, 8> pinTiva {{
+        const std::array<Pin, 8> pinTiva{ {
             { 0xFFFFFFF0, 0 },
             { 0xFFFFFF0F, 4 },
             { 0xFFFFF0FF, 8 },
@@ -168,7 +83,7 @@ namespace hal::tiva
             { 0xFF0FFFFF, 20 },
             { 0xF0FFFFFF, 24 },
             { 0x0FFFFFFF, 28 },
-        }};
+        } };
 
         // clang-format on
 
@@ -217,13 +132,7 @@ namespace hal::tiva
         {
         }
 
-#if defined(TM4C129)
-        if (((GpioTiva(port) == GPIOD) && (index == 7)) ||
-            ((GpioTiva(port) == GPIOE) && (index == 7)))
-#else
-        if (((GpioTiva(port) == GPIOF) && (index == 0)) ||
-            ((GpioTiva(port) == GPIOD) && (index == 7)))
-#endif
+        if (family::IsLockProtected(GpioTiva(port), index))
         {
             GpioTiva(port)->LOCK = 0x4C4F434B;
             infra::ReplaceBit(GpioTiva(port)->CR, true, index);
@@ -441,13 +350,7 @@ namespace hal::tiva
             {
             }
 
-#if defined(TM4C129)
-            if (((GpioTiva(portAndIndex.first) == GPIOD) && (portAndIndex.second == 7)) ||
-                ((GpioTiva(portAndIndex.first) == GPIOE) && (portAndIndex.second == 7))) // NOLINT
-#else
-            if (((GpioTiva(portAndIndex.first) == GPIOF) && (portAndIndex.second == 0)) ||
-                ((GpioTiva(portAndIndex.first) == GPIOD) && (portAndIndex.second == 7))) // NOLINT
-#endif
+            if (family::IsLockProtected(GpioTiva(portAndIndex.first), portAndIndex.second)) // NOLINT
             {
                 GpioTiva(portAndIndex.first)->LOCK = 0x4C4F434B;
                 infra::ReplaceBit(GpioTiva(portAndIndex.first)->CR, true, portAndIndex.second);

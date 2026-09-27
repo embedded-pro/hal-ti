@@ -32,11 +32,7 @@ namespace
 {
     hal::tiva::GpioPin& SecondLed(instantiations::LaunchPad& launchPad)
     {
-#if defined(TM4C123)
-        return launchPad.ui.ledRed;
-#else
-        return launchPad.ui.led2;
-#endif
+        return launchPad.SecondLed();
     }
 }
 
