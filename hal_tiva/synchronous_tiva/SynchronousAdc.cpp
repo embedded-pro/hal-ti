@@ -1,6 +1,7 @@
 #include "hal_tiva/synchronous_tiva/SynchronousAdc.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
+#include <algorithm>
 
 namespace
 {
@@ -82,7 +83,7 @@ namespace
 
     bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
     {
-        return (adc.RIS) & (0x10000 | (1 << sequencer));
+        return (adc.RIS) & (1u << sequencer);
     }
 
     void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
@@ -123,9 +124,15 @@ namespace hal::tiva
         auto sh = sampleAndHoldFields.at(infra::enum_cast(config.sampleAndHold));
 
         for (std::size_t i = 0; i < inputs.size() - 1; i++)
-            SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, i, inputs[i].AdcChannel() | sh);
+        {
+            auto ch = inputs[i].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, i, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh);
+        }
 
-        SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, lastChannel, inputs[lastChannel].AdcChannel() | sh | ADC_CTL_IE | ADC_CTL_END);
+        {
+            auto ch = inputs[lastChannel].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, lastChannel, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh | ADC_CTL_IE | ADC_CTL_END);
+        }
 
         if (config.oversampling)
             SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
@@ -155,7 +162,7 @@ namespace hal::tiva
         DataGet(*peripheralAdc[adcIndex], adcSequencer, buffer, numberOfInputs);
         SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
 
-        return infra::MakeRange(buffer.begin(), buffer.begin() + numberOfSamples);
+        return infra::MakeRange(buffer.begin(), buffer.begin() + std::min(numberOfSamples, buffer.size()));
     }
 
     void SynchronousAdc::EnableClock() const

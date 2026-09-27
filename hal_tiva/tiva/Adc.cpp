@@ -221,7 +221,7 @@ namespace
 
     [[gnu::always_inline]] inline bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
     {
-        return (adc.RIS) & (0x10000 | (1 << sequencer));
+        return (adc.RIS) & (1u << sequencer);
     }
 
     [[gnu::always_inline]] inline void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
@@ -327,18 +327,7 @@ namespace
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], config.interruptPriority, [this]()
-              {
-                  auto& adc = *peripheralAdc[this->adcIndex];
-                  if (IsInterruptTriggered(adc, this->adcSequencer))
-                  {
-                      InterruptClear(adc, this->adcSequencer);
-                      DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
-                      if (callback)
-                          callback(infra::MakeRange(buffer));
-                  }
-              })
-        , adcIndex(adcIndex)
+        : adcIndex(adcIndex)
         , adcSequencer(adcSequencer)
         , numberOfChannels(inputs.size())
     {
@@ -348,36 +337,54 @@ namespace hal::tiva
 
         EnableClock();
 
-        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
-        SequenceConfigure(*peripheralAdc[adcIndex], adcSequencer, config.trigger, config.priority);
+        SequenceDisable(*peripheralAdc[this->adcIndex], this->adcSequencer);
+        SequenceConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, config.trigger, config.priority);
 
         auto lastChannel = inputs.size() - 1;
         auto sh = sampleAndHoldFields.at(infra::enum_cast(config.sampleAndHold));
 
         for (std::size_t i = 0; i < inputs.size() - 1; i++)
-            SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, i, inputs[i].AdcChannel() | sh);
+        {
+            auto ch = inputs[i].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, i, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh);
+        }
 
-        SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, lastChannel, inputs[lastChannel].AdcChannel() | sh | ADC_CTL_IE | ADC_CTL_END);
+        {
+            auto ch = inputs[lastChannel].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, lastChannel, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh | ADC_CTL_IE | ADC_CTL_END);
+        }
 
         if (config.oversampling)
-            SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
+            SequenceOversampling(*peripheralAdc[this->adcIndex], infra::enum_cast(*config.oversampling));
 
         if (config.samplingDelay)
-            SetPhaseDelay(adcIndex, config.samplingDelay->Value());
+            SetPhaseDelay(this->adcIndex, config.samplingDelay->Value());
 
         if (!config.digitalComparators.empty())
         {
             ValidateDigitalComparators(config.digitalComparators, inputs.size());
             numberOfChannels = CountFifoSteps(config.digitalComparators);
-            ConfigureDigitalComparators(*peripheralAdc[adcIndex], adcSequencer, config.digitalComparators);
+            ConfigureDigitalComparators(*peripheralAdc[this->adcIndex], this->adcSequencer, config.digitalComparators);
         }
+
+        const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * this->adcIndex + this->adcSequencer]);
+        NVIC_ClearPendingIRQ(irqn);
+        irqHandler.emplace(irqn, config.interruptPriority, [this]()
+            {
+                auto& adc = *peripheralAdc[this->adcIndex];
+                if (IsInterruptTriggered(adc, this->adcSequencer))
+                {
+                    InterruptClear(adc, this->adcSequencer);
+                    DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
+                    if (callback)
+                        callback(infra::MakeRange(buffer));
+                }
+            });
     }
 
     Adc::~Adc()
     {
-        const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer]);
-        NVIC_DisableIRQ(irqn);
-        NVIC_ClearPendingIRQ(irqn);
+        irqHandler.reset();
         SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
         InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
         DisableClock();

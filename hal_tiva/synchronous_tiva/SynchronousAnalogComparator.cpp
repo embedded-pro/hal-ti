@@ -10,7 +10,7 @@ namespace
     constexpr uint32_t AcctlTsenShift   = 5;
     constexpr uint32_t AcctlTsenMask    = 0x3u << AcctlTsenShift;
     constexpr uint32_t AcctlCinv        = 1u << 1;
-    constexpr uint32_t AcctlToen        = 1u << 0;
+    constexpr uint32_t AcctlToen        = 1u << 11;
 
     constexpr uint32_t AcstatOval       = 1u << 1;
 
@@ -26,8 +26,6 @@ namespace hal::tiva
         : index(aIndex)
         , config(aConfig)
     {
-        really_assert(config.routeToPwmFault.has_value() ? config.triggerEnabled : true);
-
         if (&vinPositive != &dummyPin)
             vinPositivePin.emplace(vinPositive);
         if (&vinNegative != &dummyPin)
@@ -87,12 +85,11 @@ namespace hal::tiva
             val |= (static_cast<uint32_t>(config.triggerSense) << AcctlTsenShift) & AcctlTsenMask;
             if (config.triggerLevelHigh)
                 val |= AcctlTslval;
+            val |= AcctlToen;
         }
 
         if (config.invertOutput)
             val |= AcctlCinv;
-        if (config.outputToPin)
-            val |= AcctlToen;
 
         return val;
     }

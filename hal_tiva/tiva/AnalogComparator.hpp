@@ -49,11 +49,6 @@ namespace hal::tiva
             uint8_t step  = 0;
         };
 
-        struct PwmFaultRouting
-        {
-            uint8_t pwmIndex;
-        };
-
         struct Config
         {
             PositiveInputSource positiveSource = PositiveInputSource::externalPin;
@@ -63,7 +58,6 @@ namespace hal::tiva
             bool triggerEnabled = false;
             TriggerSense triggerSense = TriggerSense::rising;
             bool triggerLevelHigh = true;
-            std::optional<PwmFaultRouting> routeToPwmFault;
             InterruptSense interruptSense = InterruptSense::both;
             bool interruptLevelHigh = true;
             hal::cortex::InterruptPriority priority = hal::cortex::InterruptPriority::normal;

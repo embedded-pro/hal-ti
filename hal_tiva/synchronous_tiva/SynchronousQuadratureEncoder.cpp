@@ -100,16 +100,20 @@ namespace hal::tiva
 
     QuadratureEncoder::QuadratureEncoder(uint8_t aQeiIndex, GpioPin& phaseA, GpioPin& phaseB, GpioPin& index, const Config& config)
         : qeiIndex(aQeiIndex)
+        , resolution(config.resolution)
         , phaseA(phaseA, PinConfigPeripheral::qeiPhaseA)
         , phaseB(phaseB, PinConfigPeripheral::qeiPhaseB)
         , index(index, PinConfigPeripheral::qeiIndex)
     {
         qeiArray = peripheralQei;
-        irqArray = infra::MakeRange(peripheralIrqQeiArray);
 
         EnableClock();
 
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
+        SYSCTL->SRQEI |= (1u << qeiIndex);
+        SYSCTL->SRQEI &= ~(1u << qeiIndex);
+        while (!(SYSCTL->PRQEI & (1u << qeiIndex)))
+        {
+        }
 
         {
             const auto us = std::chrono::duration_cast<std::chrono::microseconds>(config.velocityPeriod).count();
@@ -129,16 +133,13 @@ namespace hal::tiva
         SetRegister(config.captureMode == Config::CaptureMode::phaseAandPhaseB, qeiArray[qeiIndex]->CTL, QEI_CTL_CAPMODE);
         SetRegister(config.signalMode == Config::SignalMode::clockAndDirection, qeiArray[qeiIndex]->CTL, QEI_CTL_SIGMODE);
 
-        qeiArray[qeiIndex]->MAXPOS = config.resolution - 1;
+        qeiArray[qeiIndex]->MAXPOS = resolution - 1;
         qeiArray[qeiIndex]->POS = config.offset;
         qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
     }
 
     QuadratureEncoder::~QuadratureEncoder()
     {
-        qeiArray[qeiIndex]->INTEN &= ~QEI_INTEN_DIR;
-        qeiInterruptRegistration = std::nullopt;
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
         DisableClock();
     }
 
@@ -149,7 +150,7 @@ namespace hal::tiva
 
     uint32_t QuadratureEncoder::Resolution()
     {
-        return qeiArray[qeiIndex]->MAXPOS;
+        return resolution;
     }
 
     QuadratureEncoder::MotionDirection QuadratureEncoder::Direction()
