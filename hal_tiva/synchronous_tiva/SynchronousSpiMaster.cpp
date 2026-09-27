@@ -148,7 +148,7 @@ namespace hal::tiva
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                        /* Configure to SPI freescale format */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                         /* Sets clock rate */
-        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | (div & 0xff);                                      /* Sets prescaler */
+        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | (div & 0xff);                                     /* Sets prescaler */
 
         ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
 

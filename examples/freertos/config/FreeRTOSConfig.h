@@ -44,7 +44,7 @@
 #define configUSE_DAEMON_TASK_STARTUP_HOOK 0
 #define configTICK_RATE_HZ (1000)                     /* In this non-real time simulated environment the tick frequency has to be at least a multiple of the Win32 tick frequency, and therefore very slow. */
 #define configMINIMAL_STACK_SIZE ((unsigned short)70) /* In this simulated case, the stack only has to hold one small structure as the real stack is part of the win32 thread. */
-#define configTOTAL_HEAP_SIZE ((size_t)(65 * 1024))
+#define configTOTAL_HEAP_SIZE ((size_t)(16 * 1024))
 #define configMAX_TASK_NAME_LEN (12)
 #define configUSE_TRACE_FACILITY 1
 #define configUSE_16_BIT_TICKS 0
@@ -131,9 +131,9 @@ extern void vAssertCalled(const char* const pcFileName,
 /* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
 #define configPRIO_BITS __NVIC_PRIO_BITS
 #else
-#define configPRIO_BITS 4
+#define configPRIO_BITS 3
 #endif
-#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY 0xf
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY 0x7
 #define configKERNEL_INTERRUPT_PRIORITY (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 

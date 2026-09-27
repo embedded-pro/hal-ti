@@ -8,27 +8,27 @@ namespace hal::tiva
 {
     namespace
     {
-        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;       // SSI Serial Clock Rate
+        constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;     // SSI Serial Clock Rate
         constexpr const uint32_t SSI_CR0_SPH_SPO_M = 0x000000C0; // SSI Serial Clock Phase and Polarity
         constexpr const uint32_t SSI_CR0_SPH = 0x00000080;       // SSI Serial Clock Phase
         constexpr const uint32_t SSI_CR0_SPO = 0x00000040;       // SSI Serial Clock Polarity
-        constexpr const uint32_t SSI_CR0_FRF_M = 0x00000030;    // SSI Frame Format Select
-        constexpr const uint32_t SSI_CR0_FRF_MOTO = 0x00000000; // Freescale SPI Frame Format
-        constexpr const uint32_t SSI_CR0_FRF_TI = 0x00000010;   // Synchronous Serial Frame Format
-        constexpr const uint32_t SSI_CR0_DSS_M = 0x0000000F;    // SSI Data Size Select
-        constexpr const uint32_t SSI_CR0_DSS_4 = 0x00000003;    // 4-bit data
-        constexpr const uint32_t SSI_CR0_DSS_5 = 0x00000004;    // 5-bit data
-        constexpr const uint32_t SSI_CR0_DSS_6 = 0x00000005;    // 6-bit data
-        constexpr const uint32_t SSI_CR0_DSS_7 = 0x00000006;    // 7-bit data
-        constexpr const uint32_t SSI_CR0_DSS_8 = 0x00000007;    // 8-bit data
-        constexpr const uint32_t SSI_CR0_DSS_9 = 0x00000008;    // 9-bit data
-        constexpr const uint32_t SSI_CR0_DSS_10 = 0x00000009;   // 10-bit data
-        constexpr const uint32_t SSI_CR0_DSS_11 = 0x0000000A;   // 11-bit data
-        constexpr const uint32_t SSI_CR0_DSS_12 = 0x0000000B;   // 12-bit data
-        constexpr const uint32_t SSI_CR0_DSS_13 = 0x0000000C;   // 13-bit data
-        constexpr const uint32_t SSI_CR0_DSS_14 = 0x0000000D;   // 14-bit data
-        constexpr const uint32_t SSI_CR0_DSS_15 = 0x0000000E;   // 15-bit data
-        constexpr const uint32_t SSI_CR0_DSS_16 = 0x0000000F;   // 16-bit data
+        constexpr const uint32_t SSI_CR0_FRF_M = 0x00000030;     // SSI Frame Format Select
+        constexpr const uint32_t SSI_CR0_FRF_MOTO = 0x00000000;  // Freescale SPI Frame Format
+        constexpr const uint32_t SSI_CR0_FRF_TI = 0x00000010;    // Synchronous Serial Frame Format
+        constexpr const uint32_t SSI_CR0_DSS_M = 0x0000000F;     // SSI Data Size Select
+        constexpr const uint32_t SSI_CR0_DSS_4 = 0x00000003;     // 4-bit data
+        constexpr const uint32_t SSI_CR0_DSS_5 = 0x00000004;     // 5-bit data
+        constexpr const uint32_t SSI_CR0_DSS_6 = 0x00000005;     // 6-bit data
+        constexpr const uint32_t SSI_CR0_DSS_7 = 0x00000006;     // 7-bit data
+        constexpr const uint32_t SSI_CR0_DSS_8 = 0x00000007;     // 8-bit data
+        constexpr const uint32_t SSI_CR0_DSS_9 = 0x00000008;     // 9-bit data
+        constexpr const uint32_t SSI_CR0_DSS_10 = 0x00000009;    // 10-bit data
+        constexpr const uint32_t SSI_CR0_DSS_11 = 0x0000000A;    // 11-bit data
+        constexpr const uint32_t SSI_CR0_DSS_12 = 0x0000000B;    // 12-bit data
+        constexpr const uint32_t SSI_CR0_DSS_13 = 0x0000000C;    // 13-bit data
+        constexpr const uint32_t SSI_CR0_DSS_14 = 0x0000000D;    // 14-bit data
+        constexpr const uint32_t SSI_CR0_DSS_15 = 0x0000000E;    // 15-bit data
+        constexpr const uint32_t SSI_CR0_DSS_16 = 0x0000000F;    // 16-bit data
         constexpr const uint32_t SSI_CR0_SCR_S = 8;
 
         constexpr const uint32_t SSI_CR1_EOM = 0x00000800;         // Stop Frame (End of Message)
@@ -152,14 +152,14 @@ namespace hal::tiva
             scr = (max / div) - 1;
         } while (scr > 255);
 
-        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;                                                                                  /* SSI clock is sourced by main system clock  */
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;                                                                                     /* Enable master mode */
-        ssiArray[ssiIndex]->CR1 |= SSI_CR1_EOT;                                                                                     /* Enable end of transmission */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;                                       /* Configure number of bits */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                    /* Configure to SPI freescale format */
+        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;                                                                                      /* SSI clock is sourced by main system clock  */
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;                                                                                         /* Enable master mode */
+        ssiArray[ssiIndex]->CR1 |= SSI_CR1_EOT;                                                                                         /* Enable end of transmission */
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;                                           /* Configure number of bits */
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                        /* Configure to SPI freescale format */
         ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                     /* Sets clock rate */
-        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div;                                          /* Sets prescaler */
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                         /* Sets clock rate */
+        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div;                                              /* Sets prescaler */
 
         ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
     }

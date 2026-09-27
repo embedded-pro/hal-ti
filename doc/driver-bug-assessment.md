@@ -13,6 +13,15 @@ Build status at `580a896`:
 | `tm4c1294ncpdt` Debug | pass |
 | `hal_tiva/` with `-Wall -Wextra -Wlogical-op -Wduplicated-cond …` | 4 unused-variable warnings (`Ethernet.cpp:776,783,792`, `Gpio.cpp:242`), 2 harmless `-Wparentheses` |
 
+## Resolution status
+
+All Critical, High and Medium findings and L1–L18, L20–L21 are fixed on this branch. Not changed:
+
+- **L19** `SystemCoreClockUpdate()` on TM4C129 — the MOSC crystal frequency cannot be read back from hardware, so it cannot be implemented generically; `ConfigureClock` keeps assigning `SystemCoreClock` directly.
+- **L22** host tests — the affected logic lives inside driver translation units that include the device header; extracting it for host testing is a refactor outside this fix set.
+
+Found while fixing and also addressed: `ClockTm4c129` forced `MOSCCTL` (powering MOSC) even when running from internal oscillators; the FreeRTOS example had no `FREERTOS_CONFIG_FILE_DIRECTORY`, a 65 KB heap (> TM4C123 RAM) and `configPRIO_BITS 4` (Tiva has 3 — the CM4F port asserts on this at scheduler start).
+
 Severity: **Critical** = driver unusable or memory corruption in normal use. **High** = wrong behaviour in a common configuration. **Medium** = wrong behaviour in a specific configuration / robustness. **Low** = latent, cosmetic, or rule violation without current impact. "Plausible" = reasoning is sound but needs a datasheet/hardware confirmation.
 
 ---
