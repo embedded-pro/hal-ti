@@ -2,6 +2,7 @@
 
 #include "hal/interfaces/Can.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
+#include "hal_tiva/tiva/CanBitTiming.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
 #include <atomic>
@@ -43,13 +44,7 @@ namespace hal::tiva
 
         using BitRate = uint32_t;
 
-        struct BitTiming
-        {
-            uint8_t phaseSegment1;
-            uint8_t phaseSegment2;
-            uint8_t synchronizationJumpWidth;
-            uint16_t baudratePrescaler;
-        };
+        using BitTiming = CanBitTiming;
 
         struct Filter
         {

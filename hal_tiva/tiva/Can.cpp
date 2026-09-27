@@ -138,13 +138,7 @@ namespace
     constexpr uint8_t maxDataLength = 8;
     constexpr uint8_t rxFilterDlc = 8;
 
-    constexpr uint32_t minTimeQuanta = 8;
-    constexpr uint32_t maxTimeQuanta = 25;
-    constexpr uint32_t maxTseg1 = 16;
-    constexpr uint32_t maxTseg2 = 8;
-    constexpr uint32_t maxSjw = 4;
-    constexpr uint32_t maxPrescaler = 1024;
-    constexpr uint32_t targetSamplePointPermille = 875;
+    using namespace hal::tiva::canBitTiming;
 
     constexpr uint8_t txMessageObject = 1;
     constexpr uint8_t rxMessageObject = 2;
@@ -242,73 +236,6 @@ namespace
         can.BRPE = (brp >> bittiming::BrpExtShift) & bittiming::BrpExtMask;
     }
 
-    // Computes bit-timing parameters targeting a 87.5% sample point (CiA-301 recommended).
-    //
-    // The algorithm enumerates all valid time-quanta (tq) counts in the C_CAN range [8, 25]
-    // and selects the one whose sample point is closest to 87.5%. Higher tq counts win on tie
-    // because they offer better SJW resolution. For the common baudrates the result is:
-    //
-    //   sysclk   bit-rate  tq  prescaler  phaseSeg1  phaseSeg2  sample-point
-    //   ---------------------------------------------------------------------
-    //   120 MHz   100 kbit 16     75         13         2          87.50 %
-    //   120 MHz   125 kbit 16     60         13         2          87.50 %
-    //   120 MHz   250 kbit 16     30         13         2          87.50 %
-    //   120 MHz   500 kbit 16     15         13         2          87.50 %
-    //   120 MHz     1 Mbit  8     15          6         1          87.50 %
-    //    80 MHz   100 kbit 16     50         13         2          87.50 %
-    //    80 MHz   125 kbit 16     40         13         2          87.50 %
-    //    80 MHz   250 kbit 16     20         13         2          87.50 %
-    //    80 MHz   500 kbit 16     10         13         2          87.50 %
-    //    80 MHz     1 Mbit 16      5         13         2          87.50 %
-    hal::tiva::Can::BitTiming CalculateBitTiming(uint32_t sysclk, uint32_t bitRate)
-    {
-        really_assert(bitRate > 0);
-        really_assert(sysclk % bitRate == 0);
-
-        uint32_t bitClocks = sysclk / bitRate;
-
-        hal::tiva::Can::BitTiming best{};
-        uint32_t bestDistance = UINT32_MAX;
-
-        for (uint32_t tq = maxTimeQuanta; tq >= minTimeQuanta; --tq)
-        {
-            if (bitClocks % tq != 0)
-                continue;
-
-            uint32_t prescaler = bitClocks / tq;
-            if (prescaler < 1 || prescaler > maxPrescaler)
-                continue;
-
-            // round(0.875 * tq) = (1 + phaseSegment1 quanta before sample point)
-            uint32_t quantaBeforeSample = (targetSamplePointPermille * tq + 500u) / 1000u;
-            if (quantaBeforeSample < 3)
-                continue;
-            uint32_t phaseSeg1 = quantaBeforeSample - 1u;
-            if (phaseSeg1 > maxTseg1)
-                continue;
-            uint32_t phaseSeg2 = tq - 1u - phaseSeg1;
-            if (phaseSeg2 < 1 || phaseSeg2 > maxTseg2)
-                continue;
-
-            uint32_t samplePointPermille = quantaBeforeSample * 1000u / tq;
-            uint32_t distance = samplePointPermille > targetSamplePointPermille
-                                    ? samplePointPermille - targetSamplePointPermille
-                                    : targetSamplePointPermille - samplePointPermille;
-
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best.baudratePrescaler = static_cast<uint16_t>(prescaler);
-                best.phaseSegment1 = static_cast<uint8_t>(phaseSeg1);
-                best.phaseSegment2 = static_cast<uint8_t>(phaseSeg2);
-                best.synchronizationJumpWidth = static_cast<uint8_t>(phaseSeg2 < maxSjw ? phaseSeg2 : maxSjw);
-            }
-        }
-
-        really_assert(bestDistance != UINT32_MAX);
-        return best;
-    }
-
     void EnterInitMode(CAN0_Type& can)
     {
         can.CTL |= ctl::Init;
@@ -363,7 +290,7 @@ namespace
                 if constexpr (std::is_same_v<T, hal::tiva::Can::BitTiming>)
                     ApplyManualBitTiming(can, selected);
                 else
-                    ApplyManualBitTiming(can, CalculateBitTiming(SystemCoreClock, selected));
+                    ApplyManualBitTiming(can, hal::tiva::CalculateCanBitTiming(SystemCoreClock, selected));
             },
             timing);
     }

@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/SpiMaster.hpp"
+#include "hal_tiva/tiva/SpiClockDivisor.hpp"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/BitLogic.hpp"
 
@@ -113,37 +114,6 @@ namespace hal::tiva
             return phasePolarity;
         }
 
-        struct SpiClockConfig
-        {
-            uint32_t cpsdvsr;
-            uint32_t scr;
-        };
-
-        SpiClockConfig ComputeSpiClockDivisors(uint32_t systemClock, uint32_t baudRate)
-        {
-            really_assert(baudRate > 0 && baudRate <= systemClock / 2);
-
-            SpiClockConfig best = { 0, 0 };
-            uint32_t bestActual = 0;
-
-            for (uint32_t cpsdvsr = 2; cpsdvsr <= 254; cpsdvsr += 2)
-            {
-                const uint64_t product = static_cast<uint64_t>(cpsdvsr) * baudRate;
-                const uint32_t scrPlusOne = static_cast<uint32_t>((static_cast<uint64_t>(systemClock) + product - 1) / product);
-                if ((scrPlusOne - 1) > 255)
-                    continue;
-                const uint32_t actual = static_cast<uint32_t>(static_cast<uint64_t>(systemClock) / (static_cast<uint64_t>(cpsdvsr) * scrPlusOne));
-                if (actual > bestActual)
-                {
-                    bestActual = actual;
-                    best = { cpsdvsr, scrPlusOne - 1 };
-                }
-            }
-
-            really_assert(best.cpsdvsr != 0);
-            return best;
-        }
-
         constexpr std::array<uint32_t, 4> peripheralSsiArray = { {
             SSI0_BASE,
             SSI1_BASE,
@@ -173,7 +143,7 @@ namespace hal::tiva
 
         EnableClock();
 
-        const SpiClockConfig clk = ComputeSpiClockDivisors(SystemCoreClock, config.baudRate);
+        const SpiClockDivisors clk = CalculateSpiClockDivisors(SystemCoreClock, config.baudRate);
 
         ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE;
         ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;
