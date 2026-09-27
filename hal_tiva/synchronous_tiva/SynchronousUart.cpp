@@ -1,6 +1,8 @@
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
 #include "infra/util/BitLogic.hpp"
 
+extern "C" uint32_t SystemCoreClock;
+
 namespace hal::tiva
 {
     namespace
@@ -184,24 +186,24 @@ namespace hal::tiva
         constexpr const uint32_t UART_CC_CS_PIOSC = 0x00000005;  // PIOSC
         // NOLINTEND
 
-        const std::array<uint32_t, 13> baudRateTiva{ {
+        const std::array<uint32_t, 12> baudRateTiva{ {
             600,
             1200,
             2400,
             4800,
             9600,
             19200,
-            38600,
-            56700,
+            38400,
+            57600,
             115200,
             230400,
             460800,
-            921000,
+            921600,
         } };
 
-        const std::array<uint32_t, 4> parityTiva{ { 0x0, 0x6, 0x2 } };
+        const std::array<uint32_t, 3> parityTiva{ { 0x0, 0x6, 0x2 } };
 
-        const std::array<uint32_t, 3> stopBitsTiva{ { 0x0, 0x8 } };
+        const std::array<uint32_t, 2> stopBitsTiva{ { 0x0, 0x8 } };
 
         constexpr std::array<uint32_t, 8> peripheralUartArray = { {
             UART0_BASE,
@@ -214,12 +216,24 @@ namespace hal::tiva
             UART7_BASE,
         } };
 
+        constexpr std::array<int32_t, 8> peripheralIrqUartArray = { {
+            UART0_IRQn,
+            UART1_IRQn,
+            UART2_IRQn,
+            UART3_IRQn,
+            UART4_IRQn,
+            UART5_IRQn,
+            UART6_IRQn,
+            UART7_IRQn,
+        } };
+
         const infra::MemoryRange<UART0_Type* const> peripheralUart = infra::ReinterpretCastMemoryRange<UART0_Type* const>(infra::MakeRange(peripheralUartArray));
     }
 
     SynchronousUart::SynchronousUart(infra::ByteRange readBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, TimeKeeper& timeKeeper, uint32_t baudrate)
         : SynchronousUart(readBuffer, aUartIndex, uartTx, uartRx, uartTx, uartRx, timeKeeper, { false, false }, baudrate)
-    {}
+    {
+    }
 
     SynchronousUart::SynchronousUart(infra::ByteRange readBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, GpioPin& uartRts, GpioPin& uartCts, TimeKeeper& timeKeeper,
         HwFlowControl flowControl, uint32_t baudrate)
@@ -235,14 +249,33 @@ namespace hal::tiva
             this->uartRts.emplace(uartRts, PinConfigPeripheral::uartRts);
         if (flowControl.ctsEnable)
             this->uartCts.emplace(uartCts, PinConfigPeripheral::uartCts);
+
+        uartArray = peripheralUart;
+        EnableClock();
+        Initialization(baudrate, flowControl);
+        Register(peripheralIrqUartArray[aUartIndex]);
     }
 
     SynchronousUart::~SynchronousUart()
     {
+        Unregister();
+        uartArray[uartIndex]->IM = 0;
+        DisableUart();
+        DisableClock();
     }
 
     void SynchronousUart::SendData(infra::ConstByteRange data)
     {
+        for (auto byte : data)
+        {
+            while (uartArray[uartIndex]->FR & UART_FR_TXFF)
+            {
+            }
+            uartArray[uartIndex]->DR = byte;
+        }
+        while (uartArray[uartIndex]->FR & UART_FR_BUSY)
+        {
+        }
     }
 
     bool SynchronousUart::ReceiveData(infra::ByteRange data)
@@ -270,6 +303,18 @@ namespace hal::tiva
 
     void SynchronousUart::Invoke()
     {
+        uartArray[uartIndex]->ICR = UART_ICR_RXIC | UART_ICR_RTIC;
+
+        while (!(uartArray[uartIndex]->FR & UART_FR_RXFE))
+        {
+            auto byte = static_cast<uint8_t>(uartArray[uartIndex]->DR);
+            if (!Full())
+            {
+                auto end = contentsEnd.load();
+                *end = byte;
+                contentsEnd.store(end == readBuffer.end() - 1 ? readBuffer.begin() : end + 1);
+            }
+        }
     }
 
     bool SynchronousUart::Full() const
@@ -282,17 +327,74 @@ namespace hal::tiva
         return contentsBegin.load() == contentsEnd.load();
     }
 
+    void SynchronousUart::Initialization(uint32_t baudrate, HwFlowControl flowControl) const
+    {
+        bool isHse = baudrate * 16 > SystemCoreClock;
+        uint32_t baud = isHse ? baudrate / 2 : baudrate;
+        uint32_t div = (((SystemCoreClock * 8) / baud) + 1) / 2;
+
+        DisableUart();
+        uartArray[uartIndex]->CC = UART_CC_CS_SYSCLK;
+        uartArray[uartIndex]->CTL = (uartArray[uartIndex]->CTL & ~UART_CTL_HSE) | (isHse ? UART_CTL_HSE : 0);
+        uartArray[uartIndex]->IBRD = div / 64;
+        uartArray[uartIndex]->FBRD = div % 64;
+        uartArray[uartIndex]->LCRH = UART_LCRH_WLEN_8;
+        uartArray[uartIndex]->RSR = 0;
+        uartArray[uartIndex]->IFLS = UART_IFLS_RX1_8;
+        uartArray[uartIndex]->IM = UART_IM_RXIM | UART_IM_RTIM;
+        EnableUart();
+
+        if (flowControl.rtsEnable)
+            uartArray[uartIndex]->CTL |= UART_CTL_RTSEN;
+        if (flowControl.ctsEnable)
+            uartArray[uartIndex]->CTL |= UART_CTL_CTSEN;
+    }
+
+    void SynchronousUart::EnableClock() const
+    {
+        infra::ReplaceBit(SYSCTL->RCGCUART, true, uartIndex);
+
+        while (!infra::IsBitSet(SYSCTL->PRUART, uartIndex))
+        {
+        }
+    }
+
+    void SynchronousUart::DisableClock() const
+    {
+        infra::ReplaceBit(SYSCTL->RCGCUART, false, uartIndex);
+    }
+
+    void SynchronousUart::EnableUart() const
+    {
+        uartArray[uartIndex]->LCRH |= UART_LCRH_FEN;
+        uartArray[uartIndex]->CTL |= UART_CTL_UARTEN | UART_CTL_TXE | UART_CTL_RXE;
+    }
+
+    void SynchronousUart::DisableUart() const
+    {
+        while (uartArray[uartIndex]->FR & UART_FR_BUSY)
+        {
+        }
+        uartArray[uartIndex]->LCRH &= ~UART_LCRH_FEN;
+        uartArray[uartIndex]->CTL &= ~(UART_CTL_UARTEN | UART_CTL_TXE | UART_CTL_RXE);
+    }
+
     SynchronousUartSendOnly::SynchronousUartSendOnly(uint8_t aUartIndex, GpioPin& uartTx, const Config& config)
         : SynchronousUartSendOnly(aUartIndex, uartTx, uartTx, { false, false }, config)
-    {}
+    {
+    }
 
     SynchronousUartSendOnly::SynchronousUartSendOnly(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRts, HwFlowControl flowControl, const Config& config)
         : uartIndex(aUartIndex)
         , uartTx(uartTx, PinConfigPeripheral::uartTx)
     {
+        if (flowControl.rtsEnable)
+            this->uartRts.emplace(uartRts, PinConfigPeripheral::uartRts);
         uartArray = peripheralUart;
         EnableClock();
         Initialization(config);
+        if (flowControl.rtsEnable)
+            uartArray[uartIndex]->CTL |= UART_CTL_RTSEN;
     }
 
     SynchronousUartSendOnly::~SynchronousUartSendOnly()
@@ -335,7 +437,7 @@ namespace hal::tiva
         uartArray[uartIndex]->IBRD = div / 64;
         uartArray[uartIndex]->FBRD = div % 64;
         uartArray[uartIndex]->LCRH = lcrh;
-        uartArray[uartIndex]->FR = 0;
+        uartArray[uartIndex]->RSR = 0;
         uartArray[uartIndex]->IFLS = UART_IFLS_TX7_8;
         EnableUart();
     }
@@ -346,7 +448,7 @@ namespace hal::tiva
         {
         }
         uartArray[uartIndex]->LCRH &= ~UART_LCRH_FEN;
-        uartArray[uartIndex]->CTL &= ~UART_CTL_UARTEN | UART_CTL_TXE | UART_CTL_RXE;
+        uartArray[uartIndex]->CTL &= ~(UART_CTL_UARTEN | UART_CTL_TXE | UART_CTL_RXE);
     }
 
     void SynchronousUartSendOnly::EnableUart() const

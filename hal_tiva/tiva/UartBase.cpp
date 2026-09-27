@@ -103,12 +103,12 @@ namespace hal::tiva
             4800,
             9600,
             19200,
-            38600,
-            56700,
+            38400,
+            57600,
             115200,
             230400,
             460800,
-            921000,
+            921600,
         } };
 
         constexpr std::array<uint32_t, 3> parityTiva{ { 0x0, 0x6, 0x2 } };
@@ -198,7 +198,7 @@ namespace hal::tiva
         uartArray[uartIndex]->IBRD = div / 64;
         uartArray[uartIndex]->FBRD = div % 64;
         uartArray[uartIndex]->LCRH = lcrh;
-        uartArray[uartIndex]->FR = 0;
+        uartArray[uartIndex]->RSR = 0;
         uartArray[uartIndex]->IFLS = UART_IFLS_RX7_8 | UART_IFLS_TX7_8;
         uartArray[uartIndex]->IM |= UART_IM_OEIM;
         EnableUart();
