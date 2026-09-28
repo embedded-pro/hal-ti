@@ -8,25 +8,30 @@ The host package (`validation/host`) drives this terminal and a Digilent Analog 
 The pinout and peripheral assignment follow the e-foc project (`targets/platform_implementations/ti/<board>/PinsAndPeripherals.hpp`), so a LaunchPad already modified for e-foc needs no rework.
 The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, as in e-foc.
 
-| Alias                    | EK-TM4C123GXL       | EK-TM4C1294XL       |
-|--------------------------|---------------------|---------------------|
-| terminal (tx / rx)       | UART0 PA1 / PA0     | UART2 PD5 / PD4     |
-| `phasea` `phaseb` `phasec` | PE3 PE2 PE1       | PE3 PE2 PE1         |
-| `vbus`                   | PE0                 | PB5                 |
-| `itotal`                 | PE0                 | PB4                 |
-| `halla` `hallb` `hallc`  | PA4 PA5 PA6         | PE4 PE5 PE6         |
-| `enca` `encb` `encz`     | PD6 PD7 PD3 (QEI0)  | PL1 PL2 PL3 (QEI0)  |
-| `pwm1a` `pwm1b`          | PB6 PB7 (M0 gen 0)  | PF2 PF3 (M0 gen 1)  |
-| `pwm2a` `pwm2b`          | PB4 PB5 (M0 gen 1)  | PG0 PG1 (M0 gen 2)  |
-| `pwm3a` `pwm3b`          | PE4 PE5 (M0 gen 2)  | PK4 PK5 (M0 gen 3)  |
-| `canrx` `cantx`          | PF0 PF3 (CAN0)      | PA0 PA1 (CAN0)      |
-| `ledop` `ledwarn` `ledfail` | PF1 PF1 PF1      | PN3 PN2 PP2         |
-| `perf`                   | PA2                 | PN4                 |
-| `id0` `id1` `id2`        | -                   | PK0 PK1 PK2 (pull-up) |
-| `pwrstatus`              | -                   | PC6 (pull-up)       |
+| Alias                       | EK-TM4C123GXL      | EK-TM4C1294XL         |
+|-----------------------------|--------------------|-----------------------|
+| terminal (tx / rx)          | UART0 PA1 / PA0    | UART2 PD5 / PD4       |
+| `phasea` `phaseb` `phasec`  | PE3 PE2 PE1        | PE3 PE2 PE1           |
+| `vbus`                      | PE0                | PB5                   |
+| `itotal`                    | PE0                | PB4                   |
+| `halla` `hallb` `hallc`     | PA4 PA5 PA6        | PE4 PE5 PE6           |
+| `enca` `encb` `encz`        | PD6 PD7 PD3 (QEI0) | PL1 PL2 PL3 (QEI0)    |
+| `pwm1a` `pwm1b`             | PB6 PB7 (M0 gen 0) | PF2 PF3 (M0 gen 1)    |
+| `pwm2a` `pwm2b`             | PB4 PB5 (M0 gen 1) | PG0 PG1 (M0 gen 2)    |
+| `pwm3a` `pwm3b`             | PE4 PE5 (M0 gen 2) | PK4 PK5 (M0 gen 3)    |
+| `canrx` `cantx`             | PF0 PF3 (CAN0)     | PA0 PA1 (CAN0)        |
+| `ledop` `ledwarn` `ledfail` | PF1 PF1 PF1        | PN3 PN2 PP2           |
+| `perf`                      | PA2                | PN4                   |
+| `id0` `id1` `id2`           | -                  | PK0 PK1 PK2 (pull-up) |
+| `pwrstatus`                 | -                  | PC6 (pull-up)         |
 
 - Wherever a pin is expected, an alias from this table may be used instead of `P<port><index>`.
-- Every `*.open` command without pin arguments uses the e-foc assignment above, and the documented defaults reproduce e-foc's configuration (PWM module 0 center-aligned, divisor 2, 1000 ns dead time, 20 kHz; phase-current ADC0 sequencer 0 triggered by the first phase generator, sample-and-hold 8, oversampling 2, sampling delay 4; supply ADC1 sequencer 0, sample-and-hold 256, oversampling 8; QEI0 quadrature on A and B with reset on max position; CAN0; watchdog 0).
+- Every `*.open` command without pin arguments uses the e-foc assignment above, and the documented defaults reproduce e-foc's configuration:
+  - PWM module 0 center-aligned, divisor 2, 1000 ns dead time, 20 kHz
+  - phase-current ADC0 sequencer 0 triggered by the first phase generator, sample-and-hold 8, oversampling 2, sampling delay 4
+  - supply ADC1 sequencer 0, sample-and-hold 256, oversampling 8
+  - QEI0 quadrature on A and B with reset on max position
+  - CAN0 and watchdog 0
 - `board.pins` → `OK <alias>=<pin>,...` lists the table for the running board, plus `terminaltx` and `terminalrx`.
 
 ## Framing
@@ -34,7 +39,7 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 - The host sends one command per line, terminated by `\r`. The terminal echoes characters and prints a prompt; the host ignores echo and prompt.
 - Every command produces exactly one final line, either `OK` followed by optional `key=value` pairs, or `ERR <reason>` where `<reason>` is one token (`usage`, `pin`, `busy`, `notopen`, `unsupported`, `range`, `timeout`, `failed`).
 - Asynchronous notifications are single lines starting with `EVT <peripheral>` followed by `key=value` pairs. They can appear at any time, including between a command and its final line.
-- Lines produced outside the processing of a command line (deferred results such as `delay`, and every `EVT`) start with `\r\n`, so an empty line or a bare prompt `> ` may precede them.
+- Lines produced outside the processing of a command line (deferred results such as `delay`, and every `EVT`) start with `\r\n`, so an empty line or a bare `>` prompt may precede them.
 - Command lines are at most 255 characters (EMIL terminal buffer). Unknown commands, unknown keys and a wrong number of positional arguments return `ERR usage`.
 - After reset the firmware prints `EVT boot board=<name> family=<tm4c123|tm4c129> sysclk=<hz> reset=<cause>` once; `<cause>` is `wdt0`, `wdt1`, `sw`, `moscfail`, `bor`, `por`, `ext` or `unknown`.
 - Numbers are decimal unless prefixed with `0x`. Binary payloads are hex strings without separators (`a55a0102`). Lists are comma separated without spaces.
@@ -64,8 +69,19 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 ## PWM (`hal::tiva::Pwm`, `sync=1` selects `hal::tiva::SynchronousPwm`)
 
-- `pwm.open <module> [gens=<g>[,<g>...]] [pins=<a>:<b>[,<a>:<b>...]] [freq=<hz>] [mode=edge|center] [div=1|2|4|8|16|32|64] [dead=<ns>|off] [inva=0|1] [invb=0|1] [update=local|global] [trigger=zero|load|none] [irq=zero|load|cmpau|cmpad|cmpbu|cmpbd] [sync=0|1]` → `OK pwmclk=<hz>`; without `gens`/`pins` it opens the three e-foc phase generators (module 0 only); a `pins` entry may use `-` for an unused channel and, without `gens`, the generator follows from the pin; `gens` without `pins` takes the first pins of the pinout table; defaults are e-foc's (`freq=20000 mode=center div=2 dead=1000 update=global`); `irq` needs `sync=0`; `trigger` sets the ADC trigger of the first generator (e-foc: `load` on TM4C123, `zero` on TM4C129); `sync` defaults to the e-foc choice (1 on TM4C123, 0 on TM4C129)
-- `pwm.fault <module> <on|off>` → `OK`; on TM4C129 enables e-foc's fault path (ADC digital comparators 0 and 1 into the fault inputs of every open generator, latched); the driver takes this only at construction, so the module is rebuilt and its outputs stay stopped until the next `pwm.duty`; faults report `EVT pwm module=<m> fault=<bits>` (digital comparator inputs of all generators OR-ed); on TM4C123, and with `sync=1`, returns `ERR unsupported`
+- `pwm.open <module> [gens=<g>[,<g>...]] [pins=<a>:<b>[,<a>:<b>...]] [freq=<hz>] [mode=edge|center] [div=1|2|4|8|16|32|64] [dead=<ns>|off] [inva=0|1] [invb=0|1] [update=local|global] [trigger=zero|load|none] [irq=zero|load|cmpau|cmpad|cmpbu|cmpbd] [sync=0|1]` → `OK pwmclk=<hz>`
+  - without `gens`/`pins` it opens the three e-foc phase generators (module 0 only)
+  - a `pins` entry may use `-` for an unused channel and, without `gens`, the generator follows from the pin
+  - `gens` without `pins` takes the first pins of the pinout table
+  - defaults are e-foc's (`freq=20000 mode=center div=2 dead=1000 update=global`)
+  - `irq` needs `sync=0`
+  - `trigger` sets the ADC trigger of the first generator (e-foc: `load` on TM4C123, `zero` on TM4C129)
+  - `sync` defaults to the e-foc choice (1 on TM4C123, 0 on TM4C129)
+- `pwm.fault <module> <on|off>` → `OK`
+  - on TM4C129 enables e-foc's fault path (ADC digital comparators 0 and 1 into the fault inputs of every open generator, latched)
+  - the driver takes this only at construction, so the module is rebuilt and its outputs stay stopped until the next `pwm.duty`
+  - faults report `EVT pwm module=<m> fault=<bits>` (digital comparator inputs of all generators OR-ed)
+  - on TM4C123, and with `sync=1`, returns `ERR unsupported`
 - `pwm.duty <module> <duty1%> [duty2%] [duty3%] [duty4%]` → `OK`; one duty per opened generator in open order, or a single duty for all of them, starts the outputs (as e-foc's `Start(a, b, c)`); duty accepts decimals (`12.5`, up to 4 digits), `0` and `100`
 - `pwm.freq <module> <hz>` → `OK`
 - `pwm.stop <module>` → `OK`
@@ -75,7 +91,14 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 ## UART (`hal::tiva::Uart`, `dma=1` selects `hal::tiva::UartWithDma`, `sync=1` selects `hal::tiva::SynchronousUart`)
 
-- `uart.open <index> [tx=<pin>] [rx=<pin>] [rts=<pin>] [cts=<pin>] [baud=<bps>] [parity=none|even|odd] [stop=1|2] [flow=none|rts|cts|rtscts] [dma=0|1] [sync=0|1]` → `OK`; `baud` must be one of the driver's rates (600 ... 921600); default 115200 8N1; without pins it uses the board's first free UART pins (TM4C123: UART1 PB0/PB1; TM4C129: UART0 is taken by CAN, so pins are required); `flow` needs the matching `rts`/`cts` pins; `dma=1` with `sync=1` returns `ERR usage`; `sync=1` supports only `parity=none stop=1` (`ERR unsupported` otherwise)
+- `uart.open <index> [tx=<pin>] [rx=<pin>] [rts=<pin>] [cts=<pin>] [baud=<bps>] [parity=none|even|odd] [stop=1|2] [flow=none|rts|cts|rtscts] [dma=0|1] [sync=0|1]` → `OK`
+  - `baud` must be one of the driver's rates (600 ... 921600)
+  - default 115200 8N1
+  - without pins it uses the board's first free UART pins (TM4C123: UART1 PB0/PB1
+  - TM4C129: UART0 is taken by CAN, so pins are required)
+  - `flow` needs the matching `rts`/`cts` pins
+  - `dma=1` with `sync=1` returns `ERR usage`
+  - `sync=1` supports only `parity=none stop=1` (`ERR unsupported` otherwise)
 - `uart.send <index> <hex>` → `OK` once the driver reports completion (up to 112 bytes; `ERR timeout` if the driver never completes)
 - `uart.recv <index> [timeout=<ms>] [len=<n>]` → `OK data=<hex>` with everything received since the last `uart.recv`, at most 256 bytes (waits up to `timeout`, default 1000, at most 10000, for `len` bytes when given, and returns what arrived even if fewer)
 - `uart.close <index>` → `OK`
@@ -88,7 +111,12 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 ## ADC (`hal::tiva::Adc`, `sync=1` selects `hal::tiva::SynchronousAdc`)
 
-- `adc.open <adc> <seq> [pins=<pin>[,<pin>...]] [sh=4|8|16|32|64|128|256] [avg=off|2|4|8|16|32|64] [delay=<n>|off] [trigger=pwm0|pwm1|pwm2|pwm3] [dcmp=<index>:<low>:<high>[,...]] [sync=0|1]` → `OK`; `adc.open 0 0` without pins is e-foc's phase-current sequencer (async, PWM triggered), `adc.open 1 0` is e-foc's supply sequencer (`sync=1`); `dcmp` routes the last N steps of the sequence (N = number of entries, fewer than the steps) to digital comparators (high band, always) instead of the FIFO, as e-foc does for over-current/over-voltage on TM4C129; without `pins` that sequence is e-foc's `phasea,phaseb,phasec,itotal,vbus`, so `adc.open 0 0 dcmp=0:0:<oc>,1:0:<ov>` reproduces e-foc; other sequencers need `pins` and default to the phase-current settings; `delay`, `trigger` and `dcmp` need `sync=0`
+- `adc.open <adc> <seq> [pins=<pin>[,<pin>...]] [sh=4|8|16|32|64|128|256] [avg=off|2|4|8|16|32|64] [delay=<n>|off] [trigger=pwm0|pwm1|pwm2|pwm3] [dcmp=<index>:<low>:<high>[,...]] [sync=0|1]` → `OK`
+  - `adc.open 0 0` without pins is e-foc's phase-current sequencer (async, PWM triggered), `adc.open 1 0` is e-foc's supply sequencer (`sync=1`)
+  - `dcmp` routes the last N steps of the sequence (N = number of entries, fewer than the steps) to digital comparators (high band, always) instead of the FIFO, as e-foc does for over-current/over-voltage on TM4C129
+  - without `pins` that sequence is e-foc's `phasea,phaseb,phasec,itotal,vbus`, so `adc.open 0 0 dcmp=0:0:<oc>,1:0:<ov>` reproduces e-foc
+  - other sequencers need `pins` and default to the phase-current settings
+  - `delay`, `trigger` and `dcmp` need `sync=0`
 - `adc.measure <adc> <seq> [n=<samples>]` → `OK samples=<v>[,<v>...]` (raw 12-bit codes); `n` is the number of sequence runs (default 1), each contributing one value per FIFO step, at most 64 values; an asynchronous sequencer waits for its PWM trigger and returns `ERR timeout` after 1000 ms
 - `adc.close <adc> <seq>` → `OK`
 
