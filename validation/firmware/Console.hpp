@@ -5,8 +5,8 @@
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "hal_tiva/tiva/UartWithDma.hpp"
 #include "infra/stream/OutputStream.hpp"
-#include "services/hil/HilTerminal.hpp"
 #include "services/hil/HilResponse.hpp"
+#include "services/hil/HilTerminal.hpp"
 #include "services/tracer/StreamWriterOnSerialCommunication.hpp"
 #include "services/tracer/Tracer.hpp"
 
