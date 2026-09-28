@@ -3,6 +3,7 @@
 
 #include "hal_tiva/synchronous_tiva/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Pwm.hpp"
+#include "infra/event/AtomicTriggerScheduler.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "services/hil/commands/HilPwmCommands.hpp"
 #include "validation/firmware/BoardTypes.hpp"
@@ -15,7 +16,6 @@ namespace validation
 {
     class TivaPwmFactory
         : public services::HilPwmFactory
-        , public services::HilPwmHandle
     {
     public:
         TivaPwmFactory(const services::HilPinNaming& naming, services::HilResponse& response);
@@ -27,11 +27,6 @@ namespace validation
         void ReportOpened(uint8_t module, services::HilResponse::Line& line) override;
         services::HilStatus ChangeFrequency(uint8_t module, uint32_t hertz) override;
         void Close(uint8_t module, const infra::Function<void()>& onClosed) override;
-
-        std::size_t Channels() const override;
-        void Start(infra::MemoryRange<const hal::DutyCycle> dutyCycles) override;
-        void SetBaseFrequency(hal::Hertz baseFrequency) override;
-        void Stop() override;
 
         services::HilStatus Find(const services::HilArguments& arguments) const;
         services::HilStatus EnableFault(bool enable);
@@ -69,7 +64,9 @@ namespace validation
         services::HilStatus Parse(uint8_t module, const services::HilArguments& arguments, Settings& settings) const;
         services::HilStatus ParseChannels(const services::HilArguments& arguments, Settings& settings) const;
         services::HilStatus ClaimPins(services::HilPinOwner& pins, Settings& settings);
-        void Construct();
+        services::HilPwmHandle& Construct();
+        template<class Driver>
+        services::HilPwmHandle& Adapt(Driver& pwm);
         void OnFault(const hal::tiva::Pwm::FaultEvent& event);
         void ReportFault();
         uint32_t PwmClock(uint8_t divisor) const;
@@ -82,9 +79,10 @@ namespace validation
         hal::tiva::Pwm::Config asyncConfig;
         hal::tiva::SynchronousPwm::Config syncConfig;
         std::variant<std::monostate, hal::tiva::Pwm, hal::tiva::SynchronousPwm> driver;
+        std::variant<std::monostate, services::HilPwmAdapter<hal::tiva::Pwm>, services::HilPwmAdapter<hal::tiva::SynchronousPwm>> adapter;
         std::array<std::atomic<uint32_t>, 4> counts{};
         std::atomic<uint8_t> faultInputs{ 0 };
-        std::atomic<bool> faultReportPending{ false };
+        infra::AtomicTriggerScheduler faultReport;
     };
 
     class PwmExtensionCommands

@@ -1,6 +1,5 @@
 #include "validation/firmware/PwmFactory.hpp"
 #include "BoardProfile.hpp"
-#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Tokenizer.hpp"
 #include "validation/firmware/TivaPinFactory.hpp"
@@ -98,26 +97,6 @@ namespace validation
                     return std::nullopt;
             }
         }
-
-        template<class Driver>
-        void StartDriver(Driver& pwm, infra::MemoryRange<const hal::DutyCycle> duties)
-        {
-            switch (duties.size())
-            {
-                case 1:
-                    pwm.Start(duties[0]);
-                    break;
-                case 2:
-                    pwm.Start(duties[0], duties[1]);
-                    break;
-                case 3:
-                    pwm.Start(duties[0], duties[1], duties[2]);
-                    break;
-                default:
-                    pwm.Start(duties[0], duties[1], duties[2], duties[3]);
-                    break;
-            }
-        }
     }
 
     TivaPwmFactory::TivaPwmFactory(const services::HilPinNaming& naming, services::HilResponse& response)
@@ -156,8 +135,7 @@ namespace validation
         for (auto& count : counts)
             count = 0;
 
-        Construct();
-        handle = this;
+        handle = &Construct();
         return HilStatus::done;
     }
 
@@ -177,38 +155,10 @@ namespace validation
 
     void TivaPwmFactory::Close(uint8_t, const infra::Function<void()>& onClosed)
     {
+        adapter.emplace<std::monostate>();
         driver.emplace<std::monostate>();
         settings = std::nullopt;
         onClosed();
-    }
-
-    std::size_t TivaPwmFactory::Channels() const
-    {
-        return settings->channels.size();
-    }
-
-    void TivaPwmFactory::Start(infra::MemoryRange<const hal::DutyCycle> dutyCycles)
-    {
-        services::HilWithDriver(driver, [dutyCycles](auto& pwm)
-            {
-                StartDriver(pwm, dutyCycles);
-            });
-    }
-
-    void TivaPwmFactory::SetBaseFrequency(hal::Hertz baseFrequency)
-    {
-        services::HilWithDriver(driver, [baseFrequency](auto& pwm)
-            {
-                pwm.SetBaseFrequency(baseFrequency);
-            });
-    }
-
-    void TivaPwmFactory::Stop()
-    {
-        services::HilWithDriver(driver, [](auto& pwm)
-            {
-                pwm.Stop();
-            });
     }
 
     HilStatus TivaPwmFactory::Find(const services::HilArguments& arguments) const
@@ -384,7 +334,7 @@ namespace validation
         return HilStatus::done;
     }
 
-    void TivaPwmFactory::Construct()
+    services::HilPwmHandle& TivaPwmFactory::Construct()
     {
         const auto& opened = *settings;
         const auto deadTimeCycles = static_cast<uint16_t>(static_cast<uint64_t>(opened.deadTime.value_or(0)) * PwmClock(opened.divisor) / 1000000000u);
@@ -425,7 +375,7 @@ namespace validation
 
             infra::BoundedVector<hal::tiva::SynchronousPwm::PinChannel>::WithMaxSize<maximumChannels> channels;
             makeChannels(channels);
-            driver.emplace<hal::tiva::SynchronousPwm>(opened.module, infra::MakeRange(channels), syncConfig);
+            return Adapt(driver.emplace<hal::tiva::SynchronousPwm>(opened.module, infra::MakeRange(channels), syncConfig));
         }
         else
         {
@@ -455,7 +405,7 @@ namespace validation
 
             infra::BoundedVector<hal::tiva::Pwm::PinChannel>::WithMaxSize<maximumChannels> channels;
             makeChannels(channels);
-            driver.emplace<hal::tiva::Pwm>(
+            return Adapt(driver.emplace<hal::tiva::Pwm>(
                 opened.module, infra::MakeRange(channels), asyncConfig,
                 [this](hal::tiva::Pwm::NormalEvent event)
                 {
@@ -464,10 +414,16 @@ namespace validation
                 [this](hal::tiva::Pwm::FaultEvent event)
                 {
                     OnFault(event);
-                });
+                }));
         }
+    }
 
-        SetBaseFrequency(hal::Hertz(opened.frequency));
+    template<class Driver>
+    services::HilPwmHandle& TivaPwmFactory::Adapt(Driver& pwm)
+    {
+        auto& handle = adapter.emplace<services::HilPwmAdapter<Driver>>(pwm, settings->channels.size());
+        handle.SetBaseFrequency(hal::Hertz(settings->frequency));
+        return handle;
     }
 
     void TivaPwmFactory::OnFault(const hal::tiva::Pwm::FaultEvent& event)
@@ -477,17 +433,14 @@ namespace validation
             inputs |= infra::enum_cast(comparator);
 
         faultInputs.fetch_or(inputs, std::memory_order_relaxed);
-
-        if (!faultReportPending.exchange(true))
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    ReportFault();
-                });
+        faultReport.Schedule([this]()
+            {
+                ReportFault();
+            });
     }
 
     void TivaPwmFactory::ReportFault()
     {
-        faultReportPending = false;
         auto inputs = faultInputs.exchange(0);
 
         if (settings)
