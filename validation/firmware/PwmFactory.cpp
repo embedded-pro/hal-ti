@@ -3,6 +3,8 @@
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Tokenizer.hpp"
 #include "validation/firmware/TivaPinFactory.hpp"
+#include <algorithm>
+#include DEVICE_HEADER
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -14,10 +16,15 @@ namespace validation
         using services::HilStatus;
 
         constexpr uint32_t maximumDeadTimeCycles = 4095;
+        constexpr uint32_t maximumDeadTimeNs = 1000000;
         constexpr uint32_t maximumLoad = 0xffff;
         constexpr uint8_t maximumGenerator = 3;
+        constexpr uint32_t maximumComparators = 0xff;
+        constexpr uint32_t maximumFaultInputs = 0x0f;
+        constexpr uint32_t maximumFaultPeriod = 0xffff;
 
         constexpr std::array<const char*, 12> openKeys{ { "gens", "pins", "freq", "mode", "div", "dead", "inva", "invb", "update", "trigger", "irq", "sync" } };
+        constexpr std::array<const char*, 6> faultKeys{ { "gens", "comparators", "inputs", "pin", "latch", "minperiod" } };
 
         constexpr std::array<HilChoice<bool>, 2> alignments{ {
             { "edge", false },
@@ -39,13 +46,8 @@ namespace validation
             { "global", true },
         } };
 
-        constexpr std::array<HilChoice<PwmTrigger>, 3> triggers{ {
-            { "zero", PwmTrigger::zero },
-            { "load", PwmTrigger::load },
-            { "none", PwmTrigger::none },
-        } };
-
-        constexpr std::array<HilChoice<std::optional<hal::tiva::Pwm::NormalInterruptSource>>, 6> interruptSources{ {
+        constexpr std::array<HilChoice<std::optional<hal::tiva::Pwm::NormalInterruptSource>>, 7> sources{ {
+            { "none", std::nullopt },
             { "zero", hal::tiva::Pwm::NormalInterruptSource::countZero },
             { "load", hal::tiva::Pwm::NormalInterruptSource::countLoad },
             { "cmpau", hal::tiva::Pwm::NormalInterruptSource::comparatorAUp },
@@ -84,24 +86,68 @@ namespace validation
             return std::nullopt;
         }
 
-        template<class Trigger>
-        std::optional<Trigger> ToTrigger(PwmTrigger trigger)
+        HilStatus ParseNumbers(infra::BoundedConstString text, uint32_t maximum, infra::MemoryRange<uint32_t> values, std::size_t& count)
         {
-            switch (trigger)
+            infra::Tokenizer tokens(text, ',');
+            count = tokens.Size();
+            if (count == 0 || count > values.size())
+                return HilStatus::usage;
+
+            for (std::size_t i = 0; i != count; ++i)
             {
-                case PwmTrigger::zero:
-                    return Trigger::countZero;
-                case PwmTrigger::load:
-                    return Trigger::countLoad;
-                default:
-                    return std::nullopt;
+                auto value = services::HilArguments::ParseNumber(tokens.Token(i));
+                if (!value)
+                    return HilStatus::usage;
+
+                if (*value > maximum)
+                    return HilStatus::range;
+
+                values[i] = *value;
             }
+
+            return HilStatus::done;
+        }
+
+        template<class Channels, class Member>
+        HilStatus ParseSources(const services::HilArguments& arguments, const char* key, Channels& channels, Member member)
+        {
+            auto text = arguments.Key(key);
+            if (!text)
+                return HilStatus::done;
+
+            infra::Tokenizer tokens(*text, ',');
+            if (tokens.Size() != 1 && tokens.Size() != channels.size())
+                return HilStatus::usage;
+
+            for (std::size_t i = 0; i != channels.size(); ++i)
+            {
+                auto source = services::HilArguments::ParseChoice(tokens.Token(tokens.Size() == 1 ? 0 : i), sources);
+                if (!source)
+                    return HilStatus::usage;
+
+                channels[i].*member = *source;
+            }
+
+            return HilStatus::done;
+        }
+
+        // The driver ORs its settings into the generator registers and leaves them behind when destroyed, so a new instance starts from a reset module
+        void ResetPwmModule(uint8_t module)
+        {
+            SYSCTL->RCGCPWM |= 1u << module;
+            while ((SYSCTL->PRPWM & (1u << module)) == 0)
+            {
+            }
+
+            SYSCTL->SRPWM |= 1u << module;
+            SYSCTL->SRPWM &= ~(1u << module);
         }
     }
 
-    TivaPwmFactory::TivaPwmFactory(const services::HilPinNaming& naming, services::HilResponse& response)
+    TivaPwmFactory::TivaPwmFactory(const services::HilPinNaming& naming, services::HilResponse& response, services::HilPinPool& pins)
         : naming(naming)
         , response(response)
+        , faultPins(pins, services::HilOwners::extension)
     {}
 
     uint8_t TivaPwmFactory::Instances() const
@@ -157,6 +203,7 @@ namespace validation
     {
         adapter.emplace<std::monostate>();
         driver.emplace<std::monostate>();
+        ReleaseFaultPin();
         settings = std::nullopt;
         onClosed();
     }
@@ -175,15 +222,34 @@ namespace validation
         return HilStatus::done;
     }
 
-    HilStatus TivaPwmFactory::EnableFault(bool enable)
+    HilStatus TivaPwmFactory::ConfigureFault(const services::HilArguments& arguments)
     {
+        std::optional<Fault> fault;
+        std::optional<HilPinId> pin;
+        HilStatus status = ParseFault(arguments, fault, pin);
+        if (status != HilStatus::done)
+            return status;
+
         if (settings->synchronous)
             return HilStatus::unsupported;
 
-        settings->fault = enable;
+        adapter.emplace<std::monostate>();
         driver.emplace<std::monostate>();
+        ReleaseFaultPin();
+
+        if (pin)
+        {
+            hal::GpioPin* gpio = nullptr;
+            status = faultPins.ClaimFunction(*pin, Function(hal::tiva::PinConfigPeripheral::pwmFault), settings->module, gpio);
+            if (status == HilStatus::done)
+                faultPin.emplace(PinOrDummy(gpio), hal::tiva::PinConfigPeripheral::pwmFault);
+            else
+                fault = std::nullopt;
+        }
+
+        settings->fault = fault;
         Construct();
-        return HilStatus::done;
+        return status;
     }
 
     uint32_t TivaPwmFactory::InterruptCount(uint8_t generator, bool clear)
@@ -195,8 +261,6 @@ namespace validation
     HilStatus TivaPwmFactory::Parse(uint8_t module, const services::HilArguments& arguments, Settings& requested) const
     {
         requested.module = module;
-        requested.trigger = board::pwmTrigger;
-        requested.synchronous = board::pwmSynchronous;
 
         HilStatus status = HilStatus::done;
         arguments.Number("freq", requested.frequency, 1, SystemCoreClock, status);
@@ -205,35 +269,38 @@ namespace validation
         arguments.Flag("inva", requested.invertA, status);
         arguments.Flag("invb", requested.invertB, status);
         arguments.Select("update", requested.globalUpdate, updateModes, status);
-        arguments.Select("trigger", requested.trigger, triggers, status);
-        arguments.Select("irq", requested.interrupt, interruptSources, status);
         arguments.Flag("sync", requested.synchronous, status);
 
-        if (status == HilStatus::done && arguments.Has("dead"))
+        if (status == HilStatus::done && arguments.Has("dead") && arguments.Key("dead") != "off")
         {
-            if (arguments.Key("dead") == "off")
-                requested.deadTime = std::nullopt;
-            else
-            {
-                uint32_t deadTime = 0;
-                arguments.Number("dead", deadTime, 0, 1000000, status);
-                requested.deadTime = deadTime;
-            }
+            std::array<uint32_t, 2> deadTime{};
+            std::size_t count = 0;
+            status = ParseNumbers(*arguments.Key("dead"), maximumDeadTimeNs, infra::MakeRange(deadTime), count);
+            if (status == HilStatus::done)
+                requested.deadTime = DeadTime{ deadTime[0], deadTime[count - 1] };
         }
 
+        if (status == HilStatus::done)
+            status = ParseChannels(arguments, requested);
+        if (status == HilStatus::done)
+            status = ParseSources(arguments, "trigger", requested.channels, &Channel::trigger);
+        if (status == HilStatus::done)
+            status = ParseSources(arguments, "irq", requested.channels, &Channel::interrupt);
         if (status != HilStatus::done)
             return status;
 
-        if (requested.deadTime && static_cast<uint64_t>(*requested.deadTime) * PwmClock(requested.divisor) / 1000000000u > maximumDeadTimeCycles)
+        if (requested.deadTime && std::max(Cycles(requested.deadTime->rise, requested.divisor), Cycles(requested.deadTime->fall, requested.divisor)) > maximumDeadTimeCycles)
             return HilStatus::range;
 
         if (!ValidFrequency(requested, requested.frequency))
             return HilStatus::range;
 
-        if (requested.synchronous && requested.interrupt)
-            return HilStatus::unsupported;
+        if (requested.synchronous)
+            for (const auto& channel : requested.channels)
+                if (channel.interrupt)
+                    return HilStatus::unsupported;
 
-        return ParseChannels(arguments, requested);
+        return HilStatus::done;
     }
 
     HilStatus TivaPwmFactory::ParseChannels(const services::HilArguments& arguments, Settings& requested) const
@@ -242,15 +309,7 @@ namespace validation
         auto pins = arguments.Key("pins");
 
         if (!generators && !pins)
-        {
-            if (requested.module != board::pwmModule)
-                return HilStatus::usage;
-
-            for (const auto& phase : board::pwmPhases)
-                requested.channels.push_back(Channel{ phase.generator, phase.a, phase.b });
-
-            return HilStatus::done;
-        }
+            return HilStatus::usage;
 
         infra::Tokenizer generatorTokens(generators.value_or(infra::BoundedConstString()), ',');
         infra::Tokenizer pinTokens(pins.value_or(infra::BoundedConstString()), ',');
@@ -319,6 +378,66 @@ namespace validation
         return HilStatus::done;
     }
 
+    HilStatus TivaPwmFactory::ParseFault(const services::HilArguments& arguments, std::optional<Fault>& fault, std::optional<HilPinId>& pin) const
+    {
+        bool enable = false;
+        uint32_t comparators = 0;
+        uint32_t inputs = 0;
+        uint32_t minimumPeriod = 0;
+        Fault requested;
+
+        HilStatus status = HilStatus::done;
+        arguments.SelectAt(1, enable, switches, status);
+        arguments.Number("comparators", comparators, 0, maximumComparators, status);
+        arguments.Number("inputs", inputs, 0, maximumFaultInputs, status);
+        arguments.Number("minperiod", minimumPeriod, 0, maximumFaultPeriod, status);
+        arguments.Flag("latch", requested.latch, status);
+        arguments.Pin("pin", naming, pin, status);
+
+        for (const auto& channel : settings->channels)
+            requested.generators |= 1u << channel.generator;
+
+        if (status == HilStatus::done && arguments.Has("gens"))
+        {
+            const auto opened = requested.generators;
+            std::array<uint32_t, maximumChannels> generators{};
+            std::size_t count = 0;
+            status = ParseNumbers(*arguments.Key("gens"), maximumGenerator, infra::MakeRange(generators), count);
+
+            requested.generators = 0;
+            for (std::size_t i = 0; i != count && status == HilStatus::done; ++i)
+            {
+                requested.generators |= 1u << generators[i];
+                if ((opened & (1u << generators[i])) == 0)
+                    status = HilStatus::usage;
+            }
+        }
+
+        if (status == HilStatus::done && pin && !SupportsFunction(*pin, hal::tiva::PinConfigPeripheral::pwmFault, settings->module))
+            status = HilStatus::pin;
+
+        if (status != HilStatus::done)
+            return status;
+
+        if (!enable)
+        {
+            for (auto key : faultKeys)
+                if (arguments.Has(key))
+                    return HilStatus::usage;
+
+            return HilStatus::done;
+        }
+
+        if (comparators == 0 && inputs == 0)
+            return HilStatus::usage;
+
+        requested.comparators = static_cast<uint8_t>(comparators);
+        requested.inputs = static_cast<uint8_t>(inputs);
+        requested.minimumPeriod = static_cast<uint16_t>(minimumPeriod);
+        fault = requested;
+        return HilStatus::done;
+    }
+
     HilStatus TivaPwmFactory::ClaimPins(services::HilPinOwner& pins, Settings& opened)
     {
         for (auto& channel : opened.channels)
@@ -337,9 +456,8 @@ namespace validation
     services::HilPwmHandle& TivaPwmFactory::Construct()
     {
         const auto& opened = *settings;
-        const auto deadTimeCycles = static_cast<uint16_t>(static_cast<uint64_t>(opened.deadTime.value_or(0)) * PwmClock(opened.divisor) / 1000000000u);
 
-        auto fillConfig = [&opened, deadTimeCycles](auto& config)
+        auto fillConfig = [this, &opened](auto& config)
         {
             using Config = std::decay_t<decltype(config)>;
 
@@ -351,7 +469,7 @@ namespace validation
             config.clockDivisor = static_cast<typename Config::ClockDivisor>(opened.divisor);
 
             if (opened.deadTime)
-                config.deadTime = typename Config::DeadTime{ deadTimeCycles, deadTimeCycles };
+                config.deadTime = typename Config::DeadTime{ static_cast<uint16_t>(Cycles(opened.deadTime->fall, opened.divisor)), static_cast<uint16_t>(Cycles(opened.deadTime->rise, opened.divisor)) };
             else
                 config.deadTime = std::nullopt;
         };
@@ -359,14 +477,14 @@ namespace validation
         auto makeChannels = [&opened](auto& channels)
         {
             using PinChannel = typename std::decay_t<decltype(channels)>::value_type;
+            using Trigger = typename PinChannel::Trigger;
 
-            for (std::size_t i = 0; i != opened.channels.size(); ++i)
-            {
-                const auto& channel = opened.channels[i];
+            for (const auto& channel : opened.channels)
                 channels.push_back(PinChannel{ static_cast<decltype(PinChannel::generator)>(channel.generator), PinOrDummy(channel.pinA), PinOrDummy(channel.pinB),
-                    channel.pinA != nullptr, channel.pinB != nullptr, i == 0 ? ToTrigger<typename PinChannel::Trigger>(opened.trigger) : std::nullopt });
-            }
+                    channel.pinA != nullptr, channel.pinB != nullptr, channel.trigger ? std::make_optional(static_cast<Trigger>(infra::enum_cast(*channel.trigger))) : std::nullopt });
         };
+
+        ResetPwmModule(opened.module);
 
         if (opened.synchronous)
         {
@@ -377,45 +495,37 @@ namespace validation
             makeChannels(channels);
             return Adapt(driver.emplace<hal::tiva::SynchronousPwm>(opened.module, infra::MakeRange(channels), syncConfig));
         }
-        else
-        {
-            asyncConfig = hal::tiva::Pwm::Config{};
-            fillConfig(asyncConfig);
 
-            if (opened.interrupt || opened.fault)
+        asyncConfig = hal::tiva::Pwm::Config{};
+        fillConfig(asyncConfig);
+
+        hal::tiva::Pwm::Config::InterruptConfig interrupts;
+        interrupts.priority = opened.fault ? hal::cortex::InterruptPriority::highest : hal::cortex::InterruptPriority::normal;
+
+        for (const auto& channel : opened.channels)
+            if (channel.interrupt)
+                interrupts.normalSources.push_back({ static_cast<hal::tiva::Pwm::GeneratorIndex>(channel.generator), *channel.interrupt });
+
+        if (opened.fault)
+            for (uint8_t generator = 0; generator <= maximumGenerator; ++generator)
+                if ((opened.fault->generators & (1u << generator)) != 0)
+                    interrupts.faultConfigs.push_back({ static_cast<hal::tiva::Pwm::GeneratorIndex>(generator), opened.fault->inputs, opened.fault->comparators, opened.fault->latch, opened.fault->minimumPeriod });
+
+        if (!interrupts.normalSources.empty() || !interrupts.faultConfigs.empty())
+            asyncConfig.interruptConfig = interrupts;
+
+        infra::BoundedVector<hal::tiva::Pwm::PinChannel>::WithMaxSize<maximumChannels> channels;
+        makeChannels(channels);
+        return Adapt(driver.emplace<hal::tiva::Pwm>(
+            opened.module, infra::MakeRange(channels), asyncConfig,
+            [this](hal::tiva::Pwm::NormalEvent event)
             {
-                hal::tiva::Pwm::Config::InterruptConfig interrupts;
-                interrupts.priority = opened.fault ? hal::cortex::InterruptPriority::highest : hal::cortex::InterruptPriority::normal;
-
-                for (const auto& channel : opened.channels)
-                {
-                    const auto generator = static_cast<hal::tiva::Pwm::GeneratorIndex>(channel.generator);
-
-                    if (opened.interrupt)
-                        interrupts.normalSources.push_back({ generator, *opened.interrupt });
-
-                    if (opened.fault)
-                        interrupts.faultConfigs.push_back({ generator, uint8_t{ 0 },
-                            static_cast<uint8_t>(infra::enum_cast(hal::tiva::Pwm::FaultInputComparator::comparator0) | infra::enum_cast(hal::tiva::Pwm::FaultInputComparator::comparator1)),
-                            true, uint16_t{ 0 } });
-                }
-
-                asyncConfig.interruptConfig = interrupts;
-            }
-
-            infra::BoundedVector<hal::tiva::Pwm::PinChannel>::WithMaxSize<maximumChannels> channels;
-            makeChannels(channels);
-            return Adapt(driver.emplace<hal::tiva::Pwm>(
-                opened.module, infra::MakeRange(channels), asyncConfig,
-                [this](hal::tiva::Pwm::NormalEvent event)
-                {
-                    counts[infra::enum_cast(event.generator)].fetch_add(1, std::memory_order_relaxed);
-                },
-                [this](hal::tiva::Pwm::FaultEvent event)
-                {
-                    OnFault(event);
-                }));
-        }
+                counts[infra::enum_cast(event.generator)].fetch_add(1, std::memory_order_relaxed);
+            },
+            [this](hal::tiva::Pwm::FaultEvent event)
+            {
+                OnFault(event);
+            }));
     }
 
     template<class Driver>
@@ -426,12 +536,24 @@ namespace validation
         return handle;
     }
 
+    void TivaPwmFactory::ReleaseFaultPin()
+    {
+        faultPin.reset();
+        faultPins.Release();
+    }
+
     void TivaPwmFactory::OnFault(const hal::tiva::Pwm::FaultEvent& event)
     {
+        uint8_t comparators = 0;
         uint8_t inputs = 0;
-        for (auto comparator : event.comparatorInputsByGenerator)
-            inputs |= infra::enum_cast(comparator);
+        for (std::size_t i = 0; i != event.comparatorInputsByGenerator.size(); ++i)
+        {
+            comparators |= infra::enum_cast(event.comparatorInputsByGenerator[i]);
+            inputs |= infra::enum_cast(event.inputsByGenerator[i]);
+        }
 
+        faultGenerators.fetch_or(infra::enum_cast(event.generatorStatus), std::memory_order_relaxed);
+        faultComparators.fetch_or(comparators, std::memory_order_relaxed);
         faultInputs.fetch_or(inputs, std::memory_order_relaxed);
         faultReport.Schedule([this]()
             {
@@ -441,15 +563,22 @@ namespace validation
 
     void TivaPwmFactory::ReportFault()
     {
+        auto generators = faultGenerators.exchange(0);
+        auto comparators = faultComparators.exchange(0);
         auto inputs = faultInputs.exchange(0);
 
         if (settings)
-            response.Event("pwm") << " module=" << settings->module << " fault=" << inputs;
+            response.Event("pwm") << " module=" << settings->module << " gens=" << generators << " comparators=" << comparators << " inputs=" << inputs;
     }
 
     uint32_t TivaPwmFactory::PwmClock(uint8_t divisor) const
     {
         return SystemCoreClock >> divisor;
+    }
+
+    uint32_t TivaPwmFactory::Cycles(uint32_t nanoseconds, uint8_t divisor) const
+    {
+        return static_cast<uint32_t>(static_cast<uint64_t>(nanoseconds) * PwmClock(divisor) / 1000000000u);
     }
 
     bool TivaPwmFactory::ValidFrequency(const Settings& opened, uint32_t frequency) const
@@ -464,7 +593,7 @@ namespace validation
         , context(context)
         , factory(factory)
         , commands{ {
-              services::HilBind<PwmExtensionCommands, &PwmExtensionCommands::Fault>("pwm.fault", "<module> <on|off>", *this, context.response),
+              services::HilBind<PwmExtensionCommands, &PwmExtensionCommands::Fault>("pwm.fault", "<module> <on|off> [gens=] [comparators=] [inputs=] [pin=] [latch=] [minperiod=]", *this, context.response),
               services::HilBind<PwmExtensionCommands, &PwmExtensionCommands::Count>("pwm.count", "<module> <gen> [clear=]", *this, context.response),
           } }
     {}
@@ -476,19 +605,12 @@ namespace validation
 
     HilStatus PwmExtensionCommands::Fault(const services::HilArguments& arguments)
     {
-        if (!arguments.Shape(2, 2, {}))
+        if (!arguments.Shape(2, 2, infra::MakeRange(faultKeys)))
             return HilStatus::usage;
 
-        if (!board::hasFaultComparators)
-            return HilStatus::unsupported;
-
-        bool enable = false;
         HilStatus status = factory.Find(arguments);
-        arguments.SelectAt(1, enable, switches, status);
-        if (status != HilStatus::done)
-            return status;
-
-        status = factory.EnableFault(enable);
+        if (status == HilStatus::done)
+            status = factory.ConfigureFault(arguments);
         if (status != HilStatus::done)
             return status;
 

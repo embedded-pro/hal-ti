@@ -45,7 +45,7 @@ int main()
     static services::HilSystemCommands system{ context, boardInfo, reset };
     static services::HilGpioCommands::WithMaxPins<8> gpio{ context };
 
-    static validation::TivaPwmFactory pwmFactory{ naming, console.response };
+    static validation::TivaPwmFactory pwmFactory{ naming, console.response, pins };
     static services::HilPwmCommands pwm{ context, pwmFactory };
     static validation::PwmExtensionCommands pwmExtension{ context, pwmFactory };
 
@@ -70,7 +70,7 @@ int main()
     static validation::TivaEepromFactory eepromFactory;
     static services::HilEepromCommands::WithCapacity<112> eeprom{ context, eepromFactory };
 
-    static validation::TivaWatchDogFactory watchDogFactory;
+    static validation::TivaWatchDogFactory watchDogFactory{ naming, pins };
     static services::HilWatchDogCommands watchDog{ context, watchDogFactory };
 
     validation::CreateEthernetGroup(context);

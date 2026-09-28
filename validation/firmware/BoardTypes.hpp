@@ -27,18 +27,19 @@ namespace validation
         HilPinId rx;
     };
 
-    struct PwmPhase
+    struct QeiPins
     {
-        uint8_t generator;
+        uint8_t index;
         HilPinId a;
         HilPinId b;
+        HilPinId idx;
     };
 
-    enum class PwmTrigger : uint8_t
+    struct CanPins
     {
-        none,
-        zero,
-        load,
+        uint8_t index;
+        HilPinId rx;
+        HilPinId tx;
     };
 }
 

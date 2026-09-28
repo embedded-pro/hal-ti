@@ -35,11 +35,14 @@ namespace validation
             std::array<HilPinId, maximumSteps> pins{};
             std::size_t steps = 0;
             bool synchronous = false;
-            uint8_t sampleAndHold = 1;
-            uint8_t oversampling = 1;
-            uint32_t delay = 4;
-            bool delayEnabled = true;
-            hal::tiva::Adc::Trigger trigger{};
+            uint8_t sampleAndHold = 0;
+            uint8_t oversampling = 0;
+            std::optional<uint32_t> delay;
+            std::optional<hal::tiva::Adc::Trigger> trigger;
+            bool externalReference = false;
+            std::optional<uint32_t> priority;
+            std::array<hal::tiva::Adc::DigitalComparatorConfig, maximumSteps> comparators{};
+            std::size_t comparatorSteps = 0;
         };
 
         struct Sequencer
@@ -53,8 +56,8 @@ namespace validation
         };
 
         services::HilStatus Parse(uint16_t key, const services::HilArguments& arguments, Request& request) const;
-        services::HilStatus ParseComparators(infra::BoundedConstString text, std::size_t steps, Sequencer& sequencer, std::size_t& comparatorSteps) const;
-        void Construct(Sequencer& sequencer, const Request& request, std::size_t comparatorSteps);
+        static services::HilStatus ParseComparators(infra::BoundedConstString text, Request& request);
+        void Construct(Sequencer& sequencer, const Request& request);
 
     private:
         const services::HilPinNaming& naming;

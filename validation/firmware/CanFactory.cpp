@@ -17,7 +17,12 @@ namespace validation
         constexpr uint32_t maximumExtendedId = 0x1fffffff;
         constexpr uint32_t maximumBitRate = 1000000;
 
-        constexpr std::array<const char*, 6> openKeys{ { "rx", "tx", "bitrate", "filter", "loopback", "recover" } };
+        constexpr uint32_t maximumPhaseSegment1 = 16;
+        constexpr uint32_t maximumPhaseSegment2 = 8;
+        constexpr uint32_t maximumJumpWidth = 4;
+        constexpr uint32_t maximumPrescaler = 1024;
+
+        constexpr std::array<const char*, 7> openKeys{ { "rx", "tx", "bitrate", "timing", "filter", "loopback", "recover" } };
 
         constexpr std::array<const char*, 10> errorNames{ {
             "stuffError",
@@ -55,6 +60,50 @@ namespace validation
 
             return false;
         }
+
+        HilStatus ParseFilter(infra::BoundedConstString text, hal::tiva::Can::Config& config)
+        {
+            infra::Tokenizer fields(text, ',');
+            auto id = services::HilArguments::ParseNumber(fields.Token(0));
+            auto mask = services::HilArguments::ParseNumber(fields.Token(1));
+            auto extended = services::HilArguments::ParseNumber(fields.Token(2));
+            auto match = fields.Size() == 4 ? services::HilArguments::ParseNumber(fields.Token(3)) : std::optional<uint32_t>(1);
+
+            if (fields.Size() < 3 || fields.Size() > 4 || !id || !mask || !extended || !match || *extended > 1 || *match > 1)
+                return HilStatus::usage;
+
+            const auto maximumId = *extended != 0 ? maximumExtendedId : maximumStandardId;
+            if (*id > maximumId || *mask > maximumId)
+                return HilStatus::range;
+
+            config.filter = hal::tiva::Can::Filter{ *id, *mask, *extended != 0, *match != 0 };
+            return HilStatus::done;
+        }
+
+        HilStatus ParseTiming(infra::BoundedConstString text, hal::tiva::Can::Config& config)
+        {
+            infra::Tokenizer fields(text, ',');
+            std::array<uint32_t, 4> values{};
+            constexpr std::array<uint32_t, 4> maxima{ { maximumPhaseSegment1, maximumPhaseSegment2, maximumJumpWidth, maximumPrescaler } };
+
+            if (fields.Size() != values.size())
+                return HilStatus::usage;
+
+            for (std::size_t i = 0; i != values.size(); ++i)
+            {
+                auto value = services::HilArguments::ParseNumber(fields.Token(i));
+                if (!value)
+                    return HilStatus::usage;
+
+                if (*value == 0 || *value > maxima[i])
+                    return HilStatus::range;
+
+                values[i] = *value;
+            }
+
+            config.timing = hal::tiva::Can::BitTiming{ static_cast<uint8_t>(values[0]), static_cast<uint8_t>(values[1]), static_cast<uint8_t>(values[2]), static_cast<uint16_t>(values[3]) };
+            return HilStatus::done;
+        }
     }
 
     TivaCanFactory::TivaCanFactory(const services::HilPinNaming& naming)
@@ -91,7 +140,6 @@ namespace validation
             return status;
 
         this->onError = onError;
-        request.config.timing = request.bitRate;
         opened = &can.emplace(index, PinOrDummy(rx), PinOrDummy(tx), request.config, [this](hal::tiva::Can::Error error)
             {
                 this->onError(errorNames[static_cast<std::size_t>(error)]);
@@ -124,40 +172,25 @@ namespace validation
         arguments.Flag("recover", request.config.autoBusOffRecovery, status);
 
         if (status == HilStatus::done && arguments.Has("filter"))
-        {
-            infra::Tokenizer fields(*arguments.Key("filter"), ',');
-            auto id = services::HilArguments::ParseNumber(fields.Token(0));
-            auto mask = services::HilArguments::ParseNumber(fields.Token(1));
-            auto extended = services::HilArguments::ParseNumber(fields.Token(2));
+            status = ParseFilter(*arguments.Key("filter"), request.config);
 
-            if (fields.Size() != 3 || !id || !mask || !extended || *extended > 1)
-                status = HilStatus::usage;
-            else if (*id > (*extended != 0 ? maximumExtendedId : maximumStandardId) || *mask > (*extended != 0 ? maximumExtendedId : maximumStandardId))
-                status = HilStatus::range;
-            else
-            {
-                hal::tiva::Can::Filter filter;
-                filter.id = *id;
-                filter.mask = *mask;
-                filter.extended = *extended != 0;
-                filter.matchIdType = true;
-                request.config.filter = filter;
-            }
-        }
+        if (status == HilStatus::done && arguments.Has("timing"))
+            status = arguments.Has("bitrate") ? HilStatus::usage : ParseTiming(*arguments.Key("timing"), request.config);
+        else if (status == HilStatus::done && !BitRateAchievable(request.bitRate))
+            status = HilStatus::range;
+        else
+            request.config.timing = request.bitRate;
 
         if (status != HilStatus::done)
             return status;
 
-        if (!BitRateAchievable(request.bitRate))
-            return HilStatus::range;
-
         if (!request.rx && !request.tx)
         {
-            if (index != board::canIndex)
+            if (!board::defaultCan || board::defaultCan->index != index)
                 return HilStatus::usage;
 
-            request.rx = board::canRx;
-            request.tx = board::canTx;
+            request.rx = board::defaultCan->rx;
+            request.tx = board::defaultCan->tx;
         }
 
         if (!request.rx || !request.tx)

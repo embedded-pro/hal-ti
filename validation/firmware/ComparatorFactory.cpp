@@ -14,7 +14,23 @@ namespace validation
 
         constexpr uint32_t maximumReferenceStep = 15;
 
-        constexpr std::array<const char*, 7> openKeys{ { "pos", "neg", "out", "src", "ref", "invert", "sync" } };
+        constexpr std::array<const char*, 8> openKeys{ { "pos", "neg", "out", "src", "ref", "invert", "trigger", "sync" } };
+
+        struct Trigger
+        {
+            bool enabled;
+            Comparator::TriggerSense sense;
+            bool levelHigh;
+        };
+
+        constexpr std::array<HilChoice<Trigger>, 6> triggers{ {
+            { "off", { false, Comparator::TriggerSense::rising, true } },
+            { "rising", { true, Comparator::TriggerSense::rising, true } },
+            { "falling", { true, Comparator::TriggerSense::falling, true } },
+            { "both", { true, Comparator::TriggerSense::both, true } },
+            { "high", { true, Comparator::TriggerSense::level, true } },
+            { "low", { true, Comparator::TriggerSense::level, false } },
+        } };
 
         constexpr std::array<HilChoice<Comparator::PositiveInputSource>, 3> sources{ {
             { "pin", Comparator::PositiveInputSource::externalPin },
@@ -99,6 +115,11 @@ namespace validation
         arguments.Pin("out", naming, request.output, status);
         arguments.Select("src", config.positiveSource, sources, status);
         arguments.Flag("invert", config.invertOutput, status);
+        Trigger trigger{ false, Comparator::TriggerSense::rising, true };
+        arguments.Select("trigger", trigger, triggers, status);
+        config.triggerEnabled = trigger.enabled;
+        config.triggerSense = trigger.sense;
+        config.triggerLevelHigh = trigger.levelHigh;
         arguments.Flag("sync", request.synchronous, status);
 
         if (status == HilStatus::done && arguments.Has("ref"))

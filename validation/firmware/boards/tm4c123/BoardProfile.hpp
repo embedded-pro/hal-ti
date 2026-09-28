@@ -1,7 +1,6 @@
 #ifndef VALIDATION_BOARD_PROFILE_HPP
 #define VALIDATION_BOARD_PROFILE_HPP
 
-#include "hal_tiva/tiva/Adc.hpp"
 #include "hal_tiva/tiva/ClockTm4c123.hpp"
 #include "hal_tiva/tiva/PinoutTableDefaultTm4c123.hpp"
 #include "validation/firmware/BoardTypes.hpp"
@@ -26,71 +25,36 @@ namespace validation::board
     inline constexpr uint8_t comparators = 2;
     inline constexpr uint8_t watchDogs = 2;
 
-    inline constexpr HilPinId phaseA = Pin(Port::E, 3);
-    inline constexpr HilPinId phaseB = Pin(Port::E, 2);
-    inline constexpr HilPinId phaseC = Pin(Port::E, 1);
-    inline constexpr HilPinId powerSupplyVoltage = Pin(Port::E, 0);
-    inline constexpr HilPinId currentTotal = Pin(Port::E, 0);
-    inline constexpr HilPinId encoderA = Pin(Port::D, 6);
-    inline constexpr HilPinId encoderB = Pin(Port::D, 7);
-    inline constexpr HilPinId encoderZ = Pin(Port::D, 3);
-    inline constexpr HilPinId pwm1a = Pin(Port::B, 6);
-    inline constexpr HilPinId pwm1b = Pin(Port::B, 7);
-    inline constexpr HilPinId pwm2a = Pin(Port::B, 4);
-    inline constexpr HilPinId pwm2b = Pin(Port::B, 5);
-    inline constexpr HilPinId pwm3a = Pin(Port::E, 4);
-    inline constexpr HilPinId pwm3b = Pin(Port::E, 5);
-    inline constexpr HilPinId canRx = Pin(Port::F, 0);
-    inline constexpr HilPinId canTx = Pin(Port::F, 3);
-
     inline constexpr UartPins terminal{ 0, Pin(Port::A, 1), Pin(Port::A, 0) };
     inline constexpr std::array<HilPinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
     inline constexpr std::optional<UartPins> defaultUart = UartPins{ 1, Pin(Port::B, 1), Pin(Port::B, 0) };
+    inline constexpr std::optional<QeiPins> defaultQei = QeiPins{ 0, Pin(Port::D, 6), Pin(Port::D, 7), Pin(Port::D, 3) };
+    inline constexpr std::optional<CanPins> defaultCan = CanPins{ 0, Pin(Port::F, 0), Pin(Port::F, 3) };
 
-    inline constexpr std::array<HilPinAlias, 25> aliases{ {
+    inline constexpr std::array<HilPinAlias, 22> aliases{ {
         { "terminaltx", terminal.tx },
         { "terminalrx", terminal.rx },
-        { "phasea", phaseA },
-        { "phaseb", phaseB },
-        { "phasec", phaseC },
-        { "vbus", powerSupplyVoltage },
-        { "itotal", currentTotal },
-        { "halla", Pin(Port::A, 4) },
-        { "hallb", Pin(Port::A, 5) },
-        { "hallc", Pin(Port::A, 6) },
-        { "enca", encoderA },
-        { "encb", encoderB },
-        { "encz", encoderZ },
-        { "pwm1a", pwm1a },
-        { "pwm1b", pwm1b },
-        { "pwm2a", pwm2a },
-        { "pwm2b", pwm2b },
-        { "pwm3a", pwm3a },
-        { "pwm3b", pwm3b },
-        { "canrx", canRx },
-        { "cantx", canTx },
-        { "ledop", Pin(Port::F, 1) },
-        { "ledwarn", Pin(Port::F, 1) },
-        { "ledfail", Pin(Port::F, 1) },
-        { "perf", Pin(Port::A, 2) },
+        { "ain0", Pin(Port::E, 3) },
+        { "ain1", Pin(Port::E, 2) },
+        { "ain2", Pin(Port::E, 1) },
+        { "ain3", Pin(Port::E, 0) },
+        { "m0pwm0", Pin(Port::B, 6) },
+        { "m0pwm1", Pin(Port::B, 7) },
+        { "m0pwm2", Pin(Port::B, 4) },
+        { "m0pwm3", Pin(Port::B, 5) },
+        { "m0pwm4", Pin(Port::E, 4) },
+        { "m0pwm5", Pin(Port::E, 5) },
+        { "qei0a", defaultQei->a },
+        { "qei0b", defaultQei->b },
+        { "qei0idx", defaultQei->idx },
+        { "can0rx", defaultCan->rx },
+        { "can0tx", defaultCan->tx },
+        { "led0", Pin(Port::F, 1) },
+        { "gpio0", Pin(Port::A, 2) },
+        { "gpio1", Pin(Port::A, 4) },
+        { "gpio2", Pin(Port::A, 5) },
+        { "gpio3", Pin(Port::A, 6) },
     } };
-
-    inline constexpr uint8_t pwmModule = 0;
-    inline constexpr std::array<PwmPhase, 3> pwmPhases{ {
-        { 0, pwm1a, pwm1b },
-        { 1, pwm2a, pwm2b },
-        { 2, pwm3a, pwm3b },
-    } };
-    inline constexpr PwmTrigger pwmTrigger = PwmTrigger::load;
-    inline constexpr bool pwmSynchronous = true;
-    inline constexpr bool hasFaultComparators = false;
-
-    inline constexpr std::array<HilPinId, 5> phaseCurrentPins{ { phaseA, phaseB, phaseC, currentTotal, powerSupplyVoltage } };
-    inline constexpr std::array<HilPinId, 1> supplyPins{ { powerSupplyVoltage } };
-    inline constexpr hal::tiva::Adc::Trigger adcTrigger = hal::tiva::Adc::Trigger::pwmGenerator0;
-
-    inline constexpr uint8_t qeiIndex = 0;
-    inline constexpr uint8_t canIndex = 0;
 
     inline constexpr bool hasEthernet = false;
 

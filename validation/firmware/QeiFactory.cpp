@@ -103,12 +103,12 @@ namespace validation
 
         if (!request.a && !request.b && !request.index)
         {
-            if (index != board::qeiIndex)
+            if (!board::defaultQei || board::defaultQei->index != index)
                 return HilStatus::usage;
 
-            request.a = board::encoderA;
-            request.b = board::encoderB;
-            request.index = board::encoderZ;
+            request.a = board::defaultQei->a;
+            request.b = board::defaultQei->b;
+            request.index = board::defaultQei->idx;
         }
 
         if (!request.a || !request.b)

@@ -11,7 +11,7 @@
 
 namespace validation
 {
-    // Several ADC sequencers may sample the same pin, as e-foc does with the supply voltage, but the driver reserves a pin once per analog user
+    // Several ADC sequencers and comparators may share an analog pin, but the driver reserves a pin once per analog user
     class ManagedPin
         : public hal::tiva::GpioPin
     {

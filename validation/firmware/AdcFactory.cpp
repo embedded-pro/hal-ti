@@ -3,7 +3,7 @@
 #include "infra/util/ReallyAssert.hpp"
 #include "infra/util/Tokenizer.hpp"
 #include "validation/firmware/TivaPinFactory.hpp"
-#include <algorithm>
+#include DEVICE_HEADER
 
 namespace validation
 {
@@ -13,14 +13,13 @@ namespace validation
         using services::HilStatus;
 
         constexpr std::array<uint8_t, 4> sequencerDepths{ { 8, 4, 4, 1 } };
-        constexpr uint8_t phaseCurrentAdc = 0;
-        constexpr uint8_t supplyAdc = 1;
-        constexpr uint8_t eFocSequencer = 0;
         constexpr uint8_t maximumDigitalComparator = 7;
         constexpr uint32_t maximumCode = 0x0fff;
         constexpr uint32_t maximumDelay = 15;
 
-        constexpr std::array<const char*, 7> openKeys{ { "pins", "sh", "avg", "delay", "trigger", "dcmp", "sync" } };
+        constexpr uint32_t maximumPriority = 3;
+
+        constexpr std::array<const char*, 9> openKeys{ { "pins", "sh", "avg", "delay", "trigger", "dcmp", "ref", "prio", "sync" } };
 
         constexpr std::array<HilChoice<uint8_t>, 7> sampleAndHolds{ {
             { "4", 0 },
@@ -42,12 +41,42 @@ namespace validation
             { "64", 6 },
         } };
 
-        constexpr std::array<HilChoice<hal::tiva::Adc::Trigger>, 4> triggers{ {
+        constexpr std::array<HilChoice<bool>, 2> references{ {
+            { "int", false },
+            { "ext", true },
+        } };
+
+        constexpr std::array<HilChoice<hal::tiva::Adc::ComparatorCondition>, 3> bands{ {
+            { "low", hal::tiva::Adc::ComparatorCondition::lowBand },
+            { "mid", hal::tiva::Adc::ComparatorCondition::midBand },
+            { "high", hal::tiva::Adc::ComparatorCondition::highBand },
+        } };
+
+        constexpr std::array<HilChoice<hal::tiva::Adc::ComparatorMode>, 4> comparatorModes{ {
+            { "always", hal::tiva::Adc::ComparatorMode::always },
+            { "once", hal::tiva::Adc::ComparatorMode::once },
+            { "hyst", hal::tiva::Adc::ComparatorMode::hysteresisAlways },
+            { "hystonce", hal::tiva::Adc::ComparatorMode::hysteresisOnce },
+        } };
+
+        constexpr std::array<HilChoice<std::optional<hal::tiva::Adc::Trigger>>, 4> triggers{ {
             { "pwm0", hal::tiva::Adc::Trigger::pwmGenerator0 },
             { "pwm1", hal::tiva::Adc::Trigger::pwmGenerator1 },
             { "pwm2", hal::tiva::Adc::Trigger::pwmGenerator2 },
             { "pwm3", hal::tiva::Adc::Trigger::pwmGenerator3 },
         } };
+
+        // Averaging and sampling delay are module wide and the drivers only write them when enabled, so a module no other sequencer uses starts from reset
+        void ResetAdcModule(uint8_t adc)
+        {
+            SYSCTL->RCGCADC |= 1u << adc;
+            while ((SYSCTL->PRADC & (1u << adc)) == 0)
+            {
+            }
+
+            SYSCTL->SRADC |= 1u << adc;
+            SYSCTL->SRADC &= ~(1u << adc);
+        }
 
         uint8_t AdcOf(uint16_t key)
         {
@@ -101,10 +130,6 @@ namespace validation
         opened.key = key;
 
         HilStatus status = HilStatus::done;
-        std::size_t comparatorSteps = 0;
-        if (auto list = arguments.Key("dcmp"))
-            status = ParseComparators(*list, request.steps, opened, comparatorSteps);
-
         for (std::size_t i = 0; i != request.steps && status == HilStatus::done; ++i)
         {
             hal::GpioPin* pin = nullptr;
@@ -120,8 +145,8 @@ namespace validation
             return status;
         }
 
-        Construct(opened, request, comparatorSteps);
-        handle.samplesPerRun = request.steps - comparatorSteps;
+        Construct(opened, request);
+        handle.samplesPerRun = request.steps - request.comparatorSteps;
 
         if (auto synchronous = std::get_if<hal::tiva::SynchronousAdc>(&opened.driver))
             handle.synchronous = synchronous;
@@ -143,116 +168,112 @@ namespace validation
 
     HilStatus TivaAdcFactory::Parse(uint16_t key, const services::HilArguments& arguments, Request& request) const
     {
-        const auto adc = AdcOf(key);
-        const auto sequencer = SequencerOf(key);
-        const bool supply = adc == supplyAdc && sequencer == eFocSequencer;
-        const bool phaseCurrent = adc == phaseCurrentAdc && sequencer == eFocSequencer;
-        request.synchronous = supply;
-        request.sampleAndHold = supply ? 6 : 1;
-        request.oversampling = supply ? 3 : 1;
-        request.delayEnabled = !supply;
-        request.trigger = board::adcTrigger;
-
         HilStatus status = HilStatus::done;
         arguments.Select("sh", request.sampleAndHold, sampleAndHolds, status);
         arguments.Select("avg", request.oversampling, oversamplings, status);
         arguments.Select("trigger", request.trigger, triggers, status);
+        arguments.Select("ref", request.externalReference, references, status);
         arguments.Flag("sync", request.synchronous, status);
-        if (status == HilStatus::done && arguments.Has("delay"))
-        {
-            request.delayEnabled = arguments.Key("delay") != "off";
-            if (request.delayEnabled)
-                arguments.Number("delay", request.delay, 0, maximumDelay, status);
-        }
+        if (status == HilStatus::done && arguments.Has("delay") && arguments.Key("delay") != "off")
+            arguments.Number("delay", request.delay.emplace(), 0, maximumDelay, status);
+        if (status == HilStatus::done && arguments.Has("prio"))
+            arguments.Number("prio", request.priority.emplace(), 0, maximumPriority, status);
         if (status != HilStatus::done)
             return status;
 
-        if (request.synchronous && (arguments.Has("delay") || arguments.Has("trigger") || arguments.Has("dcmp")))
-            return HilStatus::unsupported;
-
-        if (auto list = arguments.Key("pins"))
-        {
-            infra::Tokenizer tokens(*list, ',');
-            request.steps = tokens.Size();
-            if (request.steps == 0 || request.steps > maximumSteps)
-                return HilStatus::range;
-
-            for (std::size_t i = 0; i != request.steps; ++i)
-            {
-                auto pin = services::HilArguments::ParsePin(tokens.Token(i), naming);
-                if (!pin)
-                    return HilStatus::pin;
-
-                request.pins[i] = *pin;
-            }
-        }
-        else if (phaseCurrent)
-            request.steps = std::copy(board::phaseCurrentPins.begin(), board::phaseCurrentPins.end(), request.pins.begin()) - request.pins.begin();
-        else if (supply)
-            request.steps = std::copy(board::supplyPins.begin(), board::supplyPins.end(), request.pins.begin()) - request.pins.begin();
-        else
+        auto list = arguments.Key("pins");
+        if (!list || (!request.synchronous && !request.trigger))
             return HilStatus::usage;
 
-        if (request.steps > sequencerDepths[sequencer])
+        infra::Tokenizer tokens(*list, ',');
+        request.steps = tokens.Size();
+        if (request.steps == 0 || request.steps > sequencerDepths[SequencerOf(key)])
             return HilStatus::range;
+
+        for (std::size_t i = 0; i != request.steps; ++i)
+        {
+            auto pin = services::HilArguments::ParsePin(tokens.Token(i), naming);
+            if (!pin)
+                return HilStatus::pin;
+
+            request.pins[i] = *pin;
+        }
+
+        if (request.synchronous && (request.delay || request.trigger || request.externalReference || arguments.Has("dcmp")))
+            return HilStatus::unsupported;
+
+        if (auto comparators = arguments.Key("dcmp"))
+            return ParseComparators(*comparators, request);
 
         return HilStatus::done;
     }
 
-    HilStatus TivaAdcFactory::ParseComparators(infra::BoundedConstString text, std::size_t steps, Sequencer& sequencer, std::size_t& comparatorSteps) const
+    HilStatus TivaAdcFactory::ParseComparators(infra::BoundedConstString text, Request& request)
     {
         infra::Tokenizer entries(text, ',');
-        comparatorSteps = entries.Size();
+        const auto comparatorSteps = entries.Size();
 
-        if (comparatorSteps == 0 || comparatorSteps >= steps)
+        if (comparatorSteps == 0 || comparatorSteps >= request.steps)
             return HilStatus::range;
 
         uint32_t used = 0;
         for (std::size_t i = 0; i != comparatorSteps; ++i)
         {
             infra::Tokenizer fields(entries.Token(i), ':');
-            if (fields.Size() != 3)
+            if (fields.Size() < 3 || fields.Size() > 5)
                 return HilStatus::usage;
 
             auto comparator = services::HilArguments::ParseNumber(fields.Token(0));
             auto low = services::HilArguments::ParseNumber(fields.Token(1));
             auto high = services::HilArguments::ParseNumber(fields.Token(2));
-            if (!comparator || !low || !high)
+            auto band = fields.Size() > 3 ? services::HilArguments::ParseChoice(fields.Token(3), bands) : hal::tiva::Adc::ComparatorCondition::highBand;
+            auto mode = fields.Size() > 4 ? services::HilArguments::ParseChoice(fields.Token(4), comparatorModes) : hal::tiva::Adc::ComparatorMode::always;
+            if (!comparator || !low || !high || !band || !mode)
                 return HilStatus::usage;
 
             if (*comparator > maximumDigitalComparator || *high > maximumCode || *low > *high || (used & (1u << *comparator)) != 0)
                 return HilStatus::range;
 
             used |= 1u << *comparator;
-            sequencer.comparators[steps - comparatorSteps + i] = hal::tiva::Adc::DigitalComparatorConfig{ static_cast<uint8_t>(*comparator), static_cast<uint16_t>(*low), static_cast<uint16_t>(*high),
-                hal::tiva::Adc::ComparatorCondition::highBand, hal::tiva::Adc::ComparatorMode::always };
+            request.comparators[request.steps - comparatorSteps + i] = hal::tiva::Adc::DigitalComparatorConfig{ static_cast<uint8_t>(*comparator), static_cast<uint16_t>(*low), static_cast<uint16_t>(*high), *band, *mode };
         }
 
+        request.comparatorSteps = comparatorSteps;
         return HilStatus::done;
     }
 
-    void TivaAdcFactory::Construct(Sequencer& opened, const Request& request, std::size_t comparatorSteps)
+    void TivaAdcFactory::Construct(Sequencer& opened, const Request& request)
     {
         const auto adc = AdcOf(opened.key);
         const auto sequencer = SequencerOf(opened.key);
+        const auto priority = static_cast<uint8_t>(request.priority.value_or(sequencer));
+
+        bool shared = false;
+        for (const auto& other : slots)
+            shared = shared || (other && &*other != &opened && AdcOf(other->key) == adc);
+
+        if (!shared)
+            ResetAdcModule(adc);
+
         const auto oversampling = request.oversampling != 0 ? std::make_optional(request.oversampling) : std::nullopt;
 
         if (request.synchronous)
         {
             opened.syncConfig.sampleAndHold = static_cast<hal::tiva::SynchronousAdc::SampleAndHold>(request.sampleAndHold);
-            opened.syncConfig.priority = static_cast<hal::tiva::SynchronousAdc::Priority>(sequencer);
+            opened.syncConfig.priority = static_cast<hal::tiva::SynchronousAdc::Priority>(priority);
             opened.syncConfig.oversampling = oversampling ? std::make_optional(static_cast<hal::tiva::SynchronousAdc::Oversampling>(*oversampling)) : std::nullopt;
             opened.driver.emplace<hal::tiva::SynchronousAdc>(adc, sequencer, infra::MakeRange(opened.inputs), opened.syncConfig);
         }
         else
         {
-            opened.asyncConfig.externalReference = false;
-            opened.asyncConfig.priority = sequencer;
-            opened.asyncConfig.trigger = request.trigger;
+            opened.asyncConfig.externalReference = request.externalReference;
+            opened.asyncConfig.priority = priority;
+            opened.asyncConfig.trigger = *request.trigger;
             opened.asyncConfig.sampleAndHold = static_cast<hal::tiva::Adc::SampleAndHold>(request.sampleAndHold);
             opened.asyncConfig.oversampling = oversampling ? std::make_optional(static_cast<hal::tiva::Adc::Oversampling>(*oversampling)) : std::nullopt;
-            opened.asyncConfig.samplingDelay = request.delayEnabled ? std::make_optional(hal::tiva::Adc::SamplingDelay(static_cast<uint8_t>(request.delay))) : std::nullopt;
-            opened.asyncConfig.digitalComparators = comparatorSteps != 0 ? infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig>(opened.comparators.data(), opened.comparators.data() + request.steps) : infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig>();
+            opened.asyncConfig.samplingDelay = request.delay ? std::make_optional(hal::tiva::Adc::SamplingDelay(static_cast<uint8_t>(*request.delay))) : std::nullopt;
+            opened.comparators = request.comparators;
+            opened.asyncConfig.digitalComparators = request.comparatorSteps != 0 ? infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig>(opened.comparators.data(), opened.comparators.data() + request.steps) : infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig>();
             opened.asyncConfig.interruptPriority = hal::cortex::InterruptPriority::highest;
             opened.driver.emplace<hal::tiva::Adc>(adc, sequencer, infra::MakeRange(opened.inputs), opened.asyncConfig);
         }
