@@ -35,20 +35,30 @@ def test_terminal_pins_are_reserved(fw, board_cfg):
     for pin in board_cfg.terminal.pins:
         with pytest.raises(FirmwareError) as error:
             fw.gpio.cfg(pin, "in")
-        assert error.value.reason in ("pin", "busy")
+        assert error.value.reason == "busy"
 
 
 @pytest.mark.board_params("index", "system.reserved_uarts")
 def test_terminal_uart_is_reserved(fw, index):
     with pytest.raises(FirmwareError) as error:
         fw.uart.open(index)
-    assert error.value.reason in ("busy", "pin", "usage")
+    assert error.value.reason == "busy"
 
 
-def test_unknown_command(fw):
+def test_unknown_command_and_key(fw):
     with pytest.raises(FirmwareError) as error:
         fw.command("no.such.command")
-    assert error.value.reason == "unrecognized"
+    assert error.value.reason in ("usage", "unrecognized")
+    with pytest.raises(FirmwareError) as error:
+        fw.command("ping", nosuchkey=1)
+    assert error.value.reason == "usage"
+
+
+@pytest.mark.board_params("line", "system.missing_instances")
+def test_nonexistent_instance(fw, line):
+    with pytest.raises(FirmwareError) as error:
+        fw.terminal.command(line)
+    assert error.value.reason == "range"
 
 
 @pytest.mark.parametrize(

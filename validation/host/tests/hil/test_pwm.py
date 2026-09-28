@@ -220,7 +220,7 @@ def test_frequency_change_and_stop(fw, ad3, pwm, channel_dios):
 def test_interrupt_count(fw, pwm, source, frequency):
     count_cfg = pwm["count"]
     channel = pwm["channels"][0]
-    open_channels(fw, pwm, 1, freq=frequency, mode="center", dead="off", irq=source)
+    open_channels(fw, pwm, 1, freq=frequency, mode="center", dead="off", irq=source, sync=False)
     fw.pwm.duty(pwm["module"], 50)
     fw.pwm.count(pwm["module"], channel["gen"], clear=True)
     fw.system.delay(count_cfg["window_ms"])
@@ -244,8 +244,8 @@ def test_fault_tristates_outputs(fw, ad3, pwm, channel_dios, need):
     ad3.wavegen.dc(wavegen, fault["safe_v"])
     fw.pwm.open(pwm["module"])
     fw.adc.open(0, 0, dcmp=[tuple(entry) for entry in fault["dcmp"]])
-    fw.pwm.duty(pwm["module"], *([50] * len(channel_dios)))
     fw.pwm.fault(pwm["module"], True)
+    fw.pwm.duty(pwm["module"], 50)
     frequency = pwm["efoc"]["frequency_hz"]
     running = record(ad3, pwm, frequency)
     assert all(running.edge_count(a) > 0 for a, _ in channel_dios), "outputs must run before the fault"

@@ -24,12 +24,13 @@ def measured_baud(clk, rate):
     return 1 / (statistics.median(highs) + statistics.median(lows))
 
 
-def transfer_and_capture(fw, ad3, instance, dios, payload, baud):
+def transfer_and_capture(fw, ad3, instance, dios, payload, baud, use_cs=True):
     duration = len(payload) * 8 / baud * 3 + 200e-6
     rate = min(ad3.logic.clock_hz, 20 * baud, ad3.logic.buffer_size / duration)
     if rate < 4 * baud:
         pytest.skip(f"{len(payload)} bytes at {baud} Hz do not fit the logic analyzer buffer")
-    capture = ad3.logic.arm(rate, int(duration * rate), trigger=(dios["cs"], "falling"), pretrigger=0.05)
+    trigger = (dios["cs"], "falling") if use_cs else (dios["clk"], "either")
+    capture = ad3.logic.arm(rate, int(duration * rate), trigger=trigger, pretrigger=0.05)
     received = fw.spi.xfer(instance["index"], payload)
     return received, capture.wait(timeout=2.0)
 
@@ -46,12 +47,14 @@ def test_transfer(fw, ad3, need, board_cfg, wiring, instance, mode, baud, sync, 
         pytest.skip("MISO follows MOSI with the loopback jumper")
     if not loopback:
         ad3.dio.drive(dios["miso"], miso_level)
+    use_cs = not sync
+    cs = dios["cs"] if use_cs else None
     fw.spi.open(
         instance["index"],
         clk=instance["clk"],
         mosi=instance["mosi"],
         miso=instance["miso"],
-        cs=instance["cs"],
+        cs=instance["cs"] if use_cs else None,
         baud=baud,
         mode=mode,
         sync=sync,
@@ -60,15 +63,16 @@ def test_transfer(fw, ad3, need, board_cfg, wiring, instance, mode, baud, sync, 
     for text in board_cfg.param("spi.payloads"):
         payload = bytes.fromhex(text)
         expected_rx = payload if loopback else bytes([0xFF if miso_level else 0x00] * len(payload))
-        received, capture = transfer_and_capture(fw, ad3, instance, dios, payload, baud)
+        received, capture = transfer_and_capture(fw, ad3, instance, dios, payload, baud, use_cs)
         assert received == expected_rx
-        frames = capture.spi(dios["clk"], dios["mosi"], dios["miso"], dios["cs"], mode)
+        frames = capture.spi(dios["clk"], dios["mosi"], dios["miso"], cs, mode)
         mosi, miso = analysis.spi_join(frames)
         assert mosi == payload, f"decoded MOSI {mosi.hex()} (frames: {len(frames)})"
         assert miso == expected_rx
         clk = capture.channel(dios["clk"])
         cpol, _ = analysis.spi_mode_bits(mode)
-        assert analysis.clock_idle_level(clk, capture.channel(dios["cs"])) == cpol, "clock idle level (CPOL)"
+        cs_bits = None if cs is None else capture.channel(cs)
+        assert analysis.clock_idle_level(clk, cs_bits) == cpol, "clock idle level (CPOL)"
         assert measured_baud(clk, capture.rate) == pytest.approx(baud, rel=tolerance)
 
 

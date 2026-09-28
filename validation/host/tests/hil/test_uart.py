@@ -54,6 +54,8 @@ def ad3_to_firmware(fw, ad3, index, payload, baud, parity, stop):
 @pytest.mark.board_params("stop", "uart.stop_bits")
 @pytest.mark.board_params("variant", "uart.variants")
 def test_both_directions(fw, ad3, need, board_cfg, instance, baud, parity, stop, variant):
+    if variant.get("sync") and (parity != "none" or stop != 1):
+        pytest.skip("SynchronousUart supports only 8N1")
     open_pair(fw, ad3, need, instance, baud, parity, stop, variant)
     for text in board_cfg.param("uart.payloads"):
         payload = bytes.fromhex(text)

@@ -173,6 +173,8 @@ tests:
   system:
     boot_timeout: 5.0
     reserved_uarts: [0]
+    # Instances the MCU lacks: ERR range.
+    missing_instances: ["comp.open 2 neg=PC7"]
   gpio:
     loop_pins: [PB2, PB3, PA7, PC6]
     locked_pins: [PF0, PD7]
@@ -249,6 +251,7 @@ tests:
         dma: 0
         sync: 1
     payloads: ["55", "00ff", "0123456789abcdef", "48656c6c6f2c20484954"]
+    # uart.send takes at most 112 bytes, uart.recv returns at most 256.
     large_payload: 96
     large_payload_to_firmware: 240
   spi:
@@ -370,6 +373,7 @@ tests:
   eeprom:
     size: 2048
     max_chunk: 64
+    max_transfer: 112
     patterns: ["aa55aa55", "00000000", "0123456789abcdef", "ffffffff"]
     addresses: [0, 4, 3, 1024, 2040]
   watchdog:

@@ -46,7 +46,8 @@ def test_overwrite_without_erase(fw):
 
 
 def test_largest_write(fw, board_cfg, eeprom):
-    size = expect.max_hex_payload(board_cfg.terminal.max_command_length, format_command("eeprom.write", eeprom["size"] - 1))
+    line_limit = expect.max_hex_payload(board_cfg.terminal.max_command_length, format_command("eeprom.write", eeprom["size"] - 1))
+    size = min(line_limit, eeprom["max_transfer"])
     data = bytes((i * 13 + 1) & 0xFF for i in range(size))
     fw.eeprom.write(0, data)
     read = b"".join(fw.eeprom.read(offset, min(eeprom["max_chunk"], size - offset)) for offset in range(0, size, eeprom["max_chunk"]))

@@ -181,8 +181,9 @@ class Pwm(_Group):
         self._cmd("fault", module, "on" if on else "off")
 
     def duty(self, module: int, *duties: float) -> None:
-        if not 1 <= len(duties) <= 3:
-            raise ValueError("one to three duties")
+        """One duty per opened generator (in open order), or a single duty for all of them."""
+        if not 1 <= len(duties) <= 4:
+            raise ValueError("one to four duties")
         self._cmd("duty", module, *[float(duty) for duty in duties])
 
     def freq(self, module: int, hz: int) -> None:
@@ -325,14 +326,17 @@ class Comparator(_Group):
     def open(
         self,
         index: int,
-        pos: Pin,
-        neg: Pin,
+        pos: Pin | None = None,
+        neg: Pin | None = None,
         out: Pin | None = None,
         src: Literal["pin", "c0", "ref"] | None = None,
         ref: tuple[Literal["low", "high"], int] | None = None,
         invert: bool | None = None,
         sync: bool | None = None,
     ) -> None:
+        """`pos` is only needed with `src=pin`; `ref` implies `src=ref`."""
+        if neg is None:
+            raise ValueError("comp.open needs neg")
         self._cmd(
             "open",
             index,

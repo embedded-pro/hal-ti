@@ -62,7 +62,7 @@ def test_internal_reference(fw, ad3, need, board_cfg, comp_cfg, instance, range_
         pytest.skip(f"reference {expected:.3f} V is outside the wavegen range")
     wavegen = need.wavegen(instance["neg"])
     ad3.wavegen.dc(wavegen, low_limit)
-    fw.comp.open(instance["index"], pos=instance["pos"], neg=instance["neg"], src="ref", ref=(range_name, step))
+    fw.comp.open(instance["index"], neg=instance["neg"], src="ref", ref=(range_name, step))
     threshold = find_threshold(fw, ad3, instance["index"], wavegen, low_limit, high_limit, comp_cfg["ref_search_step_v"])
     assert threshold == pytest.approx(expected, abs=comp_cfg["ref_tolerance_v"])
 
@@ -76,7 +76,7 @@ def test_interrupt_counts(fw, ad3, need, comp_cfg, instance, edge, cycles):
     ad3.wavegen.dc(need.wavegen(instance["neg"]), comp_cfg["neg_level_v"])
     ad3.wavegen.dc(pos, (irq["low_v"] + irq["high_v"]) / 2)
     settle()
-    fw.comp.open(instance["index"], pos=instance["pos"], neg=instance["neg"], out=instance["out"], src="pin")
+    fw.comp.open(instance["index"], pos=instance["pos"], neg=instance["neg"], out=instance["out"], src="pin", sync=False)
     fw.comp.irq(instance["index"], edge)
     fw.comp.count(instance["index"], clear=True)
     ad3.wavegen.square(pos, irq["low_v"], irq["high_v"], irq["frequency_hz"], cycles=cycles)

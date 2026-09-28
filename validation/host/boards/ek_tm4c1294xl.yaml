@@ -64,10 +64,10 @@ wiring_sets:
   gpio:
     description: GPIO loop pins, locked pins and the LED/perf outputs
     dio:
-      0: PM0
-      1: PM1
-      2: PM2
-      3: PM3
+      0: PB2
+      1: PB3
+      2: halla
+      3: hallb
       4:
         pin: PD7
         note: locked pin (NMI)
@@ -185,8 +185,11 @@ tests:
   system:
     boot_timeout: 5.0
     reserved_uarts: [2]
+    # Instances the MCU lacks: ERR range.
+    missing_instances: ["pwm.open 1", "qei.open 1"]
   gpio:
-    loop_pins: [PM0, PM1, PM2, PM3]
+    # gpio.irq serves ports A-F only (other ports: ERR unsupported).
+    loop_pins: [PB2, PB3, PE4, PE5]
     locked_pins: [PD7]
     output_only_pins: [ledop, perf]
     drives: [2, 4, 8]
@@ -236,10 +239,11 @@ tests:
       window_ms: 200
       tolerance: 0.05
     fault:
-      # e-foc routes DCMP0 (itotal) and DCMP1 (vbus) into the fault inputs.
+      # The last two steps of e-foc's sequence (itotal, vbus) go to DCMP0
+      # and DCMP1, which e-foc routes into the fault inputs (high band).
       dcmp:
-        - [0, 2000, 3000]
-        - [1, 2000, 3000]
+        - [0, 0, 3000]
+        - [1, 0, 3000]
       drive: vbus
       safe_v: 1.0
       trip_v: 3.0
@@ -269,6 +273,7 @@ tests:
         dma: 0
         sync: 1
     payloads: ["55", "00ff", "0123456789abcdef", "48656c6c6f2c20484954"]
+    # uart.send takes at most 112 bytes, uart.recv returns at most 256.
     large_payload: 96
     large_payload_to_firmware: 240
   spi:
@@ -390,6 +395,7 @@ tests:
   eeprom:
     size: 6144
     max_chunk: 64
+    max_transfer: 112
     patterns: ["aa55aa55", "00000000", "0123456789abcdef", "ffffffff"]
     addresses: [0, 4, 3, 4096, 6136]
   watchdog:
