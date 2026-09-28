@@ -26,28 +26,28 @@ namespace validation::board
     inline constexpr uint8_t comparators = 3;
     inline constexpr uint8_t watchDogs = 2;
 
-    inline constexpr PinId phaseA = Pin(Port::E, 3);
-    inline constexpr PinId phaseB = Pin(Port::E, 2);
-    inline constexpr PinId phaseC = Pin(Port::E, 1);
-    inline constexpr PinId powerSupplyVoltage = Pin(Port::B, 5);
-    inline constexpr PinId currentTotal = Pin(Port::B, 4);
-    inline constexpr PinId encoderA = Pin(Port::L, 1);
-    inline constexpr PinId encoderB = Pin(Port::L, 2);
-    inline constexpr PinId encoderZ = Pin(Port::L, 3);
-    inline constexpr PinId pwm1a = Pin(Port::F, 2);
-    inline constexpr PinId pwm1b = Pin(Port::F, 3);
-    inline constexpr PinId pwm2a = Pin(Port::G, 0);
-    inline constexpr PinId pwm2b = Pin(Port::G, 1);
-    inline constexpr PinId pwm3a = Pin(Port::K, 4);
-    inline constexpr PinId pwm3b = Pin(Port::K, 5);
-    inline constexpr PinId canRx = Pin(Port::A, 0);
-    inline constexpr PinId canTx = Pin(Port::A, 1);
+    inline constexpr HilPinId phaseA = Pin(Port::E, 3);
+    inline constexpr HilPinId phaseB = Pin(Port::E, 2);
+    inline constexpr HilPinId phaseC = Pin(Port::E, 1);
+    inline constexpr HilPinId powerSupplyVoltage = Pin(Port::B, 5);
+    inline constexpr HilPinId currentTotal = Pin(Port::B, 4);
+    inline constexpr HilPinId encoderA = Pin(Port::L, 1);
+    inline constexpr HilPinId encoderB = Pin(Port::L, 2);
+    inline constexpr HilPinId encoderZ = Pin(Port::L, 3);
+    inline constexpr HilPinId pwm1a = Pin(Port::F, 2);
+    inline constexpr HilPinId pwm1b = Pin(Port::F, 3);
+    inline constexpr HilPinId pwm2a = Pin(Port::G, 0);
+    inline constexpr HilPinId pwm2b = Pin(Port::G, 1);
+    inline constexpr HilPinId pwm3a = Pin(Port::K, 4);
+    inline constexpr HilPinId pwm3b = Pin(Port::K, 5);
+    inline constexpr HilPinId canRx = Pin(Port::A, 0);
+    inline constexpr HilPinId canTx = Pin(Port::A, 1);
 
     inline constexpr UartPins terminal{ 2, Pin(Port::D, 5), Pin(Port::D, 4) };
-    inline constexpr std::array<PinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
+    inline constexpr std::array<HilPinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
     inline constexpr std::optional<UartPins> defaultUart = std::nullopt;
 
-    inline constexpr std::array<PinAlias, 29> aliases{ {
+    inline constexpr std::array<HilPinAlias, 29> aliases{ {
         { "terminaltx", terminal.tx },
         { "terminalrx", terminal.rx },
         { "phasea", phaseA },
@@ -73,10 +73,10 @@ namespace validation::board
         { "ledwarn", Pin(Port::N, 2) },
         { "ledfail", Pin(Port::P, 2) },
         { "perf", Pin(Port::N, 4) },
-        { "id0", Pin(Port::K, 0), services::hil::Pull::up },
-        { "id1", Pin(Port::K, 1), services::hil::Pull::up },
-        { "id2", Pin(Port::K, 2), services::hil::Pull::up },
-        { "pwrstatus", Pin(Port::C, 6), services::hil::Pull::up },
+        { "id0", Pin(Port::K, 0), services::HilPull::up },
+        { "id1", Pin(Port::K, 1), services::HilPull::up },
+        { "id2", Pin(Port::K, 2), services::HilPull::up },
+        { "pwrstatus", Pin(Port::C, 6), services::HilPull::up },
     } };
 
     inline constexpr uint8_t pwmModule = 0;
@@ -89,8 +89,8 @@ namespace validation::board
     inline constexpr bool pwmSynchronous = false;
     inline constexpr bool hasFaultComparators = true;
 
-    inline constexpr std::array<PinId, 5> phaseCurrentPins{ { phaseA, phaseB, phaseC, currentTotal, powerSupplyVoltage } };
-    inline constexpr std::array<PinId, 1> supplyPins{ { powerSupplyVoltage } };
+    inline constexpr std::array<HilPinId, 5> phaseCurrentPins{ { phaseA, phaseB, phaseC, currentTotal, powerSupplyVoltage } };
+    inline constexpr std::array<HilPinId, 1> supplyPins{ { powerSupplyVoltage } };
     inline constexpr hal::tiva::Adc::Trigger adcTrigger = hal::tiva::Adc::Trigger::pwmGenerator1;
 
     inline constexpr uint8_t qeiIndex = 0;

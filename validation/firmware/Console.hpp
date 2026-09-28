@@ -6,7 +6,7 @@
 #include "hal_tiva/tiva/UartWithDma.hpp"
 #include "infra/stream/OutputStream.hpp"
 #include "services/hil/HilTerminal.hpp"
-#include "services/hil/Response.hpp"
+#include "services/hil/HilResponse.hpp"
 #include "services/tracer/StreamWriterOnSerialCommunication.hpp"
 #include "services/tracer/Tracer.hpp"
 
@@ -29,8 +29,8 @@ namespace validation
         services::StreamWriterOnSerialCommunication::WithStorage<transmitBufferSize> writer{ uart };
         infra::TextOutputStream::WithErrorPolicy stream{ writer };
         services::TracerToStream tracer{ stream };
-        services::hil::Response response{ tracer };
-        services::hil::HilTerminal::WithMaxQueueAndMaxHistory<queueSize, 1> terminal{ uart, tracer, response };
+        services::HilResponse response{ tracer };
+        services::HilTerminal::WithMaxQueueAndMaxHistory<queueSize, 1> terminal{ uart, tracer, response };
     };
 }
 

@@ -2,20 +2,20 @@
 #define VALIDATION_BOARD_TYPES_HPP
 
 #include "hal_tiva/tiva/Gpio.hpp"
-#include "services/hil/PinId.hpp"
+#include "services/hil/HilPinId.hpp"
 #include <cstdint>
 
 namespace validation
 {
-    using services::hil::PinAlias;
-    using services::hil::PinId;
+    using services::HilPinAlias;
+    using services::HilPinId;
 
-    constexpr PinId Pin(hal::tiva::Port port, uint8_t index)
+    constexpr HilPinId Pin(hal::tiva::Port port, uint8_t index)
     {
-        return PinId{ static_cast<uint8_t>(port), index };
+        return HilPinId{ static_cast<uint8_t>(port), index };
     }
 
-    constexpr hal::tiva::Port PortOf(PinId pin)
+    constexpr hal::tiva::Port PortOf(HilPinId pin)
     {
         return static_cast<hal::tiva::Port>(pin.port);
     }
@@ -23,15 +23,15 @@ namespace validation
     struct UartPins
     {
         uint8_t index;
-        PinId tx;
-        PinId rx;
+        HilPinId tx;
+        HilPinId rx;
     };
 
     struct PwmPhase
     {
         uint8_t generator;
-        PinId a;
-        PinId b;
+        HilPinId a;
+        HilPinId b;
     };
 
     enum class PwmTrigger : uint8_t

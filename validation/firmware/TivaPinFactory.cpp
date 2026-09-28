@@ -1,6 +1,6 @@
 #include "validation/firmware/TivaPinFactory.hpp"
 #include "BoardProfile.hpp"
-#include "services/hil/Arguments.hpp"
+#include "services/hil/HilArguments.hpp"
 #include <concepts>
 
 namespace validation
@@ -14,22 +14,22 @@ namespace validation
 
         constexpr uint8_t portsWithInterrupts = GpioWithInterruptType<hal::tiva::Gpio> ? 15 : 6;
 
-        constexpr std::array<services::hil::Choice<hal::tiva::Current>, 3> currents{ {
+        constexpr std::array<services::HilChoice<hal::tiva::Current>, 3> currents{ {
             { "2", hal::tiva::Current::_2mA },
             { "4", hal::tiva::Current::_4mA },
             { "8", hal::tiva::Current::_8mA },
         } };
 
-        hal::tiva::Drive ToDrive(const services::hil::PinOptions& options)
+        hal::tiva::Drive ToDrive(const services::HilPinOptions& options)
         {
             if (options.openDrain)
                 return hal::tiva::Drive::OpenDrain;
 
             switch (options.pull)
             {
-                case services::hil::Pull::up:
+                case services::HilPull::up:
                     return hal::tiva::Drive::Up;
-                case services::hil::Pull::down:
+                case services::HilPull::down:
                     return hal::tiva::Drive::Down;
                 default:
                     return hal::tiva::Drive::None;
@@ -37,7 +37,7 @@ namespace validation
         }
     }
 
-    ManagedPin::ManagedPin(PinId id, hal::tiva::Drive drive, hal::tiva::Current current)
+    ManagedPin::ManagedPin(HilPinId id, hal::tiva::Drive drive, hal::tiva::Current current)
         : hal::tiva::GpioPin(PortOf(id), id.index, drive, current)
     {}
 
@@ -59,7 +59,7 @@ namespace validation
         hal::tiva::GpioPin::ResetConfig();
     }
 
-    bool SupportsFunction(PinId id, hal::tiva::PinConfigPeripheral function, uint8_t peripheralIndex)
+    bool SupportsFunction(HilPinId id, hal::tiva::PinConfigPeripheral function, uint8_t peripheralIndex)
     {
         for (const auto& subTable : hal::tiva::pinoutTableDefault)
             for (const auto& table : subTable)
@@ -71,7 +71,7 @@ namespace validation
         return false;
     }
 
-    std::optional<PinId> FindFunctionPin(hal::tiva::PinConfigPeripheral function, uint8_t peripheralIndex)
+    std::optional<HilPinId> FindFunctionPin(hal::tiva::PinConfigPeripheral function, uint8_t peripheralIndex)
     {
         for (const auto& subTable : hal::tiva::pinoutTableDefault)
             for (const auto& table : subTable)
@@ -91,17 +91,17 @@ namespace validation
         return hal::tiva::dummyPin;
     }
 
-    bool TivaPinFactory::IsValid(PinId pin) const
+    bool TivaPinFactory::IsValid(HilPinId pin) const
     {
         return pin.index <= board::maximumPinIndex && pin.port < infra::BoundedConstString(board::portLetters).size();
     }
 
-    bool TivaPinFactory::SupportsFunction(PinId pin, uint16_t function, uint8_t instance) const
+    bool TivaPinFactory::SupportsFunction(HilPinId pin, uint16_t function, uint8_t instance) const
     {
         return validation::SupportsFunction(pin, static_cast<hal::tiva::PinConfigPeripheral>(function), instance);
     }
 
-    bool TivaPinFactory::SupportsAnalog(PinId pin) const
+    bool TivaPinFactory::SupportsAnalog(HilPinId pin) const
     {
         for (const auto& position : hal::tiva::analogTableDefault)
             if (position.type == hal::tiva::Type::adc && position.port == PortOf(pin) && position.pin == pin.index)
@@ -110,20 +110,20 @@ namespace validation
         return false;
     }
 
-    bool TivaPinFactory::SupportsInterrupt(PinId pin) const
+    bool TivaPinFactory::SupportsInterrupt(HilPinId pin) const
     {
         return pin.port < portsWithInterrupts;
     }
 
     std::optional<uint8_t> TivaPinFactory::ParseDrive(infra::BoundedConstString text) const
     {
-        if (auto current = services::hil::ParseChoice(text, currents))
+        if (auto current = services::HilArguments::ParseChoice(text, currents))
             return infra::enum_cast(*current);
 
         return std::nullopt;
     }
 
-    hal::GpioPin& TivaPinFactory::Construct(std::size_t slot, PinId pin, const services::hil::PinOptions& options)
+    hal::GpioPin& TivaPinFactory::Construct(std::size_t slot, HilPinId pin, const services::HilPinOptions& options)
     {
         return pins[slot].emplace(pin, ToDrive(options), static_cast<hal::tiva::Current>(options.drive));
     }

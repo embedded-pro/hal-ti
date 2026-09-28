@@ -5,7 +5,7 @@ namespace validation
 {
     namespace
     {
-        using services::hil::Status;
+        using services::HilStatus;
 
         constexpr std::array<const char*, 3> startKeys{ { "timeout", "reset", "feed" } };
     }
@@ -20,24 +20,24 @@ namespace validation
         return infra::MakeRange(startKeys);
     }
 
-    Status TivaWatchDogFactory::Prepare(uint8_t, const services::hil::Arguments& arguments)
+    HilStatus TivaWatchDogFactory::Prepare(uint8_t, const services::HilArguments& arguments)
     {
         hal::tiva::WatchDog::Config config;
         return Parse(arguments, config);
     }
 
-    Status TivaWatchDogFactory::Create(uint8_t index, infra::Duration timeout, const services::hil::Arguments& arguments, hal::Watchdog*& created)
+    HilStatus TivaWatchDogFactory::Create(uint8_t index, infra::Duration timeout, const services::HilArguments& arguments, hal::Watchdog*& created)
     {
         hal::tiva::WatchDog::Config config;
         Parse(arguments, config);
         config.timeout = timeout;
         created = &watchDog.emplace(index, config);
-        return Status::done;
+        return HilStatus::done;
     }
 
-    Status TivaWatchDogFactory::Parse(const services::hil::Arguments& arguments, hal::tiva::WatchDog::Config& config) const
+    HilStatus TivaWatchDogFactory::Parse(const services::HilArguments& arguments, hal::tiva::WatchDog::Config& config) const
     {
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         config.interruptPriority = hal::cortex::InterruptPriority::lowest;
         arguments.Flag("reset", config.resetOnMissedInterrupt, status);
         return status;

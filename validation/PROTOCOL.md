@@ -1,6 +1,6 @@
 # Validation terminal protocol
 
-The validation firmware (`validation/firmware`) exposes every hal-ti peripheral through EMIL's hardware-in-the-loop terminal (`services::hil::HilTerminal` and the command groups of `services.hil.commands`); hal-ti supplies the board profiles, the Tiva pin factory and one factory per peripheral.
+The validation firmware (`validation/firmware`) exposes every hal-ti peripheral through EMIL's hardware-in-the-loop terminal (`services::HilTerminal` and the command groups of `services.hil.commands`); hal-ti supplies the board profiles, the Tiva pin factory and one factory per peripheral.
 The host package (`validation/host`) drives this terminal and a Digilent Analog Discovery 3 to validate the peripherals.
 
 ## Board profiles

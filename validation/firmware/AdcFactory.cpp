@@ -9,8 +9,8 @@ namespace validation
 {
     namespace
     {
-        using services::hil::Choice;
-        using services::hil::Status;
+        using services::HilChoice;
+        using services::HilStatus;
 
         constexpr std::array<uint8_t, 4> sequencerDepths{ { 8, 4, 4, 1 } };
         constexpr uint8_t phaseCurrentAdc = 0;
@@ -22,7 +22,7 @@ namespace validation
 
         constexpr std::array<const char*, 7> openKeys{ { "pins", "sh", "avg", "delay", "trigger", "dcmp", "sync" } };
 
-        constexpr std::array<Choice<uint8_t>, 7> sampleAndHolds{ {
+        constexpr std::array<HilChoice<uint8_t>, 7> sampleAndHolds{ {
             { "4", 0 },
             { "8", 1 },
             { "16", 2 },
@@ -32,7 +32,7 @@ namespace validation
             { "256", 6 },
         } };
 
-        constexpr std::array<Choice<uint8_t>, 7> oversamplings{ {
+        constexpr std::array<HilChoice<uint8_t>, 7> oversamplings{ {
             { "off", 0 },
             { "2", 1 },
             { "4", 2 },
@@ -42,7 +42,7 @@ namespace validation
             { "64", 6 },
         } };
 
-        constexpr std::array<Choice<hal::tiva::Adc::Trigger>, 4> triggers{ {
+        constexpr std::array<HilChoice<hal::tiva::Adc::Trigger>, 4> triggers{ {
             { "pwm0", hal::tiva::Adc::Trigger::pwmGenerator0 },
             { "pwm1", hal::tiva::Adc::Trigger::pwmGenerator1 },
             { "pwm2", hal::tiva::Adc::Trigger::pwmGenerator2 },
@@ -60,7 +60,7 @@ namespace validation
         }
     }
 
-    TivaAdcFactory::TivaAdcFactory(const services::hil::PinNaming& naming)
+    TivaAdcFactory::TivaAdcFactory(const services::HilPinNaming& naming)
         : naming(naming)
     {}
 
@@ -69,11 +69,11 @@ namespace validation
         return 2;
     }
 
-    Status TivaAdcFactory::ParseKey(const services::hil::Arguments& arguments, uint16_t& key) const
+    HilStatus TivaAdcFactory::ParseKey(const services::HilArguments& arguments, uint16_t& key) const
     {
         uint32_t adc = 0;
         uint32_t sequencer = 0;
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.NumberAt(0, adc, 0, board::adcs - 1, status);
         arguments.NumberAt(1, sequencer, 0, sequencerDepths.size() - 1, status);
         key = static_cast<uint16_t>(adc * sequencerDepths.size() + sequencer);
@@ -85,13 +85,13 @@ namespace validation
         return infra::MakeRange(openKeys);
     }
 
-    Status TivaAdcFactory::Prepare(uint16_t key, const services::hil::Arguments& arguments)
+    HilStatus TivaAdcFactory::Prepare(uint16_t key, const services::HilArguments& arguments)
     {
         Request request;
         return Parse(key, arguments, request);
     }
 
-    Status TivaAdcFactory::Open(std::size_t slot, uint16_t key, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, services::hil::AdcHandle& handle)
+    HilStatus TivaAdcFactory::Open(std::size_t slot, uint16_t key, const services::HilArguments& arguments, services::HilPinOwner& pins, services::HilAdcHandle& handle)
     {
         Request request;
         Parse(key, arguments, request);
@@ -100,20 +100,20 @@ namespace validation
         auto& opened = slots[slot].emplace();
         opened.key = key;
 
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         std::size_t comparatorSteps = 0;
         if (auto list = arguments.Key("dcmp"))
             status = ParseComparators(*list, request.steps, opened, comparatorSteps);
 
-        for (std::size_t i = 0; i != request.steps && status == Status::done; ++i)
+        for (std::size_t i = 0; i != request.steps && status == HilStatus::done; ++i)
         {
             hal::GpioPin* pin = nullptr;
             status = pins.ClaimAnalog(request.pins[i], pin);
-            if (status == Status::done)
+            if (status == HilStatus::done)
                 opened.inputs.emplace_back(PinOrDummy(pin));
         }
 
-        if (status != Status::done)
+        if (status != HilStatus::done)
         {
             opened.inputs.clear();
             slots[slot] = std::nullopt;
@@ -128,7 +128,7 @@ namespace validation
         else
             handle.adc = &std::get<hal::tiva::Adc>(opened.driver);
 
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaAdcFactory::Close(std::size_t slot, uint16_t, const infra::Function<void()>& onClosed)
@@ -141,7 +141,7 @@ namespace validation
         onClosed();
     }
 
-    Status TivaAdcFactory::Parse(uint16_t key, const services::hil::Arguments& arguments, Request& request) const
+    HilStatus TivaAdcFactory::Parse(uint16_t key, const services::HilArguments& arguments, Request& request) const
     {
         const auto adc = AdcOf(key);
         const auto sequencer = SequencerOf(key);
@@ -153,35 +153,35 @@ namespace validation
         request.delayEnabled = !supply;
         request.trigger = board::adcTrigger;
 
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.Select("sh", request.sampleAndHold, sampleAndHolds, status);
         arguments.Select("avg", request.oversampling, oversamplings, status);
         arguments.Select("trigger", request.trigger, triggers, status);
         arguments.Flag("sync", request.synchronous, status);
-        if (status == Status::done && arguments.Has("delay"))
+        if (status == HilStatus::done && arguments.Has("delay"))
         {
             request.delayEnabled = arguments.Key("delay") != "off";
             if (request.delayEnabled)
                 arguments.Number("delay", request.delay, 0, maximumDelay, status);
         }
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         if (request.synchronous && (arguments.Has("delay") || arguments.Has("trigger") || arguments.Has("dcmp")))
-            return Status::unsupported;
+            return HilStatus::unsupported;
 
         if (auto list = arguments.Key("pins"))
         {
             infra::Tokenizer tokens(*list, ',');
             request.steps = tokens.Size();
             if (request.steps == 0 || request.steps > maximumSteps)
-                return Status::range;
+                return HilStatus::range;
 
             for (std::size_t i = 0; i != request.steps; ++i)
             {
-                auto pin = services::hil::ParsePin(tokens.Token(i), naming);
+                auto pin = services::HilArguments::ParsePin(tokens.Token(i), naming);
                 if (!pin)
-                    return Status::pin;
+                    return HilStatus::pin;
 
                 request.pins[i] = *pin;
             }
@@ -191,44 +191,44 @@ namespace validation
         else if (supply)
             request.steps = std::copy(board::supplyPins.begin(), board::supplyPins.end(), request.pins.begin()) - request.pins.begin();
         else
-            return Status::usage;
+            return HilStatus::usage;
 
         if (request.steps > sequencerDepths[sequencer])
-            return Status::range;
+            return HilStatus::range;
 
-        return Status::done;
+        return HilStatus::done;
     }
 
-    Status TivaAdcFactory::ParseComparators(infra::BoundedConstString text, std::size_t steps, Sequencer& sequencer, std::size_t& comparatorSteps) const
+    HilStatus TivaAdcFactory::ParseComparators(infra::BoundedConstString text, std::size_t steps, Sequencer& sequencer, std::size_t& comparatorSteps) const
     {
         infra::Tokenizer entries(text, ',');
         comparatorSteps = entries.Size();
 
         if (comparatorSteps == 0 || comparatorSteps >= steps)
-            return Status::range;
+            return HilStatus::range;
 
         uint32_t used = 0;
         for (std::size_t i = 0; i != comparatorSteps; ++i)
         {
             infra::Tokenizer fields(entries.Token(i), ':');
             if (fields.Size() != 3)
-                return Status::usage;
+                return HilStatus::usage;
 
-            auto comparator = services::hil::ParseNumber(fields.Token(0));
-            auto low = services::hil::ParseNumber(fields.Token(1));
-            auto high = services::hil::ParseNumber(fields.Token(2));
+            auto comparator = services::HilArguments::ParseNumber(fields.Token(0));
+            auto low = services::HilArguments::ParseNumber(fields.Token(1));
+            auto high = services::HilArguments::ParseNumber(fields.Token(2));
             if (!comparator || !low || !high)
-                return Status::usage;
+                return HilStatus::usage;
 
             if (*comparator > maximumDigitalComparator || *high > maximumCode || *low > *high || (used & (1u << *comparator)) != 0)
-                return Status::range;
+                return HilStatus::range;
 
             used |= 1u << *comparator;
             sequencer.comparators[steps - comparatorSteps + i] = hal::tiva::Adc::DigitalComparatorConfig{ static_cast<uint8_t>(*comparator), static_cast<uint16_t>(*low), static_cast<uint16_t>(*high),
                 hal::tiva::Adc::ComparatorCondition::highBand, hal::tiva::Adc::ComparatorMode::always };
         }
 
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaAdcFactory::Construct(Sequencer& opened, const Request& request, std::size_t comparatorSteps)

@@ -8,7 +8,7 @@ namespace validation
 {
     namespace
     {
-        using services::hil::Status;
+        using services::HilStatus;
 
         constexpr uint32_t maximumPrescaler = 254;
         constexpr uint32_t maximumSerialClockRate = 256;
@@ -16,7 +16,7 @@ namespace validation
         constexpr std::array<const char*, 7> openKeys{ { "clk", "mosi", "miso", "cs", "baud", "mode", "sync" } };
     }
 
-    TivaSpiFactory::TivaSpiFactory(const services::hil::PinNaming& naming)
+    TivaSpiFactory::TivaSpiFactory(const services::HilPinNaming& naming)
         : naming(naming)
     {}
 
@@ -30,13 +30,13 @@ namespace validation
         return infra::MakeRange(openKeys);
     }
 
-    Status TivaSpiFactory::Prepare(uint8_t, const services::hil::Arguments& arguments)
+    HilStatus TivaSpiFactory::Prepare(uint8_t, const services::HilArguments& arguments)
     {
         Request request;
         return Parse(arguments, request);
     }
 
-    Status TivaSpiFactory::Open(uint8_t index, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, services::hil::SpiHandle& handle)
+    HilStatus TivaSpiFactory::Open(uint8_t index, const services::HilArguments& arguments, services::HilPinOwner& pins, services::HilSpiHandle& handle)
     {
         Request request;
         Parse(arguments, request);
@@ -45,14 +45,14 @@ namespace validation
         hal::GpioPin* mosi = nullptr;
         hal::GpioPin* miso = nullptr;
         hal::GpioPin* chipSelect = nullptr;
-        Status status = pins.ClaimFunction(request.clock, Function(hal::tiva::PinConfigPeripheral::spiClock), index, clock);
-        if (status == Status::done)
+        HilStatus status = pins.ClaimFunction(request.clock, Function(hal::tiva::PinConfigPeripheral::spiClock), index, clock);
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.mosi, Function(hal::tiva::PinConfigPeripheral::spiMosi), index, mosi);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.miso, Function(hal::tiva::PinConfigPeripheral::spiMiso), index, miso);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.chipSelect, Function(hal::tiva::PinConfigPeripheral::spiSlaveSelect), index, chipSelect);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         const bool polarityLow = (request.mode & 2) == 0;
@@ -69,7 +69,7 @@ namespace validation
             handle.spi = &driver.emplace<hal::tiva::SpiMaster>(index, PinOrDummy(clock), PinOrDummy(miso), PinOrDummy(mosi), config, PinOrDummy(chipSelect));
         }
 
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaSpiFactory::Close(uint8_t, const infra::Function<void()>& onClosed)
@@ -78,9 +78,9 @@ namespace validation
         onClosed();
     }
 
-    Status TivaSpiFactory::Parse(const services::hil::Arguments& arguments, Request& request) const
+    HilStatus TivaSpiFactory::Parse(const services::HilArguments& arguments, Request& request) const
     {
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.Pin("clk", naming, request.clock, status);
         arguments.Pin("mosi", naming, request.mosi, status);
         arguments.Pin("miso", naming, request.miso, status);
@@ -88,15 +88,15 @@ namespace validation
         arguments.Number("baud", request.baud, SystemCoreClock / (maximumPrescaler * maximumSerialClockRate) + 1, SystemCoreClock / 2, status);
         arguments.Number("mode", request.mode, 0, 3, status);
         arguments.Flag("sync", request.synchronous, status);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         if (!request.clock || !request.mosi || !request.miso)
-            return Status::usage;
+            return HilStatus::usage;
 
         if (request.synchronous && request.chipSelect)
-            return Status::unsupported;
+            return HilStatus::unsupported;
 
-        return Status::done;
+        return HilStatus::done;
     }
 }

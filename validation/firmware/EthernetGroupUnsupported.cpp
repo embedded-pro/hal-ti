@@ -1,4 +1,4 @@
-#include "services/hil/commands/UnsupportedCommands.hpp"
+#include "services/hil/commands/HilUnsupportedCommands.hpp"
 #include "validation/firmware/EthernetGroup.hpp"
 #include <array>
 
@@ -9,8 +9,8 @@ namespace validation
         constexpr std::array<const char*, 3> commandNames{ { "eth.open", "eth.status", "eth.close" } };
     }
 
-    void CreateEthernetGroup(services::hil::Context& context)
+    void CreateEthernetGroup(services::HilContext& context)
     {
-        static services::hil::UnsupportedCommands::WithMaxCommands<commandNames.size()> ethernet{ context, infra::MakeRange(commandNames) };
+        static services::HilUnsupportedCommands::WithMaxCommands<commandNames.size()> ethernet{ context, infra::MakeRange(commandNames) };
     }
 }

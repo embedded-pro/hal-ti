@@ -11,7 +11,7 @@ namespace validation
 {
     namespace
     {
-        using services::hil::Status;
+        using services::HilStatus;
 
         constexpr uint32_t maximumStandardId = 0x7ff;
         constexpr uint32_t maximumExtendedId = 0x1fffffff;
@@ -57,7 +57,7 @@ namespace validation
         }
     }
 
-    TivaCanFactory::TivaCanFactory(const services::hil::PinNaming& naming)
+    TivaCanFactory::TivaCanFactory(const services::HilPinNaming& naming)
         : naming(naming)
     {}
 
@@ -71,23 +71,23 @@ namespace validation
         return infra::MakeRange(openKeys);
     }
 
-    Status TivaCanFactory::Prepare(uint8_t index, const services::hil::Arguments& arguments)
+    HilStatus TivaCanFactory::Prepare(uint8_t index, const services::HilArguments& arguments)
     {
         Request request;
         return Parse(index, arguments, request);
     }
 
-    Status TivaCanFactory::Open(uint8_t index, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, const infra::Function<void(const char* error)>& onError, hal::Can*& opened)
+    HilStatus TivaCanFactory::Open(uint8_t index, const services::HilArguments& arguments, services::HilPinOwner& pins, const infra::Function<void(const char* error)>& onError, hal::Can*& opened)
     {
         Request request;
         Parse(index, arguments, request);
 
         hal::GpioPin* rx = nullptr;
         hal::GpioPin* tx = nullptr;
-        Status status = pins.ClaimFunction(request.rx, Function(hal::tiva::PinConfigPeripheral::canRx), index, rx);
-        if (status == Status::done)
+        HilStatus status = pins.ClaimFunction(request.rx, Function(hal::tiva::PinConfigPeripheral::canRx), index, rx);
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.tx, Function(hal::tiva::PinConfigPeripheral::canTx), index, tx);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         this->onError = onError;
@@ -97,7 +97,7 @@ namespace validation
                 this->onError(errorNames[static_cast<std::size_t>(error)]);
             });
 
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaCanFactory::Close(uint8_t index, const infra::Function<void()>& onClosed)
@@ -114,26 +114,26 @@ namespace validation
             });
     }
 
-    Status TivaCanFactory::Parse(uint8_t index, const services::hil::Arguments& arguments, Request& request) const
+    HilStatus TivaCanFactory::Parse(uint8_t index, const services::HilArguments& arguments, Request& request) const
     {
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.Pin("rx", naming, request.rx, status);
         arguments.Pin("tx", naming, request.tx, status);
         arguments.Number("bitrate", request.bitRate, 1, maximumBitRate, status);
         arguments.Flag("loopback", request.config.testMode, status);
         arguments.Flag("recover", request.config.autoBusOffRecovery, status);
 
-        if (status == Status::done && arguments.Has("filter"))
+        if (status == HilStatus::done && arguments.Has("filter"))
         {
             infra::Tokenizer fields(*arguments.Key("filter"), ',');
-            auto id = services::hil::ParseNumber(fields.Token(0));
-            auto mask = services::hil::ParseNumber(fields.Token(1));
-            auto extended = services::hil::ParseNumber(fields.Token(2));
+            auto id = services::HilArguments::ParseNumber(fields.Token(0));
+            auto mask = services::HilArguments::ParseNumber(fields.Token(1));
+            auto extended = services::HilArguments::ParseNumber(fields.Token(2));
 
             if (fields.Size() != 3 || !id || !mask || !extended || *extended > 1)
-                status = Status::usage;
+                status = HilStatus::usage;
             else if (*id > (*extended != 0 ? maximumExtendedId : maximumStandardId) || *mask > (*extended != 0 ? maximumExtendedId : maximumStandardId))
-                status = Status::range;
+                status = HilStatus::range;
             else
             {
                 hal::tiva::Can::Filter filter;
@@ -145,24 +145,24 @@ namespace validation
             }
         }
 
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         if (!BitRateAchievable(request.bitRate))
-            return Status::range;
+            return HilStatus::range;
 
         if (!request.rx && !request.tx)
         {
             if (index != board::canIndex)
-                return Status::usage;
+                return HilStatus::usage;
 
             request.rx = board::canRx;
             request.tx = board::canTx;
         }
 
         if (!request.rx || !request.tx)
-            return Status::usage;
+            return HilStatus::usage;
 
-        return Status::done;
+        return HilStatus::done;
     }
 }

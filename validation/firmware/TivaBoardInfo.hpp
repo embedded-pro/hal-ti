@@ -1,14 +1,14 @@
 #ifndef VALIDATION_TIVA_BOARD_INFO_HPP
 #define VALIDATION_TIVA_BOARD_INFO_HPP
 
-#include "services/hil/BoardInfo.hpp"
+#include "services/hil/HilBoardInfo.hpp"
 
 namespace validation
 {
     const char* ReadAndClearResetCause();
 
     class TivaBoardInfo
-        : public services::hil::BoardInfo
+        : public services::HilBoardInfo
     {
     public:
         explicit TivaBoardInfo(const char* resetCause);

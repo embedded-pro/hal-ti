@@ -1,7 +1,7 @@
 #include "validation/firmware/TivaBoardInfo.hpp"
 #include "BoardProfile.hpp"
 #include "hal_tiva/tiva/UniqueDeviceId.hpp"
-#include "services/hil/Arguments.hpp"
+#include "services/hil/HilArguments.hpp"
 #include DEVICE_HEADER
 
 extern "C" uint32_t SystemCoreClock;
@@ -18,7 +18,7 @@ namespace validation
         constexpr uint32_t rescWatchDog1 = 1u << 5;
         constexpr uint32_t rescMainOscillatorFailure = 1u << 16;
 
-        constexpr std::array<services::hil::Choice<uint32_t>, 7> resetCauses{ {
+        constexpr std::array<services::HilChoice<uint32_t>, 7> resetCauses{ {
             { "wdt0", rescWatchDog0 },
             { "wdt1", rescWatchDog1 },
             { "sw", rescSoftware },

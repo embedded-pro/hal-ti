@@ -2,13 +2,13 @@
 #define VALIDATION_EEPROM_FACTORY_HPP
 
 #include "hal_tiva/tiva/Eeprom.hpp"
-#include "services/hil/commands/EepromCommands.hpp"
+#include "services/hil/commands/HilEepromCommands.hpp"
 #include <optional>
 
 namespace validation
 {
     class TivaEepromFactory
-        : public services::hil::EepromFactory
+        : public services::HilEepromFactory
     {
     public:
         hal::Eeprom& Instance() override;

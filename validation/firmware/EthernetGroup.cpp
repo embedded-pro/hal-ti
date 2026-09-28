@@ -1,15 +1,15 @@
 #include "validation/firmware/EthernetGroup.hpp"
 #include "hal_tiva/tiva/Ethernet.hpp"
 #include "hal_tiva/tiva/UniqueDeviceId.hpp"
-#include "services/hil/commands/EthernetCommands.hpp"
+#include "services/hil/commands/HilEthernetCommands.hpp"
 #include <optional>
 
 namespace validation
 {
     namespace
     {
-        using services::hil::Choice;
-        using services::hil::Status;
+        using services::HilChoice;
+        using services::HilStatus;
 
         enum class Speed : uint8_t
         {
@@ -20,11 +20,11 @@ namespace validation
 
         constexpr std::array<const char*, 2> openKeys{ { "phy", "speed" } };
 
-        constexpr std::array<Choice<hal::tiva::Ethernet::PhySelection>, 1> phys{ {
+        constexpr std::array<HilChoice<hal::tiva::Ethernet::PhySelection>, 1> phys{ {
             { "internal", hal::tiva::Ethernet::PhySelection::internal },
         } };
 
-        constexpr std::array<Choice<Speed>, 3> speeds{ {
+        constexpr std::array<HilChoice<Speed>, 3> speeds{ {
             { "auto", Speed::automatic },
             { "10", Speed::_10 },
             { "100", Speed::_100 },
@@ -42,7 +42,7 @@ namespace validation
         }
 
         class TivaEthernetFactory
-            : public services::hil::EthernetFactory
+            : public services::HilEthernetFactory
         {
         public:
             infra::MemoryRange<const char* const> OpenKeys() const override
@@ -50,14 +50,14 @@ namespace validation
                 return infra::MakeRange(openKeys);
             }
 
-            Status Prepare(const services::hil::Arguments& arguments) override
+            HilStatus Prepare(const services::HilArguments& arguments) override
             {
                 auto phy = hal::tiva::Ethernet::PhySelection::internal;
                 auto speed = Speed::automatic;
                 return Parse(arguments, phy, speed);
             }
 
-            Status Open(const services::hil::Arguments& arguments, services::hil::EthernetHandle& handle) override
+            HilStatus Open(const services::HilArguments& arguments, services::HilEthernetHandle& handle) override
             {
                 auto phy = hal::tiva::Ethernet::PhySelection::internal;
                 auto speed = Speed::automatic;
@@ -66,7 +66,7 @@ namespace validation
                 auto& opened = ethernet.emplace(hal::tiva::Ethernet::Leds{}, phy, speed == Speed::_10 ? hal::LinkSpeed::fullDuplex10MHz : hal::LinkSpeed::fullDuplex100MHz, LocallyAdministeredAddress());
                 handle.smi = &opened;
                 handle.mac = &opened;
-                return Status::done;
+                return HilStatus::done;
             }
 
             void Close(const infra::Function<void()>& onClosed) override
@@ -76,9 +76,9 @@ namespace validation
             }
 
         private:
-            static Status Parse(const services::hil::Arguments& arguments, hal::tiva::Ethernet::PhySelection& phy, Speed& speed)
+            static HilStatus Parse(const services::HilArguments& arguments, hal::tiva::Ethernet::PhySelection& phy, Speed& speed)
             {
-                Status status = Status::done;
+                HilStatus status = HilStatus::done;
                 arguments.Select("phy", phy, phys, status);
                 arguments.Select("speed", speed, speeds, status);
                 return status;
@@ -89,9 +89,9 @@ namespace validation
         };
     }
 
-    void CreateEthernetGroup(services::hil::Context& context)
+    void CreateEthernetGroup(services::HilContext& context)
     {
         static TivaEthernetFactory factory;
-        static services::hil::EthernetCommands::WithReceiveBuffers<4> ethernet{ context, factory };
+        static services::HilEthernetCommands::WithReceiveBuffers<4> ethernet{ context, factory };
     }
 }

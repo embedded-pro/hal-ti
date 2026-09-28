@@ -1,11 +1,11 @@
 #ifndef VALIDATION_ETHERNET_GROUP_HPP
 #define VALIDATION_ETHERNET_GROUP_HPP
 
-#include "services/hil/Command.hpp"
+#include "services/hil/HilCommand.hpp"
 
 namespace validation
 {
-    void CreateEthernetGroup(services::hil::Context& context);
+    void CreateEthernetGroup(services::HilContext& context);
 }
 
 #endif

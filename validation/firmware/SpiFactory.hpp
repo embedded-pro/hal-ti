@@ -3,7 +3,7 @@
 
 #include "hal_tiva/synchronous_tiva/SynchronousSpiMaster.hpp"
 #include "hal_tiva/tiva/SpiMaster.hpp"
-#include "services/hil/commands/SpiCommands.hpp"
+#include "services/hil/commands/HilSpiCommands.hpp"
 #include "validation/firmware/BoardTypes.hpp"
 #include <optional>
 #include <variant>
@@ -11,33 +11,33 @@
 namespace validation
 {
     class TivaSpiFactory
-        : public services::hil::SpiFactory
+        : public services::HilSpiFactory
     {
     public:
-        explicit TivaSpiFactory(const services::hil::PinNaming& naming);
+        explicit TivaSpiFactory(const services::HilPinNaming& naming);
 
         uint8_t Instances() const override;
         infra::MemoryRange<const char* const> OpenKeys() const override;
-        services::hil::Status Prepare(uint8_t index, const services::hil::Arguments& arguments) override;
-        services::hil::Status Open(uint8_t index, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, services::hil::SpiHandle& handle) override;
+        services::HilStatus Prepare(uint8_t index, const services::HilArguments& arguments) override;
+        services::HilStatus Open(uint8_t index, const services::HilArguments& arguments, services::HilPinOwner& pins, services::HilSpiHandle& handle) override;
         void Close(uint8_t index, const infra::Function<void()>& onClosed) override;
 
     private:
         struct Request
         {
-            std::optional<PinId> clock;
-            std::optional<PinId> mosi;
-            std::optional<PinId> miso;
-            std::optional<PinId> chipSelect;
+            std::optional<HilPinId> clock;
+            std::optional<HilPinId> mosi;
+            std::optional<HilPinId> miso;
+            std::optional<HilPinId> chipSelect;
             uint32_t baud = 100000;
             uint32_t mode = 0;
             bool synchronous = false;
         };
 
-        services::hil::Status Parse(const services::hil::Arguments& arguments, Request& request) const;
+        services::HilStatus Parse(const services::HilArguments& arguments, Request& request) const;
 
     private:
-        const services::hil::PinNaming& naming;
+        const services::HilPinNaming& naming;
         std::variant<std::monostate, hal::tiva::SpiMaster, hal::tiva::SynchronousSpiMaster> driver;
     };
 }

@@ -4,7 +4,7 @@
 #include "hal_tiva/synchronous_tiva/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Pwm.hpp"
 #include "infra/util/BoundedVector.hpp"
-#include "services/hil/commands/PwmCommands.hpp"
+#include "services/hil/commands/HilPwmCommands.hpp"
 #include "validation/firmware/BoardTypes.hpp"
 #include <array>
 #include <atomic>
@@ -14,18 +14,18 @@
 namespace validation
 {
     class TivaPwmFactory
-        : public services::hil::PwmFactory
-        , public services::hil::PwmHandle
+        : public services::HilPwmFactory
+        , public services::HilPwmHandle
     {
     public:
-        TivaPwmFactory(const services::hil::PinNaming& naming, services::hil::Response& response);
+        TivaPwmFactory(const services::HilPinNaming& naming, services::HilResponse& response);
 
         uint8_t Instances() const override;
         infra::MemoryRange<const char* const> OpenKeys() const override;
-        services::hil::Status Prepare(uint8_t module, const services::hil::Arguments& arguments) override;
-        services::hil::Status Open(uint8_t module, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, services::hil::PwmHandle*& handle) override;
-        void ReportOpened(uint8_t module, services::hil::Response::Line& line) override;
-        services::hil::Status ChangeFrequency(uint8_t module, uint32_t hertz) override;
+        services::HilStatus Prepare(uint8_t module, const services::HilArguments& arguments) override;
+        services::HilStatus Open(uint8_t module, const services::HilArguments& arguments, services::HilPinOwner& pins, services::HilPwmHandle*& handle) override;
+        void ReportOpened(uint8_t module, services::HilResponse::Line& line) override;
+        services::HilStatus ChangeFrequency(uint8_t module, uint32_t hertz) override;
         void Close(uint8_t module, const infra::Function<void()>& onClosed) override;
 
         std::size_t Channels() const override;
@@ -33,18 +33,18 @@ namespace validation
         void SetBaseFrequency(hal::Hertz baseFrequency) override;
         void Stop() override;
 
-        services::hil::Status Find(const services::hil::Arguments& arguments) const;
-        services::hil::Status EnableFault(bool enable);
+        services::HilStatus Find(const services::HilArguments& arguments) const;
+        services::HilStatus EnableFault(bool enable);
         uint32_t InterruptCount(uint8_t generator, bool clear);
 
     private:
-        static constexpr std::size_t maximumChannels = services::hil::PwmCommands::maximumChannels;
+        static constexpr std::size_t maximumChannels = services::HilPwmCommands::maximumChannels;
 
         struct Channel
         {
             uint8_t generator;
-            std::optional<PinId> a;
-            std::optional<PinId> b;
+            std::optional<HilPinId> a;
+            std::optional<HilPinId> b;
             hal::GpioPin* pinA = nullptr;
             hal::GpioPin* pinB = nullptr;
         };
@@ -66,9 +66,9 @@ namespace validation
             bool fault = false;
         };
 
-        services::hil::Status Parse(uint8_t module, const services::hil::Arguments& arguments, Settings& settings) const;
-        services::hil::Status ParseChannels(const services::hil::Arguments& arguments, Settings& settings) const;
-        services::hil::Status ClaimPins(services::hil::PinOwner& pins, Settings& settings);
+        services::HilStatus Parse(uint8_t module, const services::HilArguments& arguments, Settings& settings) const;
+        services::HilStatus ParseChannels(const services::HilArguments& arguments, Settings& settings) const;
+        services::HilStatus ClaimPins(services::HilPinOwner& pins, Settings& settings);
         void Construct();
         void OnFault(const hal::tiva::Pwm::FaultEvent& event);
         void ReportFault();
@@ -76,8 +76,8 @@ namespace validation
         bool ValidFrequency(const Settings& settings, uint32_t frequency) const;
 
     private:
-        const services::hil::PinNaming& naming;
-        services::hil::Response& response;
+        const services::HilPinNaming& naming;
+        services::HilResponse& response;
         std::optional<Settings> settings;
         hal::tiva::Pwm::Config asyncConfig;
         hal::tiva::SynchronousPwm::Config syncConfig;
@@ -91,16 +91,16 @@ namespace validation
         : public services::TerminalCommands
     {
     public:
-        PwmExtensionCommands(services::hil::Context& context, TivaPwmFactory& factory);
+        PwmExtensionCommands(services::HilContext& context, TivaPwmFactory& factory);
 
         infra::MemoryRange<const Command> Commands() override;
 
     private:
-        services::hil::Status Fault(const services::hil::Arguments& arguments);
-        services::hil::Status Count(const services::hil::Arguments& arguments);
+        services::HilStatus Fault(const services::HilArguments& arguments);
+        services::HilStatus Count(const services::HilArguments& arguments);
 
     private:
-        services::hil::Context& context;
+        services::HilContext& context;
         TivaPwmFactory& factory;
         std::array<Command, 2> commands;
     };

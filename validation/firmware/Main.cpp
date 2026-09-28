@@ -1,20 +1,20 @@
 #include "BoardProfile.hpp"
 #include "hal/cortex_m/Reset.hpp"
 #include "hal_tiva/instantiations/EventInfrastructure.hpp"
-#include "services/hil/Command.hpp"
-#include "services/hil/PinNaming.hpp"
-#include "services/hil/PinPool.hpp"
-#include "services/hil/SystemCommands.hpp"
-#include "services/hil/commands/AdcCommands.hpp"
-#include "services/hil/commands/CanCommands.hpp"
-#include "services/hil/commands/ComparatorCommands.hpp"
-#include "services/hil/commands/EepromCommands.hpp"
-#include "services/hil/commands/GpioCommands.hpp"
-#include "services/hil/commands/PwmCommands.hpp"
-#include "services/hil/commands/QeiCommands.hpp"
-#include "services/hil/commands/SpiCommands.hpp"
-#include "services/hil/commands/UartCommands.hpp"
-#include "services/hil/commands/WatchDogCommands.hpp"
+#include "services/hil/HilCommand.hpp"
+#include "services/hil/HilPinNaming.hpp"
+#include "services/hil/HilPinPool.hpp"
+#include "services/hil/HilSystemCommands.hpp"
+#include "services/hil/commands/HilAdcCommands.hpp"
+#include "services/hil/commands/HilCanCommands.hpp"
+#include "services/hil/commands/HilComparatorCommands.hpp"
+#include "services/hil/commands/HilEepromCommands.hpp"
+#include "services/hil/commands/HilGpioCommands.hpp"
+#include "services/hil/commands/HilPwmCommands.hpp"
+#include "services/hil/commands/HilQeiCommands.hpp"
+#include "services/hil/commands/HilSpiCommands.hpp"
+#include "services/hil/commands/HilUartCommands.hpp"
+#include "services/hil/commands/HilWatchDogCommands.hpp"
 #include "validation/firmware/AdcFactory.hpp"
 #include "validation/firmware/CanFactory.hpp"
 #include "validation/firmware/ComparatorFactory.hpp"
@@ -37,41 +37,41 @@ int main()
     static instantiations::EventInfrastructure eventInfrastructure;
     static validation::Console console;
     static validation::TivaPinFactory pinFactory;
-    static services::hil::PinPool::WithCapacity<validation::TivaPinFactory::capacity> pins{ pinFactory, infra::MakeRange(validation::board::reservedPins) };
-    static services::hil::PinNamingDefault naming{ validation::board::portLetters, validation::board::maximumPinIndex, infra::MakeRange(validation::board::aliases) };
-    static services::hil::Context context{ console.response, pins, naming, console.terminal };
+    static services::HilPinPool::WithCapacity<validation::TivaPinFactory::capacity> pins{ pinFactory, infra::MakeRange(validation::board::reservedPins) };
+    static services::HilPinNamingDefault naming{ validation::board::portLetters, validation::board::maximumPinIndex, infra::MakeRange(validation::board::aliases) };
+    static services::HilContext context{ console.response, pins, naming, console.terminal };
 
     static hal::cortex::Reset reset;
-    static services::hil::SystemCommands system{ context, boardInfo, reset };
-    static services::hil::GpioCommands::WithMaxPins<8> gpio{ context };
+    static services::HilSystemCommands system{ context, boardInfo, reset };
+    static services::HilGpioCommands::WithMaxPins<8> gpio{ context };
 
     static validation::TivaPwmFactory pwmFactory{ naming, console.response };
-    static services::hil::PwmCommands pwm{ context, pwmFactory };
+    static services::HilPwmCommands pwm{ context, pwmFactory };
     static validation::PwmExtensionCommands pwmExtension{ context, pwmFactory };
 
     static validation::TivaUartFactory uartFactory{ naming, console.dma };
-    static services::hil::UartCommands::WithCapacity<256, 112> uart{ context, uartFactory };
+    static services::HilUartCommands::WithCapacity<256, 112> uart{ context, uartFactory };
 
     static validation::TivaSpiFactory spiFactory{ naming };
-    static services::hil::SpiCommands::WithCapacity<64> spi{ context, spiFactory };
+    static services::HilSpiCommands::WithCapacity<64> spi{ context, spiFactory };
 
     static validation::TivaAdcFactory adcFactory{ naming };
-    static services::hil::AdcCommands::WithCapacity<validation::TivaAdcFactory::sequencers, 64> adc{ context, adcFactory };
+    static services::HilAdcCommands::WithCapacity<validation::TivaAdcFactory::sequencers, 64> adc{ context, adcFactory };
 
     static validation::TivaComparatorFactory comparatorFactory{ naming };
-    static services::hil::ComparatorCommands comparator{ context, comparatorFactory };
+    static services::HilComparatorCommands comparator{ context, comparatorFactory };
 
     static validation::TivaQeiFactory qeiFactory{ naming };
-    static services::hil::QeiCommands qei{ context, qeiFactory };
+    static services::HilQeiCommands qei{ context, qeiFactory };
 
     static validation::TivaCanFactory canFactory{ naming };
-    static services::hil::CanCommands can{ context, canFactory };
+    static services::HilCanCommands can{ context, canFactory };
 
     static validation::TivaEepromFactory eepromFactory;
-    static services::hil::EepromCommands::WithCapacity<112> eeprom{ context, eepromFactory };
+    static services::HilEepromCommands::WithCapacity<112> eeprom{ context, eepromFactory };
 
     static validation::TivaWatchDogFactory watchDogFactory;
-    static services::hil::WatchDogCommands watchDog{ context, watchDogFactory };
+    static services::HilWatchDogCommands watchDog{ context, watchDogFactory };
 
     validation::CreateEthernetGroup(context);
 

@@ -8,30 +8,30 @@ namespace validation
     namespace
     {
         using Config = hal::tiva::QuadratureEncoder::Config;
-        using services::hil::Choice;
-        using services::hil::Status;
+        using services::HilChoice;
+        using services::HilStatus;
 
         constexpr uint32_t maximumVelocityPeriodUs = 1000000;
 
         constexpr std::array<const char*, 12> openKeys{ { "a", "b", "idx", "res", "offset", "inva", "invb", "invi", "reset", "cap", "sig", "vel" } };
 
-        constexpr std::array<Choice<Config::ResetMode>, 2> resetModes{ {
+        constexpr std::array<HilChoice<Config::ResetMode>, 2> resetModes{ {
             { "max", Config::ResetMode::onMaxPosition },
             { "index", Config::ResetMode::onIndexPulse },
         } };
 
-        constexpr std::array<Choice<Config::CaptureMode>, 2> captureModes{ {
+        constexpr std::array<HilChoice<Config::CaptureMode>, 2> captureModes{ {
             { "a", Config::CaptureMode::onlyPhaseA },
             { "ab", Config::CaptureMode::phaseAandPhaseB },
         } };
 
-        constexpr std::array<Choice<Config::SignalMode>, 2> signalModes{ {
+        constexpr std::array<HilChoice<Config::SignalMode>, 2> signalModes{ {
             { "quad", Config::SignalMode::quadrature },
             { "clkdir", Config::SignalMode::clockAndDirection },
         } };
     }
 
-    TivaQeiFactory::TivaQeiFactory(const services::hil::PinNaming& naming)
+    TivaQeiFactory::TivaQeiFactory(const services::HilPinNaming& naming)
         : naming(naming)
     {}
 
@@ -45,13 +45,13 @@ namespace validation
         return infra::MakeRange(openKeys);
     }
 
-    Status TivaQeiFactory::Prepare(uint8_t index, const services::hil::Arguments& arguments)
+    HilStatus TivaQeiFactory::Prepare(uint8_t index, const services::HilArguments& arguments)
     {
         Request request;
         return Parse(index, arguments, request);
     }
 
-    Status TivaQeiFactory::Open(uint8_t index, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, hal::SynchronousQuadratureEncoder*& opened)
+    HilStatus TivaQeiFactory::Open(uint8_t index, const services::HilArguments& arguments, services::HilPinOwner& pins, hal::SynchronousQuadratureEncoder*& opened)
     {
         Request request;
         Parse(index, arguments, request);
@@ -59,16 +59,16 @@ namespace validation
         hal::GpioPin* a = nullptr;
         hal::GpioPin* b = nullptr;
         hal::GpioPin* indexPin = nullptr;
-        Status status = pins.ClaimFunction(request.a, Function(hal::tiva::PinConfigPeripheral::qeiPhaseA), index, a);
-        if (status == Status::done)
+        HilStatus status = pins.ClaimFunction(request.a, Function(hal::tiva::PinConfigPeripheral::qeiPhaseA), index, a);
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.b, Function(hal::tiva::PinConfigPeripheral::qeiPhaseB), index, b);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.index, Function(hal::tiva::PinConfigPeripheral::qeiIndex), index, indexPin);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         opened = &encoder.emplace(index, PinOrDummy(a), PinOrDummy(b), PinOrDummy(indexPin), request.config);
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaQeiFactory::Close(uint8_t, const infra::Function<void()>& onClosed)
@@ -77,12 +77,12 @@ namespace validation
         onClosed();
     }
 
-    Status TivaQeiFactory::Parse(uint8_t index, const services::hil::Arguments& arguments, Request& request) const
+    HilStatus TivaQeiFactory::Parse(uint8_t index, const services::HilArguments& arguments, Request& request) const
     {
         auto& config = request.config;
         uint32_t velocityPeriod = 1000;
 
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.Pin("a", naming, request.a, status);
         arguments.Pin("b", naming, request.b, status);
         arguments.Pin("idx", naming, request.index, status);
@@ -95,16 +95,16 @@ namespace validation
         arguments.Select("cap", config.captureMode, captureModes, status);
         arguments.Select("sig", config.signalMode, signalModes, status);
         arguments.Number("vel", velocityPeriod, 1, maximumVelocityPeriodUs, status);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         if (config.offset >= config.resolution)
-            return Status::range;
+            return HilStatus::range;
 
         if (!request.a && !request.b && !request.index)
         {
             if (index != board::qeiIndex)
-                return Status::usage;
+                return HilStatus::usage;
 
             request.a = board::encoderA;
             request.b = board::encoderB;
@@ -112,9 +112,9 @@ namespace validation
         }
 
         if (!request.a || !request.b)
-            return Status::usage;
+            return HilStatus::usage;
 
         config.velocityPeriod = std::chrono::microseconds(velocityPeriod);
-        return Status::done;
+        return HilStatus::done;
     }
 }

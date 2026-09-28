@@ -8,12 +8,12 @@ namespace validation
     {
         using Base = hal::tiva::UartBase;
         using Config = Base::Config;
-        using services::hil::Choice;
-        using services::hil::Status;
+        using services::HilChoice;
+        using services::HilStatus;
 
         constexpr std::array<const char*, 10> openKeys{ { "tx", "rx", "rts", "cts", "baud", "parity", "stop", "flow", "dma", "sync" } };
 
-        constexpr std::array<Choice<Base::Baudrate>, 12> baudRates{ {
+        constexpr std::array<HilChoice<Base::Baudrate>, 12> baudRates{ {
             { "600", Base::Baudrate::_600_bps },
             { "1200", Base::Baudrate::_1200_bps },
             { "2400", Base::Baudrate::_2400_bps },
@@ -28,18 +28,18 @@ namespace validation
             { "921600", Base::Baudrate::_921600_bps },
         } };
 
-        constexpr std::array<Choice<Base::Parity>, 3> parities{ {
+        constexpr std::array<HilChoice<Base::Parity>, 3> parities{ {
             { "none", Base::Parity::none },
             { "even", Base::Parity::even },
             { "odd", Base::Parity::odd },
         } };
 
-        constexpr std::array<Choice<Base::StopBits>, 2> stopBits{ {
+        constexpr std::array<HilChoice<Base::StopBits>, 2> stopBits{ {
             { "1", Base::StopBits::one },
             { "2", Base::StopBits::two },
         } };
 
-        constexpr std::array<Choice<Base::FlowControl>, 4> flowControls{ {
+        constexpr std::array<HilChoice<Base::FlowControl>, 4> flowControls{ {
             { "none", Base::FlowControl::none },
             { "rts", Base::FlowControl::rts },
             { "cts", Base::FlowControl::cts },
@@ -67,7 +67,7 @@ namespace validation
         : hal::tiva::Uart(index, tx, rx, rts, cts, config)
     {}
 
-    TivaUartFactory::TivaUartFactory(const services::hil::PinNaming& naming, hal::tiva::Dma& dma)
+    TivaUartFactory::TivaUartFactory(const services::HilPinNaming& naming, hal::tiva::Dma& dma)
         : naming(naming)
         , dma(dma)
     {}
@@ -82,25 +82,25 @@ namespace validation
         return infra::MakeRange(openKeys);
     }
 
-    Status TivaUartFactory::Prepare(uint8_t index, const services::hil::Arguments& arguments)
+    HilStatus TivaUartFactory::Prepare(uint8_t index, const services::HilArguments& arguments)
     {
         Request request;
-        Status status = Parse(arguments, request);
-        if (status != Status::done)
+        HilStatus status = Parse(arguments, request);
+        if (status != HilStatus::done)
             return status;
 
         if (index == board::terminal.index)
-            return Status::busy;
+            return HilStatus::busy;
 
-        return Status::done;
+        return HilStatus::done;
     }
 
-    Status TivaUartFactory::Open(uint8_t index, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, hal::TimeKeeper& timeKeeper, services::hil::UartHandle& handle)
+    HilStatus TivaUartFactory::Open(uint8_t index, const services::HilArguments& arguments, services::HilPinOwner& pins, hal::TimeKeeper& timeKeeper, services::HilUartHandle& handle)
     {
         Request request;
         Parse(arguments, request);
-        Status status = Validate(index, request);
-        if (status != Status::done)
+        HilStatus status = Validate(index, request);
+        if (status != HilStatus::done)
             return status;
 
         hal::GpioPin* tx = nullptr;
@@ -108,17 +108,17 @@ namespace validation
         hal::GpioPin* rts = nullptr;
         hal::GpioPin* cts = nullptr;
         status = pins.ClaimFunction(request.tx, Function(hal::tiva::PinConfigPeripheral::uartTx), index, tx);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.rx, Function(hal::tiva::PinConfigPeripheral::uartRx), index, rx);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.rts, Function(hal::tiva::PinConfigPeripheral::uartRts), index, rts);
-        if (status == Status::done)
+        if (status == HilStatus::done)
             status = pins.ClaimFunction(request.cts, Function(hal::tiva::PinConfigPeripheral::uartCts), index, cts);
-        if (status != Status::done)
+        if (status != HilStatus::done)
             return status;
 
         Construct(index, request, tx, rx, rts, cts, timeKeeper, handle);
-        return Status::done;
+        return HilStatus::done;
     }
 
     void TivaUartFactory::Close(uint8_t, const infra::Function<void()>& onClosed)
@@ -127,9 +127,9 @@ namespace validation
         onClosed();
     }
 
-    Status TivaUartFactory::Parse(const services::hil::Arguments& arguments, Request& request) const
+    HilStatus TivaUartFactory::Parse(const services::HilArguments& arguments, Request& request) const
     {
-        Status status = Status::done;
+        HilStatus status = HilStatus::done;
         arguments.Pin("tx", naming, request.tx, status);
         arguments.Pin("rx", naming, request.rx, status);
         arguments.Pin("rts", naming, request.rts, status);
@@ -143,30 +143,30 @@ namespace validation
         return status;
     }
 
-    Status TivaUartFactory::Validate(uint8_t index, Request& request) const
+    HilStatus TivaUartFactory::Validate(uint8_t index, Request& request) const
     {
         if (!request.tx && !request.rx)
         {
             if (!board::defaultUart || board::defaultUart->index != index)
-                return Status::usage;
+                return HilStatus::usage;
 
             request.tx = board::defaultUart->tx;
             request.rx = board::defaultUart->rx;
         }
 
         if (!request.tx || !request.rx || (UsesRts(request.flow) && !request.rts) || (UsesCts(request.flow) && !request.cts))
-            return Status::usage;
+            return HilStatus::usage;
 
         if (request.dma && request.synchronous)
-            return Status::usage;
+            return HilStatus::usage;
 
         if (request.synchronous && (request.parity != Base::Parity::none || request.stop != Base::StopBits::one))
-            return Status::unsupported;
+            return HilStatus::unsupported;
 
-        return Status::done;
+        return HilStatus::done;
     }
 
-    void TivaUartFactory::Construct(uint8_t index, const Request& request, hal::GpioPin* tx, hal::GpioPin* rx, hal::GpioPin* rts, hal::GpioPin* cts, hal::TimeKeeper& timeKeeper, services::hil::UartHandle& handle)
+    void TivaUartFactory::Construct(uint8_t index, const Request& request, hal::GpioPin* tx, hal::GpioPin* rx, hal::GpioPin* rts, hal::GpioPin* cts, hal::TimeKeeper& timeKeeper, services::HilUartHandle& handle)
     {
         const bool handshake = rts != nullptr || cts != nullptr;
         const Config config{ true, true, request.baud, request.flow, request.parity, request.stop, Base::NumberOfBytes::_8_bytes, std::nullopt };
