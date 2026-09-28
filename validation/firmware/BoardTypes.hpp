@@ -2,24 +2,23 @@
 #define VALIDATION_BOARD_TYPES_HPP
 
 #include "hal_tiva/tiva/Gpio.hpp"
+#include "services/hil/PinId.hpp"
 #include <cstdint>
 
 namespace validation
 {
-    struct PinId
-    {
-        hal::tiva::Port port;
-        uint8_t index;
+    using services::hil::PinAlias;
+    using services::hil::PinId;
 
-        constexpr bool operator==(const PinId& other) const = default;
-    };
-
-    struct PinAlias
+    constexpr PinId Pin(hal::tiva::Port port, uint8_t index)
     {
-        const char* name;
-        PinId pin;
-        hal::tiva::Drive pull = hal::tiva::Drive::None;
-    };
+        return PinId{ static_cast<uint8_t>(port), index };
+    }
+
+    constexpr hal::tiva::Port PortOf(PinId pin)
+    {
+        return static_cast<hal::tiva::Port>(pin.port);
+    }
 
     struct UartPins
     {

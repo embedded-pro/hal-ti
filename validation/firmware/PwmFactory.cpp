@@ -1,8 +1,9 @@
-#include "validation/firmware/PwmCommands.hpp"
+#include "validation/firmware/PwmFactory.hpp"
 #include "BoardProfile.hpp"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Tokenizer.hpp"
+#include "validation/firmware/TivaPinFactory.hpp"
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -10,10 +11,14 @@ namespace validation
 {
     namespace
     {
+        using services::hil::Choice;
+        using services::hil::Status;
+
         constexpr uint32_t maximumDeadTimeCycles = 4095;
         constexpr uint32_t maximumLoad = 0xffff;
-        constexpr uint8_t maximumChannels = 4;
         constexpr uint8_t maximumGenerator = 3;
+
+        constexpr std::array<const char*, 12> openKeys{ { "gens", "pins", "freq", "mode", "div", "dead", "inva", "invb", "update", "trigger", "irq", "sync" } };
 
         constexpr std::array<Choice<bool>, 2> alignments{ {
             { "edge", false },
@@ -69,12 +74,12 @@ namespace validation
             return std::nullopt;
         }
 
-        std::optional<std::optional<PinId>> ParseOptionalPin(infra::BoundedConstString text)
+        std::optional<std::optional<PinId>> ParseOptionalPin(infra::BoundedConstString text, const services::hil::PinNaming& naming)
         {
             if (text == "-")
                 return std::optional<PinId>();
 
-            if (auto pin = ParsePin(text))
+            if (auto pin = services::hil::ParsePin(text, naming))
                 return std::optional<PinId>(*pin);
 
             return std::nullopt;
@@ -93,39 +98,157 @@ namespace validation
                     return std::nullopt;
             }
         }
+
+        template<class Driver>
+        void StartDriver(Driver& pwm, infra::MemoryRange<const hal::DutyCycle> duties)
+        {
+            switch (duties.size())
+            {
+                case 1:
+                    pwm.Start(duties[0]);
+                    break;
+                case 2:
+                    pwm.Start(duties[0], duties[1]);
+                    break;
+                case 3:
+                    pwm.Start(duties[0], duties[1], duties[2]);
+                    break;
+                default:
+                    pwm.Start(duties[0], duties[1], duties[2], duties[3]);
+                    break;
+            }
+        }
     }
 
-    PwmCommands::PwmCommands(Context& context)
-        : services::TerminalCommands(context.terminal)
-        , context(context)
-        , commands{ {
-              Bind<PwmCommands, &PwmCommands::Open>("pwm.open", "<module> [gens=] [pins=] [freq=] [mode=] [div=] [dead=] [inva=] [invb=] [update=] [trigger=] [irq=] [sync=]", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Fault>("pwm.fault", "<module> <on|off>", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Duty>("pwm.duty", "<module> <duty%>...", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Frequency>("pwm.freq", "<module> <hz>", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Stop>("pwm.stop", "<module>", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Count>("pwm.count", "<module> <gen> [clear=]", *this, context.response),
-              Bind<PwmCommands, &PwmCommands::Close>("pwm.close", "<module>", *this, context.response),
-          } }
+    TivaPwmFactory::TivaPwmFactory(const services::hil::PinNaming& naming, services::hil::Response& response)
+        : naming(naming)
+        , response(response)
     {}
 
-    infra::MemoryRange<const services::TerminalCommands::Command> PwmCommands::Commands()
+    uint8_t TivaPwmFactory::Instances() const
     {
-        return infra::MakeRange(commands);
+        return board::pwmModules;
     }
 
-    Status PwmCommands::Open(const Arguments& arguments)
+    infra::MemoryRange<const char* const> TivaPwmFactory::OpenKeys() const
     {
-        if (!arguments.Shape(1, 1, { "gens", "pins", "freq", "mode", "div", "dead", "inva", "invb", "update", "trigger", "irq", "sync" }))
-            return Status::usage;
+        return infra::MakeRange(openKeys);
+    }
 
+    Status TivaPwmFactory::Prepare(uint8_t module, const services::hil::Arguments& arguments)
+    {
         Settings requested;
+        return Parse(module, arguments, requested);
+    }
+
+    Status TivaPwmFactory::Open(uint8_t module, const services::hil::Arguments& arguments, services::hil::PinOwner& pins, services::hil::PwmHandle*& handle)
+    {
+        auto& opened = settings.emplace();
+        Parse(module, arguments, opened);
+
+        Status status = ClaimPins(pins, opened);
+        if (status != Status::done)
+        {
+            settings = std::nullopt;
+            return status;
+        }
+
+        for (auto& count : counts)
+            count = 0;
+
+        Construct();
+        handle = this;
+        return Status::done;
+    }
+
+    void TivaPwmFactory::ReportOpened(uint8_t, services::hil::Response::Line& line)
+    {
+        line << " pwmclk=" << PwmClock(settings->divisor);
+    }
+
+    Status TivaPwmFactory::ChangeFrequency(uint8_t, uint32_t hertz)
+    {
+        if (hertz > SystemCoreClock || !ValidFrequency(*settings, hertz))
+            return Status::range;
+
+        settings->frequency = hertz;
+        return Status::done;
+    }
+
+    void TivaPwmFactory::Close(uint8_t, const infra::Function<void()>& onClosed)
+    {
+        driver.emplace<std::monostate>();
+        settings = std::nullopt;
+        onClosed();
+    }
+
+    std::size_t TivaPwmFactory::Channels() const
+    {
+        return settings->channels.size();
+    }
+
+    void TivaPwmFactory::Start(infra::MemoryRange<const hal::DutyCycle> dutyCycles)
+    {
+        services::hil::WithDriver(driver, [dutyCycles](auto& pwm)
+            {
+                StartDriver(pwm, dutyCycles);
+            });
+    }
+
+    void TivaPwmFactory::SetBaseFrequency(hal::Hertz baseFrequency)
+    {
+        services::hil::WithDriver(driver, [baseFrequency](auto& pwm)
+            {
+                pwm.SetBaseFrequency(baseFrequency);
+            });
+    }
+
+    void TivaPwmFactory::Stop()
+    {
+        services::hil::WithDriver(driver, [](auto& pwm)
+            {
+                pwm.Stop();
+            });
+    }
+
+    Status TivaPwmFactory::Find(const services::hil::Arguments& arguments) const
+    {
         uint32_t module = 0;
+        Status status = Status::done;
+        arguments.NumberAt(0, module, 0, board::pwmModules - 1, status);
+        if (status != Status::done)
+            return status;
+
+        if (!settings || settings->module != module)
+            return Status::notOpen;
+
+        return Status::done;
+    }
+
+    Status TivaPwmFactory::EnableFault(bool enable)
+    {
+        if (settings->synchronous)
+            return Status::unsupported;
+
+        settings->fault = enable;
+        driver.emplace<std::monostate>();
+        Construct();
+        return Status::done;
+    }
+
+    uint32_t TivaPwmFactory::InterruptCount(uint8_t generator, bool clear)
+    {
+        auto& count = counts[generator];
+        return clear ? count.exchange(0) : count.load();
+    }
+
+    Status TivaPwmFactory::Parse(uint8_t module, const services::hil::Arguments& arguments, Settings& requested) const
+    {
+        requested.module = module;
         requested.trigger = board::pwmTrigger;
         requested.synchronous = board::pwmSynchronous;
 
         Status status = Status::done;
-        arguments.NumberAt(0, module, 0, board::pwmModules - 1, status);
         arguments.Number("freq", requested.frequency, 1, SystemCoreClock, status);
         arguments.Select("mode", requested.centerAligned, alignments, status);
         arguments.Select("div", requested.divisor, divisors, status);
@@ -151,8 +274,6 @@ namespace validation
         if (status != Status::done)
             return status;
 
-        requested.module = static_cast<uint8_t>(module);
-
         if (requested.deadTime && static_cast<uint64_t>(*requested.deadTime) * PwmClock(requested.divisor) / 1000000000u > maximumDeadTimeCycles)
             return Status::range;
 
@@ -162,165 +283,10 @@ namespace validation
         if (requested.synchronous && requested.interrupt)
             return Status::unsupported;
 
-        status = ParseChannels(arguments, requested);
-        if (status != Status::done)
-            return status;
-
-        if (settings)
-            return Status::busy;
-
-        settings.emplace(requested);
-
-        status = ClaimPins(*settings);
-        if (status != Status::done)
-        {
-            context.pins.Release(owner::pwm);
-            settings = std::nullopt;
-            return status;
-        }
-
-        for (auto& count : counts)
-            count = 0;
-
-        Construct();
-        context.response.Ok() << " pwmclk=" << PwmClock(settings->divisor);
-        return Status::done;
+        return ParseChannels(arguments, requested);
     }
 
-    Status PwmCommands::Fault(const Arguments& arguments)
-    {
-        if (!arguments.Shape(2, 2, {}))
-            return Status::usage;
-
-        if (!board::hasFaultComparators)
-            return Status::unsupported;
-
-        bool enable = false;
-        Status status = Find(arguments);
-        arguments.SelectAt(1, enable, switches, status);
-        if (status != Status::done)
-            return status;
-
-        if (settings->synchronous)
-            return Status::unsupported;
-
-        settings->fault = enable;
-        Destroy();
-        Construct();
-        context.response.Ok();
-        return Status::done;
-    }
-
-    Status PwmCommands::Duty(const Arguments& arguments)
-    {
-        if (!arguments.Shape(2, 1 + maximumChannels, {}))
-            return Status::usage;
-
-        Status status = Find(arguments);
-        if (status != Status::done)
-            return status;
-
-        std::array<hal::DutyCycle, maximumChannels> duties;
-        const auto count = arguments.PositionalCount() - 1;
-        if (count != 1 && count != settings->channels.size())
-            return Status::usage;
-
-        for (std::size_t i = 0; i != count; ++i)
-        {
-            auto duty = ParseDutyCycle(arguments.Positional(i + 1));
-            if (!duty)
-                return Status::usage;
-
-            duties[i] = *duty;
-        }
-
-        auto range = infra::MemoryRange<const hal::DutyCycle>(duties.data(), duties.data() + count);
-        WithDriver(driver, [this, range](auto& pwm)
-            {
-                Start(pwm, range);
-            });
-
-        context.response.Ok();
-        return Status::done;
-    }
-
-    Status PwmCommands::Frequency(const Arguments& arguments)
-    {
-        if (!arguments.Shape(2, 2, {}))
-            return Status::usage;
-
-        uint32_t frequency = 0;
-        Status status = Find(arguments);
-        arguments.NumberAt(1, frequency, 1, SystemCoreClock, status);
-        if (status != Status::done)
-            return status;
-
-        if (!ValidFrequency(*settings, frequency))
-            return Status::range;
-
-        settings->frequency = frequency;
-        WithDriver(driver, [frequency](auto& pwm)
-            {
-                pwm.SetBaseFrequency(hal::Hertz(frequency));
-            });
-
-        context.response.Ok();
-        return Status::done;
-    }
-
-    Status PwmCommands::Stop(const Arguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, {}))
-            return Status::usage;
-
-        Status status = Find(arguments);
-        if (status != Status::done)
-            return status;
-
-        WithDriver(driver, [](auto& pwm)
-            {
-                pwm.Stop();
-            });
-
-        context.response.Ok();
-        return Status::done;
-    }
-
-    Status PwmCommands::Count(const Arguments& arguments)
-    {
-        if (!arguments.Shape(2, 2, { "clear" }))
-            return Status::usage;
-
-        uint32_t generator = 0;
-        bool clear = false;
-        Status status = Find(arguments);
-        arguments.NumberAt(1, generator, 0, maximumGenerator, status);
-        arguments.Flag("clear", clear, status);
-        if (status != Status::done)
-            return status;
-
-        auto& count = counts[generator];
-        context.response.Ok() << " count=" << (clear ? count.exchange(0) : count.load());
-        return Status::done;
-    }
-
-    Status PwmCommands::Close(const Arguments& arguments)
-    {
-        if (!arguments.Shape(1, 1, {}))
-            return Status::usage;
-
-        Status status = Find(arguments);
-        if (status != Status::done)
-            return status;
-
-        Destroy();
-        context.pins.Release(owner::pwm);
-        settings = std::nullopt;
-        context.response.Ok();
-        return Status::done;
-    }
-
-    Status PwmCommands::ParseChannels(const Arguments& arguments, Settings& requested) const
+    Status TivaPwmFactory::ParseChannels(const services::hil::Arguments& arguments, Settings& requested) const
     {
         auto generators = arguments.Key("gens");
         auto pins = arguments.Key("pins");
@@ -353,8 +319,8 @@ namespace validation
                 if (pair.Size() != 2)
                     return Status::usage;
 
-                auto a = ParseOptionalPin(pair.Token(0));
-                auto b = ParseOptionalPin(pair.Token(1));
+                auto a = ParseOptionalPin(pair.Token(0), naming);
+                auto b = ParseOptionalPin(pair.Token(1), naming);
                 if (!a || !b)
                     return Status::pin;
 
@@ -367,7 +333,7 @@ namespace validation
 
             if (generators)
             {
-                auto generator = ParseNumber(generatorTokens.Token(i));
+                auto generator = services::hil::ParseNumber(generatorTokens.Token(i));
                 if (!generator)
                     return Status::usage;
 
@@ -403,13 +369,13 @@ namespace validation
         return Status::done;
     }
 
-    Status PwmCommands::ClaimPins(Settings& opened)
+    Status TivaPwmFactory::ClaimPins(services::hil::PinOwner& pins, Settings& opened)
     {
         for (auto& channel : opened.channels)
         {
-            Status status = context.pins.ClaimFunction(channel.a, owner::pwm, PwmChannelFunction(2 * channel.generator), opened.module, channel.pinA);
+            Status status = pins.ClaimFunction(channel.a, Function(PwmChannelFunction(2 * channel.generator)), opened.module, channel.pinA);
             if (status == Status::done)
-                status = context.pins.ClaimFunction(channel.b, owner::pwm, PwmChannelFunction(2 * channel.generator + 1), opened.module, channel.pinB);
+                status = pins.ClaimFunction(channel.b, Function(PwmChannelFunction(2 * channel.generator + 1)), opened.module, channel.pinB);
 
             if (status != Status::done)
                 return status;
@@ -418,21 +384,7 @@ namespace validation
         return Status::done;
     }
 
-    Status PwmCommands::Find(const Arguments& arguments)
-    {
-        uint32_t module = 0;
-        Status status = Status::done;
-        arguments.NumberAt(0, module, 0, board::pwmModules - 1, status);
-        if (status != Status::done)
-            return status;
-
-        if (!settings || settings->module != module)
-            return Status::notOpen;
-
-        return Status::done;
-    }
-
-    void PwmCommands::Construct()
+    void TivaPwmFactory::Construct()
     {
         const auto& opened = *settings;
         const auto deadTimeCycles = static_cast<uint16_t>(static_cast<uint64_t>(opened.deadTime.value_or(0)) * PwmClock(opened.divisor) / 1000000000u);
@@ -515,18 +467,10 @@ namespace validation
                 });
         }
 
-        WithDriver(driver, [&opened](auto& pwm)
-            {
-                pwm.SetBaseFrequency(hal::Hertz(opened.frequency));
-            });
+        SetBaseFrequency(hal::Hertz(opened.frequency));
     }
 
-    void PwmCommands::Destroy()
-    {
-        driver.emplace<std::monostate>();
-    }
-
-    void PwmCommands::OnFault(const hal::tiva::Pwm::FaultEvent& event)
+    void TivaPwmFactory::OnFault(const hal::tiva::Pwm::FaultEvent& event)
     {
         uint8_t inputs = 0;
         for (auto comparator : event.comparatorInputsByGenerator)
@@ -541,44 +485,78 @@ namespace validation
                 });
     }
 
-    void PwmCommands::ReportFault()
+    void TivaPwmFactory::ReportFault()
     {
         faultReportPending = false;
         auto inputs = faultInputs.exchange(0);
 
         if (settings)
-            context.response.Event("pwm") << " module=" << settings->module << " fault=" << inputs;
+            response.Event("pwm") << " module=" << settings->module << " fault=" << inputs;
     }
 
-    uint32_t PwmCommands::PwmClock(uint8_t divisor) const
+    uint32_t TivaPwmFactory::PwmClock(uint8_t divisor) const
     {
         return SystemCoreClock >> divisor;
     }
 
-    bool PwmCommands::ValidFrequency(const Settings& opened, uint32_t frequency) const
+    bool TivaPwmFactory::ValidFrequency(const Settings& opened, uint32_t frequency) const
     {
         const auto period = PwmClock(opened.divisor) / frequency;
         const auto load = opened.centerAligned ? period / 2 : period - 1;
         return period != 0 && load != 0 && load <= maximumLoad;
     }
 
-    template<class Driver>
-    void PwmCommands::Start(Driver& pwm, infra::MemoryRange<const hal::DutyCycle> duties)
+    PwmExtensionCommands::PwmExtensionCommands(services::hil::Context& context, TivaPwmFactory& factory)
+        : services::TerminalCommands(context.terminal)
+        , context(context)
+        , factory(factory)
+        , commands{ {
+              services::hil::Bind<PwmExtensionCommands, &PwmExtensionCommands::Fault>("pwm.fault", "<module> <on|off>", *this, context.response),
+              services::hil::Bind<PwmExtensionCommands, &PwmExtensionCommands::Count>("pwm.count", "<module> <gen> [clear=]", *this, context.response),
+          } }
+    {}
+
+    infra::MemoryRange<const services::TerminalCommands::Command> PwmExtensionCommands::Commands()
     {
-        switch (duties.size())
-        {
-            case 1:
-                pwm.Start(duties[0]);
-                break;
-            case 2:
-                pwm.Start(duties[0], duties[1]);
-                break;
-            case 3:
-                pwm.Start(duties[0], duties[1], duties[2]);
-                break;
-            default:
-                pwm.Start(duties[0], duties[1], duties[2], duties[3]);
-                break;
-        }
+        return infra::MakeRange(commands);
+    }
+
+    Status PwmExtensionCommands::Fault(const services::hil::Arguments& arguments)
+    {
+        if (!arguments.Shape(2, 2, {}))
+            return Status::usage;
+
+        if (!board::hasFaultComparators)
+            return Status::unsupported;
+
+        bool enable = false;
+        Status status = factory.Find(arguments);
+        arguments.SelectAt(1, enable, switches, status);
+        if (status != Status::done)
+            return status;
+
+        status = factory.EnableFault(enable);
+        if (status != Status::done)
+            return status;
+
+        context.response.Ok();
+        return Status::done;
+    }
+
+    Status PwmExtensionCommands::Count(const services::hil::Arguments& arguments)
+    {
+        if (!arguments.Shape(2, 2, { "clear" }))
+            return Status::usage;
+
+        uint32_t generator = 0;
+        bool clear = false;
+        Status status = factory.Find(arguments);
+        arguments.NumberAt(1, generator, 0, maximumGenerator, status);
+        arguments.Flag("clear", clear, status);
+        if (status != Status::done)
+            return status;
+
+        context.response.Ok() << " count=" << factory.InterruptCount(static_cast<uint8_t>(generator), clear);
+        return Status::done;
     }
 }

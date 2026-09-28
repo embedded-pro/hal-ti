@@ -1,6 +1,6 @@
 # Validation terminal protocol
 
-The validation firmware (`validation/firmware`) exposes every hal-ti peripheral through an EMIL `services::TerminalWithCommandsImpl` terminal.
+The validation firmware (`validation/firmware`) exposes every hal-ti peripheral through EMIL's hardware-in-the-loop terminal (`services::hil::HilTerminal` and the command groups of `services.hil.commands`); hal-ti supplies the board profiles, the Tiva pin factory and one factory per peripheral.
 The host package (`validation/host`) drives this terminal and a Digilent Analog Discovery 3 to validate the peripherals.
 
 ## Board profiles
@@ -36,17 +36,11 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 ## Framing
 
-- The host sends one command per line, terminated by `\r`. The terminal echoes characters and prints a prompt; the host ignores echo and prompt.
-- Every command produces exactly one final line, either `OK` followed by optional `key=value` pairs, or `ERR <reason>` where `<reason>` is one token (`usage`, `pin`, `busy`, `notopen`, `unsupported`, `range`, `timeout`, `failed`).
-- Asynchronous notifications are single lines starting with `EVT <peripheral>` followed by `key=value` pairs. They can appear at any time, including between a command and its final line.
-- Lines produced outside the processing of a command line (deferred results such as `delay`, and every `EVT`) start with `\r\n`, so an empty line or a bare `>` prompt may precede them.
-- Command lines are at most 255 characters (EMIL terminal buffer). Unknown commands, unknown keys and a wrong number of positional arguments return `ERR usage`.
+The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix, number, hex and list syntax, open/close semantics) is specified in EMIL's [`services/hil/README.md`](https://github.com/embedded-pro/embedded-infra-lib/blob/main/services/hil/README.md). hal-ti adds:
+
 - After reset the firmware prints `EVT boot board=<name> family=<tm4c123|tm4c129> sysclk=<hz> reset=<cause>` once; `<cause>` is `wdt0`, `wdt1`, `sw`, `moscfail`, `bor`, `por`, `ext` or `unknown`.
-- Numbers are decimal unless prefixed with `0x`. Binary payloads are hex strings without separators (`a55a0102`). Lists are comma separated without spaces.
-- Pins are written as `P<port><index>`, for example `PF1`, `PJ0`, `PQ3`.
-- Keys in arguments are `key=value`; positional arguments come first, in the order shown. Optional arguments are shown in brackets.
+- Pins are written as `P<port><index>`, for example `PF1`, `PJ0`, `PQ3`: ports A-F on TM4C123 and A-H, J-N, P, Q on TM4C129, index 0-7.
 - Instance numbers are the hardware index (UART 0-7, SSI 0-3, ADC 0-1, sequencer 0-3, PWM module 0-1, QEI 0-1, CAN 0-1, comparator 0-2, watchdog 0-1); an index the running MCU lacks (PWM module 1 and QEI 1 on TM4C129, comparator 2 on TM4C123) returns `ERR range`.
-- Opening an instance that is already open returns `ERR busy`; using one that is not open returns `ERR notopen`; `*.close` releases the driver and its pins so it can be reopened with different settings.
 - The terminal UART and its pins are reserved and cannot be opened (`ERR busy`); any other pin, including the ones e-foc uses, can be reconfigured freely. A pin held by another open instance returns `ERR busy`; a pin the pinout table does not offer for the requested function and instance returns `ERR pin`.
 - RAM limits how many instances are open at the same time: 1 PWM module, 1 UART besides the terminal, 1 SSI, 2 ADC sequencers, 1 comparator, 1 QEI, 1 CAN, 1 watchdog and 8 GPIO pins; one more returns `ERR busy`.
 
@@ -144,6 +138,7 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 - `eeprom.write <address> <hex>` → `OK`
 - `eeprom.read <address> <len>` → `OK data=<hex>`
+- Every `eeprom.*` answers from the driver's completion, so its final line arrives as a deferred line (leading `\r\n`); `ERR timeout` after 5 s
 - At most 112 bytes per `eeprom.write` or `eeprom.read`
 - `eeprom.erase` → `OK`
 

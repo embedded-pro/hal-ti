@@ -15,7 +15,8 @@ namespace validation::board
     inline constexpr const char* name = "EK-TM4C1294XL";
     inline constexpr const char* family = "tm4c129";
 
-    inline constexpr uint16_t availablePorts = 0x7fff;
+    inline constexpr const char* portLetters = "ABCDEFGHJKLMNPQ";
+    inline constexpr uint8_t maximumPinIndex = 7;
     inline constexpr uint8_t uarts = 8;
     inline constexpr uint8_t ssis = 4;
     inline constexpr uint8_t adcs = 2;
@@ -25,24 +26,25 @@ namespace validation::board
     inline constexpr uint8_t comparators = 3;
     inline constexpr uint8_t watchDogs = 2;
 
-    inline constexpr PinId phaseA{ Port::E, 3 };
-    inline constexpr PinId phaseB{ Port::E, 2 };
-    inline constexpr PinId phaseC{ Port::E, 1 };
-    inline constexpr PinId powerSupplyVoltage{ Port::B, 5 };
-    inline constexpr PinId currentTotal{ Port::B, 4 };
-    inline constexpr PinId encoderA{ Port::L, 1 };
-    inline constexpr PinId encoderB{ Port::L, 2 };
-    inline constexpr PinId encoderZ{ Port::L, 3 };
-    inline constexpr PinId pwm1a{ Port::F, 2 };
-    inline constexpr PinId pwm1b{ Port::F, 3 };
-    inline constexpr PinId pwm2a{ Port::G, 0 };
-    inline constexpr PinId pwm2b{ Port::G, 1 };
-    inline constexpr PinId pwm3a{ Port::K, 4 };
-    inline constexpr PinId pwm3b{ Port::K, 5 };
-    inline constexpr PinId canRx{ Port::A, 0 };
-    inline constexpr PinId canTx{ Port::A, 1 };
+    inline constexpr PinId phaseA = Pin(Port::E, 3);
+    inline constexpr PinId phaseB = Pin(Port::E, 2);
+    inline constexpr PinId phaseC = Pin(Port::E, 1);
+    inline constexpr PinId powerSupplyVoltage = Pin(Port::B, 5);
+    inline constexpr PinId currentTotal = Pin(Port::B, 4);
+    inline constexpr PinId encoderA = Pin(Port::L, 1);
+    inline constexpr PinId encoderB = Pin(Port::L, 2);
+    inline constexpr PinId encoderZ = Pin(Port::L, 3);
+    inline constexpr PinId pwm1a = Pin(Port::F, 2);
+    inline constexpr PinId pwm1b = Pin(Port::F, 3);
+    inline constexpr PinId pwm2a = Pin(Port::G, 0);
+    inline constexpr PinId pwm2b = Pin(Port::G, 1);
+    inline constexpr PinId pwm3a = Pin(Port::K, 4);
+    inline constexpr PinId pwm3b = Pin(Port::K, 5);
+    inline constexpr PinId canRx = Pin(Port::A, 0);
+    inline constexpr PinId canTx = Pin(Port::A, 1);
 
-    inline constexpr UartPins terminal{ 2, { Port::D, 5 }, { Port::D, 4 } };
+    inline constexpr UartPins terminal{ 2, Pin(Port::D, 5), Pin(Port::D, 4) };
+    inline constexpr std::array<PinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
     inline constexpr std::optional<UartPins> defaultUart = std::nullopt;
 
     inline constexpr std::array<PinAlias, 29> aliases{ {
@@ -53,9 +55,9 @@ namespace validation::board
         { "phasec", phaseC },
         { "vbus", powerSupplyVoltage },
         { "itotal", currentTotal },
-        { "halla", { Port::E, 4 } },
-        { "hallb", { Port::E, 5 } },
-        { "hallc", { Port::E, 6 } },
+        { "halla", Pin(Port::E, 4) },
+        { "hallb", Pin(Port::E, 5) },
+        { "hallc", Pin(Port::E, 6) },
         { "enca", encoderA },
         { "encb", encoderB },
         { "encz", encoderZ },
@@ -67,14 +69,14 @@ namespace validation::board
         { "pwm3b", pwm3b },
         { "canrx", canRx },
         { "cantx", canTx },
-        { "ledop", { Port::N, 3 } },
-        { "ledwarn", { Port::N, 2 } },
-        { "ledfail", { Port::P, 2 } },
-        { "perf", { Port::N, 4 } },
-        { "id0", { Port::K, 0 }, hal::tiva::Drive::Up },
-        { "id1", { Port::K, 1 }, hal::tiva::Drive::Up },
-        { "id2", { Port::K, 2 }, hal::tiva::Drive::Up },
-        { "pwrstatus", { Port::C, 6 }, hal::tiva::Drive::Up },
+        { "ledop", Pin(Port::N, 3) },
+        { "ledwarn", Pin(Port::N, 2) },
+        { "ledfail", Pin(Port::P, 2) },
+        { "perf", Pin(Port::N, 4) },
+        { "id0", Pin(Port::K, 0), services::hil::Pull::up },
+        { "id1", Pin(Port::K, 1), services::hil::Pull::up },
+        { "id2", Pin(Port::K, 2), services::hil::Pull::up },
+        { "pwrstatus", Pin(Port::C, 6), services::hil::Pull::up },
     } };
 
     inline constexpr uint8_t pwmModule = 0;
