@@ -1,6 +1,6 @@
 """GPIO (`hal::tiva::GpioPin`): levels, pulls, open drain, interrupts and timer-driven pulses.
 
-Wiring set `gpio`: every pin of `tests.gpio.loop_pins`/`locked_pins`/`output_only_pins` on its own DIO.
+Wiring set `gpio`: every pin of `tests.gpio.loop_pins`/`locked_pins`/`output_pins` on its own DIO.
 """
 
 import statistics
@@ -33,13 +33,13 @@ def test_output_levels(fw, ad3, need, pin, drive):
     check_output(fw, ad3, pin, need.dio(pin), drive)
 
 
-@pytest.mark.board_params("pin", "gpio.output_only_pins")
-def test_output_only_pins(fw, ad3, need, pin):
+@pytest.mark.board_params("pin", "gpio.output_pins")
+def test_output_pins(fw, ad3, need, pin):
     check_output(fw, ad3, pin, need.dio(pin))
 
 
 @pytest.mark.board_params("pin", "gpio.loop_pins")
-@pytest.mark.parametrize("pull", ["none", "up", "down"])
+@pytest.mark.board_params("pull", values=["none", "up", "down"])
 def test_input_follows_ad3(fw, ad3, need, pin, pull):
     check_input(fw, ad3, pin, need.dio(pin), pull)
 
@@ -89,16 +89,13 @@ def expected_edges(edge, pulses):
 
 
 @pytest.mark.board_params("pin", "gpio.loop_pins")
-@pytest.mark.board_params("edge", "gpio.irq.edges")
-@pytest.mark.board_params("irq_type", "gpio.irq.types")
-@pytest.mark.board_params("pulses", "gpio.irq.pulses")
-@pytest.mark.board_params("frequency", "gpio.irq.frequencies_hz")
-def test_interrupt_counts(fw, ad3, need, pin, edge, irq_type, pulses, frequency):
+@pytest.mark.matrix("gpio.irq")
+def test_interrupt_counts(fw, ad3, need, pin, edge, handler, pulses, frequency):
     dio = need.dio(pin)
     ad3.dio.release(dio)
     fw.gpio.cfg(pin, "in", pull="down")
     try:
-        fw.gpio.irq(pin, edge, type=irq_type)
+        fw.gpio.irq(pin, edge, type=handler)
     except FirmwareError as error:
         if error.reason == "unsupported":
             pytest.skip(f"no interrupt support on the port of {pin}")

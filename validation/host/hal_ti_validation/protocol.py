@@ -1,5 +1,10 @@
 """hal-ti specifics of the validation terminal protocol (see validation/PROTOCOL.md): error reasons, pins and
-aliases. Framing, parsing and formatting come from `ad3_waveforms_bench.protocol`."""
+aliases. Framing, parsing and formatting come from `ad3_waveforms_bench.protocol`.
+
+The alias table of a board comes from its board file (`pins`, compared with the firmware's `board.pins`);
+`PIN_ALIASES` is the generic naming scheme those tables use, so a known alias can be passed through to the
+firmware unresolved when no table is at hand.
+"""
 
 from __future__ import annotations
 
@@ -10,37 +15,19 @@ from ad3_waveforms_bench.protocol import ProtocolError, Response
 
 ERROR_REASONS = frozenset({"usage", "pin", "busy", "notopen", "unsupported", "range", "timeout", "failed"})
 
-PIN_ALIASES = frozenset(
-    {
-        "phasea",
-        "phaseb",
-        "phasec",
-        "vbus",
-        "itotal",
-        "halla",
-        "hallb",
-        "hallc",
-        "enca",
-        "encb",
-        "encz",
-        "pwm1a",
-        "pwm1b",
-        "pwm2a",
-        "pwm2b",
-        "pwm3a",
-        "pwm3b",
-        "canrx",
-        "cantx",
-        "ledop",
-        "ledwarn",
-        "ledfail",
-        "perf",
-        "id0",
-        "id1",
-        "id2",
-        "pwrstatus",
-    }
-)
+
+def _generic_aliases() -> frozenset[str]:
+    names = {"terminaltx", "terminalrx"}
+    names |= {f"ain{channel}" for channel in range(24)}
+    names |= {f"m{module}pwm{channel}" for module in range(2) for channel in range(8)}
+    names |= {f"qei{index}{signal}" for index in range(2) for signal in ("a", "b", "idx")}
+    names |= {f"can{index}{signal}" for index in range(2) for signal in ("rx", "tx")}
+    names |= {f"led{index}" for index in range(8)}
+    names |= {f"gpio{index}" for index in range(16)}
+    return frozenset(names)
+
+
+PIN_ALIASES = _generic_aliases()
 
 _PIN_RE = re.compile(r"^P([A-T])([0-7])$", re.IGNORECASE)
 
@@ -49,15 +36,23 @@ def is_pin(text: str) -> bool:
     return bool(_PIN_RE.match(text))
 
 
-def normalize_pin(pin: str, aliases: Mapping[str, str] | None = None) -> str:
-    """Canonical `P<port><index>` for a pin, or the lower-case alias when no alias map resolves it."""
+def is_alias(text: str) -> bool:
+    return text.lower() in PIN_ALIASES
+
+
+def normalize_pin(pin: str, aliases: Mapping[str, str] | None = None, strict: bool = False) -> str:
+    """Canonical `P<port><index>` for a pin or an alias of `aliases`.
+
+    A generic alias that `aliases` does not resolve is returned lower case (the firmware resolves it), unless
+    `strict` requires it to be in `aliases`.
+    """
     match = _PIN_RE.match(pin)
     if match:
         return f"P{match.group(1).upper()}{match.group(2)}"
     name = pin.lower()
     if aliases is not None and name in aliases:
         return normalize_pin(aliases[name])
-    if name in PIN_ALIASES:
+    if not strict and name in PIN_ALIASES:
         return name
     raise ProtocolError(f"not a pin or alias: {pin!r}")
 

@@ -1,53 +1,54 @@
 ---
-# EK-TM4C1294XL LaunchPad (TM4C1294NCPDT) with the e-foc pin assignment.
+# EK-TM4C1294XL LaunchPad (TM4C1294NCPDT).
 # Pins may be written as P<port><index> or as an alias from `pins`.
 board: ek_tm4c1294xl
 firmware_name: EK-TM4C1294XL
 family: tm4c129
-description: EK-TM4C1294XL LaunchPad, e-foc pinout
+description: EK-TM4C1294XL LaunchPad
 sysclk: 120000000
 
 terminal:
   baud: 921600
   # UART2 PD5 (TX) / PD4 (RX): a 3.3 V USB-UART adapter on PD4/PD5, or the
   # ICDI virtual COM port with JP4/JP5 moved to the UART2 position (the
-  # default position routes the ICDI to PA0/PA1, which e-foc uses for CAN0).
+  # default position routes the ICDI to PA0/PA1, the CAN0 pins).
   interface: USB-UART adapter on PD5 (TX) / PD4 (RX), e.g. /dev/ttyUSB0
   uart: 2
-  pins: [PD4, PD5]
+  pins: [terminalrx, terminaltx]
   max_command_length: 255
   command_timeout: 2.0
   boot_timeout: 5.0
 
-# PROTOCOL.md board profile, compared with `board.pins`.
+# PROTOCOL.md board profile, compared with `board.pins` in both directions.
 pins:
-  phasea: PE3
-  phaseb: PE2
-  phasec: PE1
-  vbus: PB5
-  itotal: PB4
-  halla: PE4
-  hallb: PE5
-  hallc: PE6
-  enca: PL1
-  encb: PL2
-  encz: PL3
-  pwm1a: PF2
-  pwm1b: PF3
-  pwm2a: PG0
-  pwm2b: PG1
-  pwm3a: PK4
-  pwm3b: PK5
-  canrx: PA0
-  cantx: PA1
-  ledop: PN3
-  ledwarn: PN2
-  ledfail: PP2
-  perf: PN4
-  id0: PK0
-  id1: PK1
-  id2: PK2
-  pwrstatus: PC6
+  terminaltx: PD5
+  terminalrx: PD4
+  ain0: PE3
+  ain1: PE2
+  ain2: PE1
+  ain10: PB4
+  ain11: PB5
+  m0pwm2: PF2
+  m0pwm3: PF3
+  m0pwm4: PG0
+  m0pwm5: PG1
+  m0pwm6: PK4
+  m0pwm7: PK5
+  qei0a: PL1
+  qei0b: PL2
+  qei0idx: PL3
+  can0rx: PA0
+  can0tx: PA1
+  led0: PN3
+  led1: PN2
+  led2: PP2
+  gpio0: PN4
+  gpio1: PE4
+  gpio2: PE5
+  gpio3: PK0
+  gpio4: PK1
+  gpio5: PK2
+  gpio6: PC6
 
 ad3:
   # V+/V- stay off (null): the LaunchPad is powered from USB.
@@ -59,44 +60,69 @@ ad3:
 # Each set is one way of wiring the AD3; select with --wiring-set a,b.
 # dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
 # `requires: <tag>` entries are only used with --with <tag>.
+# `role` names a connection that tests look up by function.
 # Always connect AD3 GND to LaunchPad GND.
 wiring_sets:
   gpio:
-    description: GPIO loop pins, locked pins and the LED/perf outputs
+    description: GPIO loop pins, the locked pin and the LED output
     dio:
       0: PB2
       1: PB3
-      2: halla
-      3: hallb
+      2: gpio1
+      3: gpio2
       4:
         pin: PD7
         note: locked pin (NMI)
-      5: ledop
-      6: perf
+      5: led0
+      6: gpio0
+  wdt:
+    description: >-
+      watchdog early-warning toggle pin (the DIO6 connection of the gpio
+      set)
+    dio:
+      6:
+        pin: gpio0
+        role: wdt_pin
   pwm:
     description: >-
-      three e-foc phase generators, A and B outputs; W1/W2 drive the fault
-      comparator inputs (vbus, itotal)
+      PWM0 generator A/B outputs, optional generator 0 and fault input; W1/W2
+      on the ADC inputs of the digital comparator fault path
     dio:
-      0: pwm1a
-      1: pwm1b
-      2: pwm2a
-      3: pwm2b
-      4: pwm3a
-      5: pwm3b
+      0: m0pwm2
+      1: m0pwm3
+      2: m0pwm4
+      3: m0pwm5
+      4: m0pwm6
+      5: m0pwm7
+      6:
+        pin: PF0
+        note: M0PWM0, generator 0 A
+        requires: pwm4
+      7:
+        pin: PF1
+        note: M0PWM1, generator 0 B
+        requires: pwm4
+      8:
+        pin: PK6
+        role: pwm_fault
+        note: M0FAULT1, driven by the AD3
+        requires: faultpin
     wavegen:
-      1: vbus
-      2: itotal
+      1:
+        pin: ain11
+        role: pwm_dcmp
+        note: ADC digital comparator input of the fault path
+      2: ain10
     scope:
-      1: vbus
+      1: ain11
   adc:
-    description: wavegen levels on phase A and the supply input
+    description: wavegen levels on two analog inputs
     wavegen:
-      1: phasea
-      2: vbus
+      1: ain0
+      2: ain11
     scope:
-      1: phasea
-      2: vbus
+      1: ain0
+      2: ain11
   comparator:
     description: analog comparator 1 (C1+ PC5, C1- PC4, C1o PD1)
     wavegen:
@@ -113,12 +139,30 @@ wiring_sets:
       0:
         pin: PD1
         note: C1o output
+  comparator_c0:
+    description: >-
+      analog comparator 1 with its positive input taken from C0+ (C0+ PC7,
+      C1- PC4, C1o PD1)
+    wavegen:
+      1:
+        pin: PC7
+        note: C0+ input
+      2:
+        pin: PC4
+        note: C1- input
+    scope:
+      1: PC7
+      2: PC4
+    dio:
+      0:
+        pin: PD1
+        note: C1o output
   qei:
     description: QEI0 driven by the pattern generator
     dio:
-      0: enca
-      1: encb
-      2: encz
+      0: qei0a
+      1: qei0b
+      2: qei0idx
   uart:
     description: UART3 PA5 (TX) / PA4 (RX) against the AD3 UART
     options:
@@ -164,16 +208,16 @@ wiring_sets:
     description: CAN0 at logic level on a diode wired-AND bus (no transceiver)
     jumpers:
       - JP4/JP5 in the UART2 position so PA0/PA1 are not driven by the ICDI
-      - bus node = PA0 (canrx) + DIO1 + 1 kOhm pull-up to 3.3 V
-      - Schottky diode, anode on the bus, cathode on PA1 (cantx)
+      - bus node = PA0 (can0rx) + DIO1 + 1 kOhm pull-up to 3.3 V
+      - Schottky diode, anode on the bus, cathode on PA1 (can0tx)
       - Schottky diode, anode on the bus, cathode on DIO0
     dio:
       0:
-        pin: canrx
+        pin: can0rx
         role: can_ad3_tx
         note: AD3 CAN TX through a diode onto the bus
       1:
-        pin: canrx
+        pin: can0rx
         role: can_ad3_rx
         note: AD3 CAN RX on the bus
   ethernet:
@@ -181,24 +225,28 @@ wiring_sets:
     options:
       ethernet: the Ethernet cable is plugged in
 
+# Test parameters. A mapping used by `@pytest.mark.matrix` is one dimension
+# per key: `--depth full` runs the cartesian product, `--depth quick` a
+# pairwise subset. Lists used by `@pytest.mark.board_params` are one
+# dimension each.
 tests:
   system:
     boot_timeout: 5.0
     reserved_uarts: [2]
     # Instances the MCU lacks: ERR range.
-    missing_instances: ["pwm.open 1", "qei.open 1"]
+    missing_instances: ["pwm.open 1 gens=0", "qei.open 1 a=PL1 b=PL2"]
   gpio:
     # gpio.irq serves ports A-F only (other ports: ERR unsupported).
-    loop_pins: [PB2, PB3, PE4, PE5]
+    loop_pins: [PB2, PB3, gpio1, gpio2, gpio0]
     locked_pins: [PD7]
-    output_only_pins: [ledop, perf]
+    output_pins: [led0]
     drives: [2, 4, 8]
     pulls: [up, down]
     irq:
-      edges: [rising, falling, both]
-      types: [immediate, dispatched]
+      edge: [rising, falling, both]
+      handler: [immediate, dispatched]
       pulses: [1, 10, 100]
-      frequencies_hz: [100, 1000, 10000]
+      frequency: [100, 1000, 10000]
     pulse:
       count: 10
       periods_ms: [1, 5, 20]
@@ -206,48 +254,83 @@ tests:
       jitter_ms: 0.5
   pwm:
     module: 0
-    channels:
+    # Generators in the order the tests use them, with their wired outputs.
+    generators:
       - gen: 1
-        a: pwm1a
-        b: pwm1b
+        a: m0pwm2
+        b: m0pwm3
       - gen: 2
-        a: pwm2a
-        b: pwm2b
+        a: m0pwm4
+        b: m0pwm5
       - gen: 3
-        a: pwm3a
-        b: pwm3b
-    frequencies_hz: [1000, 10000, 20000, 50000]
-    duties: [10, 25, 50, 75, 90]
-    modes: [edge, center]
-    divisors: [1, 2, 8, 64]
-    dead_times_ns: [250, 500, 1000, 2000]
-    sync: [0, 1]
+        a: m0pwm6
+        b: m0pwm7
+      - gen: 0
+        a: PF0
+        b: PF1
+    waveform:
+      mode: [edge, center]
+      div: [1, 2, 4, 8, 16, 32, 64]
+      freq: [100, 1000, 10000, 20000, 50000, 200000]
+      duty: [0, 12.5, 50, 90, 100]
+      sync: [0, 1]
+    outputs:
+      generators: [1, 2, 3, 4]
+      output: [ab, a, b]
+      sync: [0, 1]
+    dead_time:
+      mode: [edge, center]
+      dead: [250, [500, 1000], [1000, 250], 2000]
+      inversion: [[0, 0], [1, 0], [0, 1], [1, 1]]
+      sync: [0, 1]
+    dead_time_frequency: 20000
+    update:
+      update: [local, global]
+      mode: [edge, center]
+      generators: [2, 3, 4]
+      sync: [0, 1]
+    irq:
+      source: [zero, load, cmpau, cmpad, cmpbu, cmpbd]
+      mode: [edge, center]
+      freq: [1000, 20000]
+    irq_window_ms: 200
+    irq_tolerance: 0.05
+    adc_trigger:
+      source: [zero, load, cmpau, cmpad, cmpbu, cmpbd]
+      gen: [0, 1, 2, 3]
+      mode: [edge, center]
+    # Sequencer that checks the ADC trigger of a generator (input unwired).
+    adc_trigger_input:
+      adc: 0
+      seq: 3
+      pin: ain1
+      freq: 100
+      runs: 10
+    fault:
+      pin: PK6
+      inputs: 2
+      options:
+        latch: [0, 1]
+        minperiod: [0, 1000]
+        gens: [first, all]
+      dcmp:
+        adc: 0
+        seq: 1
+        pin: ain11
+        comparator: 0
+        low: 0
+        high: 2000
+        safe_v: 0.5
+        trip_v: 2.5
+      timeout_s: 1.0
+    frequency_changes: [10000, 25000]
     capture_periods: 20
     tolerance:
       frequency: 0.01
       duty: 1.0
       dead_ticks: 2
       alignment_s: 2.0e-7
-    efoc:
-      frequency_hz: 20000
-      mode: center
-      divisor: 2
-      dead_ns: 1000
-    count:
-      sources: [zero, load]
-      frequencies_hz: [1000, 20000]
-      window_ms: 200
-      tolerance: 0.05
-    fault:
-      # The last two steps of e-foc's sequence (itotal, vbus) go to DCMP0
-      # and DCMP1, which e-foc routes into the fault inputs (high band).
-      dcmp:
-        - [0, 0, 3000]
-        - [1, 0, 3000]
-      drive: vbus
-      safe_v: 1.0
-      trip_v: 3.0
-      timeout_s: 1.0
+      static_fraction: 0.99
   uart:
     instances:
       - index: 3
@@ -259,23 +342,46 @@ tests:
       rx: PA4
       rts: PP4
       cts: PP5
-    bauds: [9600, 115200, 460800, 921600]
-    parities: [none, even, odd]
-    stop_bits: [1, 2]
     variants:
-      - name: interrupt
+      interrupt:
         dma: 0
         sync: 0
-      - name: dma
+      dma:
         dma: 1
         sync: 0
-      - name: sync
+      sync:
         dma: 0
         sync: 1
+    transfer:
+      baud:
+        - 600
+        - 1200
+        - 2400
+        - 4800
+        - 9600
+        - 19200
+        - 38400
+        - 57600
+        - 115200
+        - 230400
+        - 460800
+        - 921600
+      parity: [none, even, odd]
+      stop: [1, 2]
+      variant: [interrupt, dma, sync]
+    flow:
+      flow: [rts, cts, rtscts]
+      variant: [interrupt, dma, sync]
+    large:
+      baud: [115200, 921600]
+      variant: [interrupt, dma, sync]
     payloads: ["55", "00ff", "0123456789abcdef", "48656c6c6f2c20484954"]
     # uart.send takes at most 112 bytes, uart.recv returns at most 256.
-    large_payload: 96
+    large_payload: 112
     large_payload_to_firmware: 240
+    stream_rounds: 8
+    stream_size: 64
+    bit_rate_tolerance: 0.03
   spi:
     instances:
       - index: 2
@@ -283,11 +389,18 @@ tests:
         cs: PD2
         mosi: PD0
         miso: PD1
-    modes: [0, 1, 2, 3]
-    bauds: [100000, 1000000, 4000000]
-    sync: [0, 1]
+    transfer:
+      mode: [0, 1, 2, 3]
+      baud: [100000, 1000000, 4000000, 10000000, 20000000, 60000000]
+      sync: [0, 1]
+      cs: [fss, none]
+    sessions:
+      mode: [0, 1, 2, 3]
+      sync: [0, 1]
+    session_baud: 20000
     payloads: ["a5", "0102030405060708", "ff00aa55"]
     miso_levels: [0, 1]
+    max_transfer: 64
     tolerance:
       baud: 0.05
   adc:
@@ -295,41 +408,61 @@ tests:
     bits: 12
     tolerance_codes: 40
     samples: 16
-    levels_v: [0.2, 0.8, 1.65, 2.5, 3.1]
-    single:
-      - adc: 0
-        seq: 3
-        pin: phasea
-      - adc: 1
-        seq: 3
-        pin: vbus
-    sample_hold: [4, 16, 256]
-    oversampling: ["off", 4, 64]
-    sync: [0, 1]
-    efoc_phase:
-      pins: [phasea, phaseb, phasec, itotal, vbus]
-      driven: phasea
-    efoc_supply:
-      pins: [vbus]
-      driven: vbus
-    sequence:
-      adc: 0
-      seq: 1
-      pins: [phasea, vbus]
+    # The two inputs driven by W1/W2 in the adc wiring set.
+    inputs: [ain0, ain11]
+    levels:
+      adc: [0, 1]
+      pin: [ain0, ain11]
+      level: [0.2, 0.8, 1.65, 2.5, 3.1]
+      sync: [0, 1]
+    sequencers:
+      adc: [0, 1]
+      seq: [0, 1, 2, 3]
+      sync: [0, 1]
+    timing:
+      sh: [4, 8, 16, 32, 64, 128, 256]
+      avg: ["off", 2, 4, 8, 16, 32, 64]
+      delay: ["off", 0, 7, 15]
+      sync: [0, 1]
+    # PWM generator the tests open as trigger of asynchronous sequencers.
+    trigger:
+      module: 0
+      gen: 1
+      freq: 10000
+    dcmp:
+      band: [low, mid, high]
+      mode: [always, once, hyst, hystonce]
+      comparator: [0, 7]
+    dcmp_window: [1000, 3000]
+    dcmp_levels_v:
+      low: 0.4
+      mid: 1.6
+      high: 2.9
+    priorities: [[0, 3], [3, 0]]
+    # VREFA+ voltage for ref=ext; null skips the external reference test.
+    external_reference_v: null
   comparator:
     instances:
       - index: 1
         pos: PC5
         neg: PC4
         out: PD1
+    # Comparators whose positive input is C0+ (src=c0), wiring set
+    # comparator_c0.
+    c0_instances:
+      - index: 1
+        c0: PC7
+        neg: PC4
+        out: PD1
+    output:
+      pos_level: [0.6, 1.0, 1.4, 2.0]
+      invert: [0, 1]
+      sync: [0, 1]
     neg_level_v: 1.2
-    pos_levels_v: [0.6, 1.0, 1.4, 2.0]
-    ref_steps:
-      - [low, 0]
-      - [low, 8]
-      - [low, 15]
-      - [high, 4]
-      - [high, 12]
+    triggers: ["off", rising, falling, both, high, low]
+    ladder:
+      ref_range: [low, high]
+      step: [0, 4, 8, 12, 15]
     # VIREF per protocol range name; low/high map to hal-ti ReferenceRange,
     # whose value is written to ACREFCTL.RNG (RNG=0 is the datasheet
     # "high range" 0.731..2.184 V, RNG=1 the "low range" 0..2.063 V).
@@ -343,55 +476,82 @@ tests:
     ref_tolerance_v: 0.06
     ref_search_step_v: 0.01
     irq:
-      edges: [rising, falling, both]
+      edge: [rising, falling, both]
       cycles: [1, 10, 50]
-      frequency_hz: 1000
-      low_v: 0.8
-      high_v: 1.8
-    sync: [0, 1]
+      invert: [0, 1]
+    irq_frequency_hz: 1000
+    irq_low_v: 0.8
+    irq_high_v: 1.8
   qei:
-    index: 0
-    a: enca
-    b: encb
-    idx: encz
+    instances:
+      - index: 0
+        a: qei0a
+        b: qei0b
+        idx: qei0idx
     resolution: 4096
-    frequencies_hz: [100, 1000, 10000, 50000]
-    cycles: [1, 10, 250]
-    directions: [fwd, rev]
-    capture: [ab, a]
+    position:
+      freq: [100, 1000, 10000, 50000]
+      cycles: [1, 10, 250]
+      direction: [fwd, rev]
+      cap: [ab, a]
+      inva: [0, 1]
+      invb: [0, 1]
     counts_per_cycle:
       ab: 4
       a: 2
-    velocity_us: [1000, 10000]
-    speed_frequencies_hz: [1000, 10000]
+    index:
+      direction: [fwd, rev]
+      invi: [0, 1]
+      every: [4, 16]
+    velocity:
+      freq: [1000, 10000]
+      vel: [1000, 10000]
     speed_tolerance: 0.03
+    rollover:
+      res: [100, 4096]
+      offset: [0, 50]
     clkdir_counts_per_pulse: 1
-    index_every: 16
     index_tolerance: 4
   can:
     index: 0
-    rx: canrx
-    tx: cantx
-    bitrates: [125000, 250000, 500000, 1000000]
+    rx: can0rx
+    tx: can0tx
     frames:
-      - id: 0x123
-        ext: 0
-        data: ""
-      - id: 0x7ff
-        ext: 0
-        data: "01"
-      - id: 0x1abcdef0
-        ext: 1
-        data: "0102030405060708"
-    filter:
-      id: 0x120
-      mask: 0x7f0
-      ext: 0
-      accepted: [0x120, 0x12f]
-      rejected: [0x130, 0x220]
+      bitrate: [125000, 250000, 500000, 1000000]
+      ext: [0, 1]
+      dlc: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    ids:
+      std: [0x000, 0x123, 0x7ff]
+      ext: [0x00000000, 0x1abcdef0, 0x1fffffff]
+    # tseg1, tseg2, sjw, brp; the bit rate is
+    # sysclk / (brp * (1 + tseg1 + tseg2)).
+    timings:
+      - [12, 3, 1, 15]
+      - [11, 3, 4, 8]
+      - [13, 2, 2, 30]
+      - [15, 4, 1, 24]
+    filters:
+      - name: std-match
+        filter: [0x120, 0x7f0, 0, 1]
+        accepted: [[0x120, 0], [0x12f, 0]]
+        rejected: [[0x130, 0], [0x220, 0], [0x4800000, 1]]
+      - name: std-any-type
+        filter: [0x120, 0x7f0, 0, 0]
+        accepted: [[0x120, 0], [0x4800000, 1], [0x480abcd, 1]]
+        rejected: [[0x130, 0], [0x4c00000, 1]]
+      - name: ext-match
+        filter: [0x1abc0000, 0x1fff0000, 1, 1]
+        accepted: [[0x1abc0000, 1], [0x1abcffff, 1]]
+        rejected: [[0x1abd0000, 1], [0x6af, 0]]
+    recover: [0, 1]
     # The AD3 CAN receiver is assumed not to acknowledge frames; when it
     # does not, firmware-to-AD3 transfers may end with ERR failed.
     ad3_acknowledges: false
+    # Dominant bursts the pattern generator forces onto the bus.
+    error_burst:
+      pulses: 100
+      frequency_hz: 1000
+      duty: 0.05
   eeprom:
     size: 6144
     max_chunk: 64
@@ -399,9 +559,17 @@ tests:
     patterns: ["aa55aa55", "00000000", "0123456789abcdef", "ffffffff"]
     addresses: [0, 4, 3, 4096, 6136]
   watchdog:
-    indices: [0, 1]
-    timeouts_ms: [100, 500]
-    keep_alive_s: 3
+    behaviour:
+      index: [0, 1]
+      timeout_ms: [1, 10, 100, 1000, 5000]
+      reset: [0, 1]
+      feed: [auto, manual]
+    period:
+      index: [0, 1]
+      timeout_ms: [1, 10, 100, 1000, 5000]
+      reset: [0, 1]
+    observe_periods: 3
+    period_tolerance: 0.03
   ethernet:
     speeds: [auto, 100, 10]
     link_timeout_s: 8

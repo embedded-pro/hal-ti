@@ -35,7 +35,9 @@ pythonpath = ["."]
 addopts = "-ra --strict-markers --import-mode=importlib"
 markers = [
     "hil: needs the firmware on a LaunchPad (skipped without --port)",
-    "board_params(argnames, path): parametrise from tests.<path> of the board YAML",
+    "board_params(argnames, path=None, values=None): one parameter dimension from tests.<path> of the board YAML or from values",
+    "matrix(path): one parameter dimension per key of the tests.<path> mapping of the board YAML",
+    "constraint(valid): keep a parameter combination only when valid(argname -> value) is true",
     "family(name): only run on boards of this family (tm4c123 or tm4c129)",
     "requires_option(tag): only run when enabled with --with <tag>",
     "resets_board: the test resets the board on purpose",

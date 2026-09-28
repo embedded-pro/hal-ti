@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
 
-from .protocol import normalize_pin
+from .protocol import is_alias, normalize_pin
 
 BOARDS_DIR = Path(__file__).resolve().parent.parent / "boards"
 ChannelKind = Literal["dio", "wavegen", "scope"]
@@ -146,6 +146,24 @@ class BoardConfig:
                 raise ConfigError(f"{self.name}: tests.{path} is not configured")
         return node
 
+    def matrix(self, path: str) -> dict[str, list[Any]]:
+        """`tests.<path>` as an ordered mapping of dimension name to a non-empty list of values."""
+        node = self.param(path)
+        if not isinstance(node, Mapping) or not node:
+            raise ConfigError(f"{self.name}: tests.{path} must be a mapping of dimension to values")
+        result: dict[str, list[Any]] = {}
+        for name, values in node.items():
+            values = list(values) if isinstance(values, (list, tuple)) else [values]
+            if not values:
+                raise ConfigError(f"{self.name}: tests.{path}.{name} has no values")
+            result[str(name)] = values
+        return result
+
+    def aliases_of(self, pin: str) -> list[str]:
+        """Aliases of the board table that name `pin`."""
+        resolved = self.resolve_pin(pin)
+        return [alias for alias, target in self.pins.items() if target == resolved]
+
     def set_param(self, path: str, value: Any) -> None:
         parts = path.split(".")
         node = self.tests
@@ -178,9 +196,11 @@ class BoardConfig:
                     continue
                 key = (connection.kind, connection.channel)
                 if key in used and used[key] != name:
-                    other = next(c for c in selected if (c.kind, c.channel) == key)
+                    position, other = next((i, c) for i, c in enumerate(selected) if (c.kind, c.channel) == key)
                     if other.pin != connection.pin:
                         raise ConfigError(f"{connection.kind}{connection.channel} is wired differently in sets {used[key]!r} and {name!r}")
+                    if other.role is None and connection.role is not None:
+                        selected[position] = replace(other, role=connection.role, note=other.note or connection.note)
                     continue
                 used[key] = name
                 selected.append(connection)
@@ -196,7 +216,7 @@ def _connection(kind: ChannelKind, channel: Any, spec: Any, pins: Mapping[str, s
     return Connection(
         kind=kind,
         channel=int(channel),
-        pin=None if pin is None else normalize_pin(str(pin), pins),
+        pin=None if pin is None else normalize_pin(str(pin), pins, strict=True),
         role=spec.get("role"),
         note=str(spec.get("note", "")),
         requires=spec.get("requires"),
@@ -225,8 +245,11 @@ def _wiring_set(name: str, raw: Mapping[str, Any], pins: Mapping[str, str]) -> W
 def parse_board(raw: Mapping[str, Any], path: Path | None = None) -> BoardConfig:
     try:
         pins = {str(alias).lower(): normalize_pin(str(pin)) for alias, pin in (raw.get("pins") or {}).items()}
+        unknown = sorted(alias for alias in pins if not is_alias(alias))
+        if unknown:
+            raise ConfigError(f"aliases outside the generic naming scheme: {', '.join(unknown)}")
         terminal_raw = dict(raw.get("terminal") or {})
-        terminal_raw["pins"] = tuple(normalize_pin(str(pin), pins) for pin in terminal_raw.get("pins", ()))
+        terminal_raw["pins"] = tuple(normalize_pin(str(pin), pins, strict=True) for pin in terminal_raw.get("pins", ()))
         ad3_raw = dict(raw.get("ad3") or {})
         limits = ad3_raw.pop("analog_limits", None)
         if limits is not None:

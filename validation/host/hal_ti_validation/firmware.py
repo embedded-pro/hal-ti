@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ad3_waveforms_bench.protocol import Event, Response, format_command
-from ad3_waveforms_bench.terminal import FirmwareError, FirmwareTerminal
+from ad3_waveforms_bench.terminal import FirmwareError, FirmwareTerminal, PendingCommand, TerminalError
 
 from .protocol import normalize_pin, parse_pin_map
 
@@ -63,6 +63,15 @@ class EthStatus:
     duplex: str
     rx: int
     tx: int
+
+
+def settle(pending: PendingCommand, timeout: float | None = None) -> Response | None:
+    """Finish a command started with `FirmwareTerminal.begin` whatever its outcome, so a failing test cannot
+    leave it pending; returns its final line, or None when it timed out or was already finished."""
+    try:
+        return pending.wait(timeout, check=False)
+    except TerminalError:
+        return None
 
 
 class _Group:
@@ -139,6 +148,37 @@ class Gpio(_Group):
         self._fw.untrack(("gpio", pin))
 
 
+PwmSource = Literal["none", "zero", "load", "cmpau", "cmpad", "cmpbu", "cmpbd"]
+PWM_SOURCES: tuple[PwmSource, ...] = ("none", "zero", "load", "cmpau", "cmpad", "cmpbu", "cmpbd")
+
+
+@dataclass(frozen=True)
+class PwmFault:
+    """`EVT pwm module=<m> gens=<mask> comparators=<mask> inputs=<mask>`."""
+
+    module: int
+    gens: int
+    comparators: int
+    inputs: int
+    raw: str
+
+    @classmethod
+    def from_event(cls, event: Event) -> PwmFault:
+        return cls(
+            module=event.as_int("module"),
+            gens=event.as_int("gens"),
+            comparators=event.as_int("comparators"),
+            inputs=event.as_int("inputs"),
+            raw=event.raw,
+        )
+
+
+def _sources(value: str | Sequence[str] | None) -> str | list[str] | None:
+    if value is None or isinstance(value, str):
+        return value
+    return list(value)
+
+
 class Pwm(_Group):
     prefix = "pwm"
 
@@ -146,20 +186,22 @@ class Pwm(_Group):
         self,
         module: int,
         gens: Sequence[int] | None = None,
-        pins: Sequence[tuple[Pin, Pin]] | None = None,
+        pins: Sequence[tuple[Pin | None, Pin | None]] | None = None,
         freq: int | None = None,
         mode: Literal["edge", "center"] | None = None,
         div: int | None = None,
-        dead: int | Literal["off"] | None = None,
+        dead: int | tuple[int, int] | Literal["off"] | None = None,
         inva: bool | None = None,
         invb: bool | None = None,
         update: Literal["local", "global"] | None = None,
-        trigger: Literal["zero", "load", "none"] | None = None,
-        irq: str | None = None,
+        trigger: PwmSource | Sequence[PwmSource] | None = None,
+        irq: PwmSource | Sequence[PwmSource] | None = None,
         sync: bool | None = None,
     ) -> int:
-        """Returns the PWM clock in Hz."""
-        pin_list = None if pins is None else [f"{self._fw.pin(a)}:{self._fw.pin(b)}" for a, b in pins]
+        """Returns the PWM clock in Hz. A `None` pin in `pins` is sent as `-` (A-only or B-only generator);
+        `dead` is equal delays in ns, `(riseNs, fallNs)` or `"off"`; `trigger`/`irq` are one source for every
+        generator or one per generator in open order."""
+        pin_list = None if pins is None else [f"{self._pin_or_dash(a)}:{self._pin_or_dash(b)}" for a, b in pins]
         response = self._cmd(
             "open",
             module,
@@ -168,19 +210,50 @@ class Pwm(_Group):
             freq=freq,
             mode=mode,
             div=div,
-            dead=dead,
+            dead=list(dead) if isinstance(dead, (tuple, list)) else dead,
             inva=inva,
             invb=invb,
             update=update,
-            trigger=trigger,
-            irq=irq,
+            trigger=_sources(trigger),
+            irq=_sources(irq),
             sync=sync,
         )
         self._fw.track(("pwm", module), "pwm.close", module)
         return response.as_int("pwmclk")
 
-    def fault(self, module: int, on: bool) -> None:
-        self._cmd("fault", module, "on" if on else "off")
+    def _pin_or_dash(self, pin: Pin | None) -> str:
+        return "-" if pin is None else self._fw.pin(pin)
+
+    def fault(
+        self,
+        module: int,
+        on: bool = True,
+        gens: Sequence[int] | None = None,
+        comparators: int | None = None,
+        inputs: int | None = None,
+        pin: Pin | None = None,
+        latch: bool | None = None,
+        minperiod: int | None = None,
+    ) -> None:
+        """`pwm.fault <module> on ...` or, with `on=False`, `pwm.fault <module> off`."""
+        self._cmd(
+            "fault",
+            module,
+            "on" if on else "off",
+            gens=list(gens) if gens is not None else None,
+            comparators=comparators,
+            inputs=inputs,
+            pin=self._pin(pin),
+            latch=latch,
+            minperiod=minperiod,
+        )
+
+    def wait_fault(self, module: int, timeout: float = 1.0) -> PwmFault:
+        event = self._fw.terminal.wait_event("pwm", lambda e: "module" in e and e.as_int("module") == module, timeout)
+        return PwmFault.from_event(event)
+
+    def faults(self, module: int) -> list[PwmFault]:
+        return [PwmFault.from_event(event) for event in self._fw.terminal.drain_events("pwm") if event.as_int("module") == module]
 
     def duty(self, module: int, *duties: float) -> None:
         """One duty per opened generator (in open order), or a single duty for all of them."""
@@ -255,9 +328,9 @@ class Spi(_Group):
     def open(
         self,
         index: int,
-        clk: Pin,
-        mosi: Pin,
-        miso: Pin,
+        clk: Pin | None = None,
+        mosi: Pin | None = None,
+        miso: Pin | None = None,
         cs: Pin | None = None,
         baud: int | None = None,
         mode: int | None = None,
@@ -284,6 +357,29 @@ class Spi(_Group):
         self._fw.untrack(("spi", index))
 
 
+DcmpBand = Literal["low", "mid", "high"]
+DcmpMode = Literal["always", "once", "hyst", "hystonce"]
+
+
+@dataclass(frozen=True)
+class Dcmp:
+    """One `dcmp` entry: digital comparator `index` with the `low`..`high` code window."""
+
+    index: int
+    low: int
+    high: int
+    band: DcmpBand | None = None
+    mode: DcmpMode | None = None
+
+    def format(self) -> str:
+        fields = [str(self.index), str(self.low), str(self.high)]
+        if self.band is not None or self.mode is not None:
+            fields.append(self.band or "high")
+        if self.mode is not None:
+            fields.append(self.mode)
+        return ":".join(fields)
+
+
 class Adc(_Group):
     prefix = "adc"
 
@@ -296,10 +392,12 @@ class Adc(_Group):
         avg: int | Literal["off"] | None = None,
         delay: int | Literal["off"] | None = None,
         trigger: str | None = None,
-        dcmp: Sequence[tuple[int, int, int]] | None = None,
+        dcmp: Sequence[Dcmp | tuple[int, int, int] | tuple[int, int, int, str] | tuple[int, int, int, str, str]] | None = None,
+        ref: Literal["int", "ext"] | None = None,
+        prio: int | None = None,
         sync: bool | None = None,
     ) -> None:
-        dcmp_list = None if dcmp is None else [f"{index}:{low}:{high}" for index, low, high in dcmp]
+        dcmp_list = None if dcmp is None else [(entry if isinstance(entry, Dcmp) else Dcmp(*entry)).format() for entry in dcmp]
         self._cmd(
             "open",
             adc,
@@ -310,6 +408,8 @@ class Adc(_Group):
             delay=delay,
             trigger=trigger,
             dcmp=dcmp_list,
+            ref=ref,
+            prio=prio,
             sync=sync,
         )
         self._fw.track(("adc", adc, seq), "adc.close", adc, seq)
@@ -334,6 +434,7 @@ class Comparator(_Group):
         src: Literal["pin", "c0", "ref"] | None = None,
         ref: tuple[Literal["low", "high"], int] | None = None,
         invert: bool | None = None,
+        trigger: Literal["off", "rising", "falling", "both", "high", "low"] | None = None,
         sync: bool | None = None,
     ) -> None:
         """`pos` is only needed with `src=pin`; `ref` implies `src=ref`."""
@@ -348,6 +449,7 @@ class Comparator(_Group):
             src=src,
             ref=None if ref is None else [ref[0], ref[1]],
             invert=invert,
+            trigger=trigger,
             sync=sync,
         )
         self._fw.track(("comp", index), "comp.close", index)
@@ -355,7 +457,7 @@ class Comparator(_Group):
     def read(self, index: int) -> int:
         return self._cmd("read", index).as_int("out")
 
-    def irq(self, index: int, edge: Edge) -> None:
+    def irq(self, index: int, edge: str) -> None:
         self._cmd("irq", index, edge)
 
     def count(self, index: int, clear: bool | None = None) -> int:
@@ -426,17 +528,24 @@ class Can(_Group):
         rx: Pin | None = None,
         tx: Pin | None = None,
         bitrate: int | None = None,
-        filter: tuple[int, int, bool] | None = None,
+        timing: tuple[int, int, int, int] | None = None,
+        filter: tuple[int, int, bool] | tuple[int, int, bool, bool] | None = None,
         loopback: bool | None = None,
         recover: bool | None = None,
     ) -> None:
-        filter_value = None if filter is None else [f"0x{filter[0]:x}", f"0x{filter[1]:x}", int(bool(filter[2]))]
+        """`timing` is `(tseg1, tseg2, sjw, brp)`; `filter` is `(id, mask, ext[, match])`."""
+        filter_value = None
+        if filter is not None:
+            filter_value = [f"0x{filter[0]:x}", f"0x{filter[1]:x}", int(bool(filter[2]))]
+            if len(filter) > 3:
+                filter_value.append(int(bool(filter[3])))
         self._cmd(
             "open",
             index,
             rx=self._pin(rx),
             tx=self._pin(tx),
             bitrate=bitrate,
+            timing=None if timing is None else list(timing),
             filter=filter_value,
             loopback=loopback,
             recover=recover,
@@ -494,8 +603,10 @@ class Watchdog(_Group):
         timeout: int,
         reset: bool | None = None,
         feed: Literal["auto", "manual"] | None = None,
+        pin: Pin | None = None,
     ) -> None:
-        self._cmd("start", index, timeout=timeout, reset=reset, feed=feed)
+        """`pin` toggles on every early warning; it stays claimed until the board resets."""
+        self._cmd("start", index, timeout=timeout, reset=reset, feed=feed, pin=self._pin(pin))
 
     def feed(self, index: int) -> None:
         self._cmd("feed", index)
@@ -527,7 +638,7 @@ class Ethernet(_Group):
 
 
 class Firmware:
-    """Entry point: `fw.gpio.set("ledop", 1)`, `fw.pwm.open(0, freq=20000)`, ...
+    """Entry point: `fw.gpio.set("led0", 1)`, `fw.pwm.open(0, gens=[0], freq=20000)`, ...
 
     Open instances are tracked so `close_all()` can restore a clean state between tests.
     Pins are sent as `P<port><index>` after resolving aliases with `aliases` (when given).
