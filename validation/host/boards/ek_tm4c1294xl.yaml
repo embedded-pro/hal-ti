@@ -1,0 +1,401 @@
+---
+# EK-TM4C1294XL LaunchPad (TM4C1294NCPDT) with the e-foc pin assignment.
+# Pins may be written as P<port><index> or as an alias from `pins`.
+board: ek_tm4c1294xl
+firmware_name: EK-TM4C1294XL
+family: tm4c129
+description: EK-TM4C1294XL LaunchPad, e-foc pinout
+sysclk: 120000000
+
+terminal:
+  baud: 921600
+  # UART2 PD5 (TX) / PD4 (RX): a 3.3 V USB-UART adapter on PD4/PD5, or the
+  # ICDI virtual COM port with JP4/JP5 moved to the UART2 position (the
+  # default position routes the ICDI to PA0/PA1, which e-foc uses for CAN0).
+  interface: USB-UART adapter on PD5 (TX) / PD4 (RX), e.g. /dev/ttyUSB0
+  uart: 2
+  pins: [PD4, PD5]
+  max_command_length: 255
+  command_timeout: 2.0
+  boot_timeout: 5.0
+
+# PROTOCOL.md board profile, compared with `board.pins`.
+pins:
+  phasea: PE3
+  phaseb: PE2
+  phasec: PE1
+  vbus: PB5
+  itotal: PB4
+  halla: PE4
+  hallb: PE5
+  hallc: PE6
+  enca: PL1
+  encb: PL2
+  encz: PL3
+  pwm1a: PF2
+  pwm1b: PF3
+  pwm2a: PG0
+  pwm2b: PG1
+  pwm3a: PK4
+  pwm3b: PK5
+  canrx: PA0
+  cantx: PA1
+  ledop: PN3
+  ledwarn: PN2
+  ledfail: PP2
+  perf: PN4
+  id0: PK0
+  id1: PK1
+  id2: PK2
+  pwrstatus: PC6
+
+ad3:
+  # V+/V- stay off (null): the LaunchPad is powered from USB.
+  vplus: null
+  vminus: null
+  # Wavegen levels are refused outside this range (TM4C pins are 3.3 V).
+  analog_limits: [0.0, 3.3]
+
+# Each set is one way of wiring the AD3; select with --wiring-set a,b.
+# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
+# `requires: <tag>` entries are only used with --with <tag>.
+# Always connect AD3 GND to LaunchPad GND.
+wiring_sets:
+  gpio:
+    description: GPIO loop pins, locked pins and the LED/perf outputs
+    dio:
+      0: PM0
+      1: PM1
+      2: PM2
+      3: PM3
+      4:
+        pin: PD7
+        note: locked pin (NMI)
+      5: ledop
+      6: perf
+  pwm:
+    description: >-
+      three e-foc phase generators, A and B outputs; W1/W2 drive the fault
+      comparator inputs (vbus, itotal)
+    dio:
+      0: pwm1a
+      1: pwm1b
+      2: pwm2a
+      3: pwm2b
+      4: pwm3a
+      5: pwm3b
+    wavegen:
+      1: vbus
+      2: itotal
+    scope:
+      1: vbus
+  adc:
+    description: wavegen levels on phase A and the supply input
+    wavegen:
+      1: phasea
+      2: vbus
+    scope:
+      1: phasea
+      2: vbus
+  comparator:
+    description: analog comparator 1 (C1+ PC5, C1- PC4, C1o PD1)
+    wavegen:
+      1:
+        pin: PC5
+        note: C1+ input
+      2:
+        pin: PC4
+        note: C1- input
+    scope:
+      1: PC5
+      2: PC4
+    dio:
+      0:
+        pin: PD1
+        note: C1o output
+  qei:
+    description: QEI0 driven by the pattern generator
+    dio:
+      0: enca
+      1: encb
+      2: encz
+  uart:
+    description: UART3 PA5 (TX) / PA4 (RX) against the AD3 UART
+    options:
+      flow: UART3 RTS on PP4 and CTS on PP5 wired to DIO2/DIO3
+    dio:
+      0:
+        pin: PA5
+        role: uart_tx
+        note: firmware TX, AD3 UART RX
+      1:
+        pin: PA4
+        role: uart_rx
+        note: firmware RX, AD3 UART TX
+      2:
+        pin: PP4
+        role: uart_rts
+        note: firmware RTS
+        requires: flow
+      3:
+        pin: PP5
+        role: uart_cts
+        note: firmware CTS, driven by the AD3
+        requires: flow
+  spi:
+    description: SSI2 on PD3 (CLK), PD2 (FSS), PD0 (MOSI), PD1 (MISO)
+    options:
+      loopback: jumper PD0 (MOSI) to PD1 (MISO); DIO3 then only listens
+    dio:
+      0:
+        pin: PD3
+        role: spi_clk
+      1:
+        pin: PD2
+        role: spi_cs
+      2:
+        pin: PD0
+        role: spi_mosi
+      3:
+        pin: PD1
+        role: spi_miso
+        note: AD3 drives the MISO level unless the loopback jumper is fitted
+  can:
+    description: CAN0 at logic level on a diode wired-AND bus (no transceiver)
+    jumpers:
+      - JP4/JP5 in the UART2 position so PA0/PA1 are not driven by the ICDI
+      - bus node = PA0 (canrx) + DIO1 + 1 kOhm pull-up to 3.3 V
+      - Schottky diode, anode on the bus, cathode on PA1 (cantx)
+      - Schottky diode, anode on the bus, cathode on DIO0
+    dio:
+      0:
+        pin: canrx
+        role: can_ad3_tx
+        note: AD3 CAN TX through a diode onto the bus
+      1:
+        pin: canrx
+        role: can_ad3_rx
+        note: AD3 CAN RX on the bus
+  ethernet:
+    description: RJ45 cable to a switch or PC (no AD3 channels)
+    options:
+      ethernet: the Ethernet cable is plugged in
+
+tests:
+  system:
+    boot_timeout: 5.0
+    reserved_uarts: [2]
+  gpio:
+    loop_pins: [PM0, PM1, PM2, PM3]
+    locked_pins: [PD7]
+    output_only_pins: [ledop, perf]
+    drives: [2, 4, 8]
+    pulls: [up, down]
+    irq:
+      edges: [rising, falling, both]
+      types: [immediate, dispatched]
+      pulses: [1, 10, 100]
+      frequencies_hz: [100, 1000, 10000]
+    pulse:
+      count: 10
+      periods_ms: [1, 5, 20]
+      tolerance: 0.05
+      jitter_ms: 0.5
+  pwm:
+    module: 0
+    channels:
+      - gen: 1
+        a: pwm1a
+        b: pwm1b
+      - gen: 2
+        a: pwm2a
+        b: pwm2b
+      - gen: 3
+        a: pwm3a
+        b: pwm3b
+    frequencies_hz: [1000, 10000, 20000, 50000]
+    duties: [10, 25, 50, 75, 90]
+    modes: [edge, center]
+    divisors: [1, 2, 8, 64]
+    dead_times_ns: [250, 500, 1000, 2000]
+    sync: [0, 1]
+    capture_periods: 20
+    tolerance:
+      frequency: 0.01
+      duty: 1.0
+      dead_ticks: 2
+      alignment_s: 2.0e-7
+    efoc:
+      frequency_hz: 20000
+      mode: center
+      divisor: 2
+      dead_ns: 1000
+    count:
+      sources: [zero, load]
+      frequencies_hz: [1000, 20000]
+      window_ms: 200
+      tolerance: 0.05
+    fault:
+      # e-foc routes DCMP0 (itotal) and DCMP1 (vbus) into the fault inputs.
+      dcmp:
+        - [0, 2000, 3000]
+        - [1, 2000, 3000]
+      drive: vbus
+      safe_v: 1.0
+      trip_v: 3.0
+      timeout_s: 1.0
+  uart:
+    instances:
+      - index: 3
+        tx: PA5
+        rx: PA4
+    flow_instance:
+      index: 3
+      tx: PA5
+      rx: PA4
+      rts: PP4
+      cts: PP5
+    bauds: [9600, 115200, 460800, 921600]
+    parities: [none, even, odd]
+    stop_bits: [1, 2]
+    variants:
+      - name: interrupt
+        dma: 0
+        sync: 0
+      - name: dma
+        dma: 1
+        sync: 0
+      - name: sync
+        dma: 0
+        sync: 1
+    payloads: ["55", "00ff", "0123456789abcdef", "48656c6c6f2c20484954"]
+    large_payload: 96
+    large_payload_to_firmware: 240
+  spi:
+    instances:
+      - index: 2
+        clk: PD3
+        cs: PD2
+        mosi: PD0
+        miso: PD1
+    modes: [0, 1, 2, 3]
+    bauds: [100000, 1000000, 4000000]
+    sync: [0, 1]
+    payloads: ["a5", "0102030405060708", "ff00aa55"]
+    miso_levels: [0, 1]
+    tolerance:
+      baud: 0.05
+  adc:
+    vref: 3.3
+    bits: 12
+    tolerance_codes: 40
+    samples: 16
+    levels_v: [0.2, 0.8, 1.65, 2.5, 3.1]
+    single:
+      - adc: 0
+        seq: 3
+        pin: phasea
+      - adc: 1
+        seq: 3
+        pin: vbus
+    sample_hold: [4, 16, 256]
+    oversampling: ["off", 4, 64]
+    sync: [0, 1]
+    efoc_phase:
+      pins: [phasea, phaseb, phasec, itotal, vbus]
+      driven: phasea
+    efoc_supply:
+      pins: [vbus]
+      driven: vbus
+    sequence:
+      adc: 0
+      seq: 1
+      pins: [phasea, vbus]
+  comparator:
+    instances:
+      - index: 1
+        pos: PC5
+        neg: PC4
+        out: PD1
+    neg_level_v: 1.2
+    pos_levels_v: [0.6, 1.0, 1.4, 2.0]
+    ref_steps:
+      - [low, 0]
+      - [low, 8]
+      - [low, 15]
+      - [high, 4]
+      - [high, 12]
+    # VIREF per protocol range name; low/high map to hal-ti ReferenceRange,
+    # whose value is written to ACREFCTL.RNG (RNG=0 is the datasheet
+    # "high range" 0.731..2.184 V, RNG=1 the "low range" 0..2.063 V).
+    reference:
+      low:
+        offset_v: 0.731
+        step_v: 0.0968
+      high:
+        offset_v: 0.0
+        step_v: 0.1375
+    ref_tolerance_v: 0.06
+    ref_search_step_v: 0.01
+    irq:
+      edges: [rising, falling, both]
+      cycles: [1, 10, 50]
+      frequency_hz: 1000
+      low_v: 0.8
+      high_v: 1.8
+    sync: [0, 1]
+  qei:
+    index: 0
+    a: enca
+    b: encb
+    idx: encz
+    resolution: 4096
+    frequencies_hz: [100, 1000, 10000, 50000]
+    cycles: [1, 10, 250]
+    directions: [fwd, rev]
+    capture: [ab, a]
+    counts_per_cycle:
+      ab: 4
+      a: 2
+    velocity_us: [1000, 10000]
+    speed_frequencies_hz: [1000, 10000]
+    speed_tolerance: 0.03
+    clkdir_counts_per_pulse: 1
+    index_every: 16
+    index_tolerance: 4
+  can:
+    index: 0
+    rx: canrx
+    tx: cantx
+    bitrates: [125000, 250000, 500000, 1000000]
+    frames:
+      - id: 0x123
+        ext: 0
+        data: ""
+      - id: 0x7ff
+        ext: 0
+        data: "01"
+      - id: 0x1abcdef0
+        ext: 1
+        data: "0102030405060708"
+    filter:
+      id: 0x120
+      mask: 0x7f0
+      ext: 0
+      accepted: [0x120, 0x12f]
+      rejected: [0x130, 0x220]
+    # The AD3 CAN receiver is assumed not to acknowledge frames; when it
+    # does not, firmware-to-AD3 transfers may end with ERR failed.
+    ad3_acknowledges: false
+  eeprom:
+    size: 6144
+    max_chunk: 64
+    patterns: ["aa55aa55", "00000000", "0123456789abcdef", "ffffffff"]
+    addresses: [0, 4, 3, 4096, 6136]
+  watchdog:
+    indices: [0, 1]
+    timeouts_ms: [100, 500]
+    keep_alive_s: 3
+  ethernet:
+    speeds: [auto, 100, 10]
+    link_timeout_s: 8
