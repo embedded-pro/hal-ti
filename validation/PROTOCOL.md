@@ -36,7 +36,7 @@ The terminal is a `hal::tiva::UartWithDma` at 921600 8N1 without flow control, a
 
 ## Framing
 
-The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix, number, hex and list syntax, open/close semantics) is specified in EMIL's [`services/hil/README.md`](https://github.com/embedded-pro/embedded-infra-lib/blob/main/services/hil/README.md). hal-ti adds:
+The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix, number, hex and list syntax, open/close semantics) is specified in EMIL's [hardware-in-the-loop terminal documentation](https://github.com/embedded-pro/embedded-infra-lib/blob/main/docs/Hil.md). hal-ti adds:
 
 - After reset the firmware prints `EVT boot board=<name> family=<tm4c123|tm4c129> sysclk=<hz> reset=<cause>` once; `<cause>` is `wdt0`, `wdt1`, `sw`, `moscfail`, `bor`, `por`, `ext` or `unknown`.
 - Pins are written as `P<port><index>`, for example `PF1`, `PJ0`, `PQ3`: ports A-F on TM4C123 and A-H, J-N, P, Q on TM4C129, index 0-7.
