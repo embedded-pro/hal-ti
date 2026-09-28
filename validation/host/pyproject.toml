@@ -7,12 +7,18 @@ name = "hal_ti_validation"
 version = "0.1.0"
 description = "Hardware-in-the-loop validation of hal-ti drivers with a Digilent Analog Discovery 3"
 requires-python = ">=3.10"
-dependencies = ["pyserial>=3.5", "pyyaml>=6.0", "pytest>=7.4"]
+# ad3-waveforms-bench brings the AD3 wrapper, the terminal client and the pytest plugin (--ad3-serial,
+# --no-ad3, --fake, the ad3 fixture). Pin it to a tag instead of main once the repository has releases.
+dependencies = [
+    "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@main",
+    "pyserial>=3.5",
+    "pyyaml>=6.0",
+    "pytest>=7.4",
+]
 
 [project.optional-dependencies]
-# The WaveForms SDK is reached through ctypes (hal_ti_validation/instruments/dwf.py); it needs the
-# Digilent WaveForms runtime installed system wide, not a Python package, so this extra is empty and
-# only marks the intent.
+# The WaveForms SDK is reached through ctypes (in ad3-waveforms-bench); it needs the Digilent WaveForms
+# runtime installed system wide, not a Python package, so this extra is empty and only marks the intent.
 ad3 = []
 dev = ["ruff>=0.5"]
 
@@ -32,7 +38,6 @@ markers = [
     "board_params(argnames, path): parametrise from tests.<path> of the board YAML",
     "family(name): only run on boards of this family (tm4c123 or tm4c129)",
     "requires_option(tag): only run when enabled with --with <tag>",
-    "ad3: needs the Analog Discovery 3 (skipped with --no-ad3)",
     "resets_board: the test resets the board on purpose",
     "slow: takes more than a few seconds",
 ]

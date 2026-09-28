@@ -5,9 +5,8 @@ The LaunchPads have no CAN transceiver. Wiring set `can` builds a wired-AND bus 
 """
 
 import pytest
-
-from hal_ti_validation.protocol import format_command
-from hal_ti_validation.terminal import FirmwareError, TerminalTimeout
+from ad3_waveforms_bench.protocol import format_command
+from ad3_waveforms_bench.terminal import FirmwareError, TerminalTimeout
 
 
 @pytest.fixture

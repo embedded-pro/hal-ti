@@ -6,9 +6,10 @@ Wiring set `pwm`: the A/B outputs of `tests.pwm.channels` on DIOs (and on TM4C12
 import statistics
 
 import pytest
+from ad3_waveforms_bench import analysis
+from ad3_waveforms_bench.terminal import FirmwareError
 
-from hal_ti_validation import analysis, expect
-from hal_ti_validation.terminal import FirmwareError
+from hal_ti_validation import expect
 
 pytestmark = pytest.mark.ad3
 

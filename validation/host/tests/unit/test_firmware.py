@@ -1,8 +1,8 @@
 import pytest
+from ad3_waveforms_bench.terminal import FirmwareError, FirmwareTerminal
 
+from hal_ti_validation.fake_firmware import FakeFirmware, FakeSerial
 from hal_ti_validation.firmware import Firmware
-from hal_ti_validation.instruments.fake import FakeFirmware, FakeSerial
-from hal_ti_validation.terminal import FirmwareError, FirmwareTerminal
 
 ALIASES = {"ledop": "PF1", "pwm1a": "PB6", "pwm1b": "PB7", "canrx": "PF0", "cantx": "PF3"}
 

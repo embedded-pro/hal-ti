@@ -1,9 +1,11 @@
-"""Host side of the hal-ti hardware-in-the-loop validation app."""
+"""Host side of the hal-ti hardware-in-the-loop validation app (instrument, terminal and analysis code comes
+from `ad3_waveforms_bench`)."""
+
+from ad3_waveforms_bench.protocol import Event, Response
+from ad3_waveforms_bench.terminal import FirmwareError, FirmwareTerminal, TerminalTimeout
 
 from .config import BoardConfig, Wiring, load_board
 from .firmware import Firmware
-from .protocol import Event, Response
-from .terminal import FirmwareError, FirmwareTerminal, TerminalTimeout
 
 __all__ = [
     "BoardConfig",

@@ -4,6 +4,7 @@ This directory validates the hal-ti drivers on real hardware: an EK-TM4C123GXL o
 
 - `firmware/` - C++ firmware on hal-ti and EMIL. It exposes every hal-ti peripheral through a line-based terminal; the command set is specified in [PROTOCOL.md](PROTOCOL.md).
 - `host/` - Python package `hal_ti_validation` and a pytest suite that talks to the firmware terminal over a serial port and to the AD3 through the WaveForms SDK.
+- The generic bench code (AD3 wrapper over the WaveForms SDK, signal analysis, `OK`/`ERR`/`EVT` terminal client, console, pytest plugin and fakes) lives in the separate [ad3-waveforms-bench](https://github.com/embedded-pro/ad3-waveforms-bench) repository; `hal_ti_validation` only adds what is specific to hal-ti.
 
 ## Why C++ and Python
 
@@ -48,7 +49,7 @@ After reset the firmware prints `EVT boot board=... family=... sysclk=... reset=
 
 ## Install the host package
 
-1. Install the Digilent WaveForms application (it contains the WaveForms runtime `dwf` and the SDK) from the Digilent website; on Linux also install the Adept 2 runtime it depends on. `hal_ti_validation` loads `libdwf.so` / `dwf.dll` / `dwf.framework` from the default location; set `DWF_LIBRARY` to override it.
+1. Install the Digilent WaveForms application (it contains the WaveForms runtime `dwf` and the SDK) from the Digilent website; on Linux also install the Adept 2 runtime it depends on. `ad3-waveforms-bench` loads `libdwf.so` / `dwf.dll` / `dwf.framework` from the default location; set `DWF_LIBRARY` to override it.
 2. Create a virtual environment and install the package (Python 3.10 or newer):
 
 ```bash
@@ -57,13 +58,15 @@ python3 -m venv .venv
 pip install -e "validation/host[ad3]"
 ```
 
-The `ad3` extra adds no Python dependency: the SDK is reached through `ctypes` (see below), so only the WaveForms runtime must be installed. Without it, everything except the AD3 still works and AD3 tests are skipped.
+This also installs `ad3-waveforms-bench` from `git+https://github.com/embedded-pro/ad3-waveforms-bench@main` (see `host/pyproject.toml`; the reference can be pinned to a tag once the repository has releases).
+To work on both at the same time, install a local checkout first and then this package without dependencies:
 
-### Why ctypes instead of pydwf
+```bash
+pip install -e ../ad3-waveforms-bench
+pip install -e validation/host --no-deps
+```
 
-- `hal_ti_validation/instruments/dwf.py` calls the `FDwf*` C functions through `ctypes`, exactly like the official WaveForms SDK Python samples, and uses the official `dwfconstants.py` values (it imports the file from the SDK samples directory, or `DWF_CONSTANTS_DIR`, when present and otherwise uses an identical built-in copy).
-- This follows the SDK reference manual one to one, always matches the installed runtime (new devices and functions such as the AD3 protocol engines need no binding update) and adds no third-party dependency. `pydwf` is a well-made wrapper, but it pins the API to its generated signatures and adds a translation layer to debug against the Digilent documentation.
-- All SDK calls are isolated in `dwf.py` and `instruments/ad3.py`; `instruments/fake.py` provides `FakeDwfApi`, which records the calls, so the wrapper is unit tested offline.
+The `ad3` extra adds no Python dependency: the SDK is reached through `ctypes` (the reasons are in the [ad3-waveforms-bench README](https://github.com/embedded-pro/ad3-waveforms-bench#why-ctypes-instead-of-pydwf)), so only the WaveForms runtime must be installed. Without it, everything except the AD3 still works and AD3 tests are skipped.
 
 ## Run the tests
 
@@ -81,16 +84,19 @@ pytest validation/host/tests/hil/test_uart.py --board ek_tm4c1294xl --port /dev/
 pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --no-ad3
 ```
 
-Options (all in `tests/conftest.py`):
+Options from `tests/conftest.py`:
 
 - `--board` - board file name in `host/boards/` or a path to a YAML file (default `ek_tm4c123gxl`, or `HAL_TI_BOARD`).
 - `--port`, `--baud` - firmware terminal serial port (or `HAL_TI_PORT`) and baud rate (default from the board file, 921600).
 - `--wiring-set a,b` - active wiring sets; sets that use different AD3 channels can be combined (`--wiring-set pwm,adc`).
 - `--with <tag>` - enable optional wiring (`flow`, `loopback`, `ethernet`), repeatable.
-- `--ad3-serial` - pick an AD3 by serial number; `--no-ad3` skips every test that needs it.
 - `--set path=value` - override a test parameter, value parsed as YAML: `--set pwm.frequencies_hz=[20000] --set uart.bauds=[921600]`.
 - `--quick` - use only the first value of every parameter list.
-- `--fake` - run the HIL plumbing against the in-memory fakes; only useful when changing the test code (most peripheral tests fail because the fakes do not emulate peripherals).
+
+Options from the `ad3_waveforms_bench` pytest plugin (loaded automatically once the package is installed); `tests/conftest.py` feeds it the `ad3` section of the board file:
+
+- `--ad3-serial` - pick an AD3 by serial number (or `AD3_SERIAL`); `--no-ad3` skips every test that needs it.
+- `--fake` - run the HIL plumbing against the in-memory fakes (`FakeDwfApi` for the AD3, `hal_ti_validation.fake_firmware` for the terminal); only useful when changing the test code (most peripheral tests fail because the fakes do not emulate peripherals).
 
 Tests that need no AD3 (system, CAN loopback, EEPROM, watchdog, Ethernet) run with any wiring set.
 Tests that reset the board on purpose (watchdog, EEPROM persistence) are marked `resets_board`; any other unexpected `EVT boot` fails the test that caused it.
@@ -226,17 +232,27 @@ To validate another board, copy a board file, adapt the pins, wiring sets and pa
 ## Interactive console
 
 ```bash
-python -m hal_ti_validation.console --port /dev/ttyACM0
-python -m hal_ti_validation.console --port /dev/ttyACM0 -c info -c board.pins
+hal-ti-console --port /dev/ttyACM0
+hal-ti-console --port /dev/ttyACM0 -c info -c board.pins
 ```
 
+`hal-ti-console` is `ad3-bench-console` from ad3-waveforms-bench with the firmware's 921600 baud and its own history file (`ad3-bench-console --port /dev/ttyACM0` works as well).
 The console forwards commands, prints final lines and events, and keeps a history in `~/.hal_ti_validation_history`. `:wait <s>` listens for events, `:raw` also shows non-protocol output, `:quit` leaves.
 
 ## Package layout
 
-- `protocol.py` - pure parsing and formatting: `Response`, `Event`, number/hex/list helpers, command formatting and pin aliases.
-- `terminal.py` - `FirmwareTerminal`: sends `cmd\r`, strips echo, prompts and escape sequences, queues `EVT` lines, raises `FirmwareError(reason, command)` on `ERR`, `wait_event`, `wait_boot`, `sync`.
+In `hal_ti_validation` (hal-ti specific):
+
 - `firmware.py` - typed API with one group per PROTOCOL.md section (`fw.gpio`, `fw.pwm`, `fw.uart`, `fw.spi`, `fw.adc`, `fw.comp`, `fw.qei`, `fw.can`, `fw.eeprom`, `fw.wdt`, `fw.eth`, `fw.system`); keyword arguments map 1:1 to protocol options (`continue_` for `continue`).
-- `instruments/ad3.py` - `AnalogDiscovery3`: supplies, static DIO, pattern generator (pulses, clocks, custom sequences, quadrature with index), logic analyzer with DIO-edge trigger, wavegen, scope, UART/SPI/CAN protocol engines.
-- `analysis.py` - pure signal analysis (frequency, duty, edges, dead time, phase, quadrature/SPI/UART decode, statistics); `expect.py` - expected TM4C values (PWM quantisation, comparator reference, counter wrap).
-- `config.py` - board file loading, wiring-set merging and parameter overrides.
+- `protocol.py` - the hal-ti part of the protocol: error reasons, `P<port><index>` pins and board aliases (`normalize_pin`, `parse_pin_map`).
+- `config.py` - board file loading, wiring-set merging and parameter overrides; `expect.py` - expected TM4C values (PWM quantisation, comparator reference, counter wrap).
+- `fake_firmware.py` - `FakeFirmware`, an in-memory stand-in for the validation firmware used by the unit tests and `--fake`.
+- `console.py` - the `hal-ti-console` entry point.
+
+In [ad3-waveforms-bench](https://github.com/embedded-pro/ad3-waveforms-bench) (generic, imported as `ad3_waveforms_bench`):
+
+- `protocol.py` - pure parsing and formatting: `Response`, `Event`, number/hex/list helpers, command formatting, configurable `Dialect`.
+- `terminal.py` - `FirmwareTerminal`: sends `cmd\r`, strips echo, prompts and escape sequences, queues `EVT` lines, raises `FirmwareError(reason, command)` on `ERR`, `wait_event`, `wait_boot`, `sync`.
+- `instruments/ad3.py`, `instruments/dwf.py` - `AnalogDiscovery3` over the WaveForms SDK: supplies, static DIO, pattern generator (pulses, clocks, custom sequences, quadrature with index), logic analyzer with DIO-edge trigger, wavegen, scope, UART/SPI/CAN protocol engines.
+- `analysis.py` - pure signal analysis (frequency, duty, edges, dead time, phase, quadrature/SPI/UART decode, statistics).
+- `instruments/fake.py`, `fake_terminal.py` - `FakeDwfApi` and the generic fake terminal device and serial port; `pytest_plugin.py` - AD3 options, marker and fixture.

@@ -6,9 +6,9 @@ Wiring set `uart`: firmware TX and RX of each `tests.uart.instances` entry on DI
 import time
 
 import pytest
+from ad3_waveforms_bench.protocol import format_command
 
 from hal_ti_validation import expect
-from hal_ti_validation.protocol import format_command
 
 pytestmark = pytest.mark.ad3
 

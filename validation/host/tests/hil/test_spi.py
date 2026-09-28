@@ -7,8 +7,7 @@ Wiring set `spi`: CLK, FSS, MOSI and MISO on DIOs. MISO is driven to a static le
 import statistics
 
 import pytest
-
-from hal_ti_validation import analysis
+from ad3_waveforms_bench import analysis
 
 pytestmark = pytest.mark.ad3
 

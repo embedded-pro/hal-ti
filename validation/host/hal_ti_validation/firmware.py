@@ -6,8 +6,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from .protocol import Event, Response, format_command, normalize_pin, parse_pin_map
-from .terminal import FirmwareError, FirmwareTerminal
+from ad3_waveforms_bench.protocol import Event, Response, format_command
+from ad3_waveforms_bench.terminal import FirmwareError, FirmwareTerminal
+
+from .protocol import normalize_pin, parse_pin_map
 
 Pin = str
 Level = Literal[0, 1]

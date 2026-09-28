@@ -1,10 +1,10 @@
 """EEPROM (`hal::tiva::Eeprom`): erase, write/read patterns, boundaries and persistence across reset."""
 
 import pytest
+from ad3_waveforms_bench.protocol import format_command
+from ad3_waveforms_bench.terminal import FirmwareError
 
 from hal_ti_validation import expect
-from hal_ti_validation.protocol import format_command
-from hal_ti_validation.terminal import FirmwareError
 
 
 @pytest.fixture

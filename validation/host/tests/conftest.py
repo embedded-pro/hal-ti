@@ -1,4 +1,8 @@
-"""Shared pytest plumbing: board/wiring options, firmware and AD3 fixtures, YAML-driven parametrisation."""
+"""Shared pytest plumbing: board/wiring options, firmware fixtures, YAML-driven parametrisation.
+
+`--ad3-serial`, `--no-ad3`, `--fake`, the `ad3` marker and the `ad3` fixture come from the
+`ad3_waveforms_bench` pytest plugin; `ad3_settings` below feeds it the board file's AD3 section.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +12,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from ad3_waveforms_bench.pytest_plugin import Ad3Settings
+from ad3_waveforms_bench.terminal import FirmwareTerminal, TerminalError
 
 from hal_ti_validation.config import BoardConfig, ConfigError, Wiring, load_board
 from hal_ti_validation.firmware import Firmware
-from hal_ti_validation.terminal import FirmwareTerminal, TerminalError
 
 HIL_DIR = Path(__file__).parent / "hil"
 _BOARD_KEY = pytest.StashKey[BoardConfig]()
@@ -24,9 +29,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption("--baud", type=int, default=None, help="terminal baud rate (default from the board YAML)")
     group.addoption("--wiring-set", default=os.environ.get("HAL_TI_WIRING", ""), help="comma separated wiring sets from the board YAML")
     group.addoption("--with", dest="with_tags", action="append", default=[], help="enable an optional wiring tag (repeatable)")
-    group.addoption("--ad3-serial", default=os.environ.get("HAL_TI_AD3_SERIAL"), help="AD3 serial number (default: first device)")
-    group.addoption("--no-ad3", action="store_true", help="skip every test that needs the Analog Discovery 3")
-    group.addoption("--fake", action="store_true", help="dry-run the HIL plumbing against the in-memory fakes (no hardware)")
     group.addoption("--set", dest="overrides", action="append", default=[], help="override a test parameter: pwm.frequencies_hz=[20000]")
     group.addoption("--quick", action="store_true", help="use only the first value of every YAML parameter list")
 
@@ -103,8 +105,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         marker = item.get_closest_marker("requires_option")
         if marker and marker.args[0] not in tags:
             item.add_marker(pytest.mark.skip(reason=f"enable with --with {marker.args[0]}"))
-        if item.get_closest_marker("ad3") and config.getoption("--no-ad3"):
-            item.add_marker(pytest.mark.skip(reason="--no-ad3"))
 
 
 @pytest.fixture(scope="session")
@@ -158,7 +158,7 @@ def terminal(pytestconfig: pytest.Config, board_cfg: BoardConfig) -> Iterator[Fi
     port = pytestconfig.getoption("--port")
     serial = None
     if pytestconfig.getoption("--fake"):
-        from hal_ti_validation.instruments.fake import FakeFirmware, FakeSerial
+        from hal_ti_validation.fake_firmware import FakeFirmware, FakeSerial
 
         name = board_cfg.firmware_name or board_cfg.name
         serial = FakeSerial(FakeFirmware(board=name, family=board_cfg.family, sysclk=board_cfg.sysclk or 0, pins=dict(board_cfg.pins)))
@@ -189,25 +189,12 @@ def fw(terminal: FirmwareTerminal, board_cfg: BoardConfig) -> Firmware:
 
 
 @pytest.fixture(scope="session")
-def ad3(pytestconfig: pytest.Config, board_cfg: BoardConfig) -> Iterator[Any]:
-    if pytestconfig.getoption("--no-ad3"):
-        pytest.skip("--no-ad3")
-    from hal_ti_validation.instruments.ad3 import AnalogDiscovery3
-    from hal_ti_validation.instruments.fake import FakeDwfApi
-
-    device = AnalogDiscovery3(
-        serial=pytestconfig.getoption("--ad3-serial"),
+def ad3_settings(board_cfg: BoardConfig) -> Ad3Settings:
+    return Ad3Settings(
         analog_limits=(board_cfg.ad3.analog_min, board_cfg.ad3.analog_max),
-        api_factory=FakeDwfApi if pytestconfig.getoption("--fake") else None,
+        vplus=board_cfg.ad3.vplus,
+        vminus=board_cfg.ad3.vminus,
     )
-    try:
-        device.open()
-    except (OSError, RuntimeError) as error:
-        pytest.skip(f"Analog Discovery 3 unavailable: {error}")
-    if board_cfg.ad3.vplus is not None or board_cfg.ad3.vminus is not None:
-        device.supplies.set(board_cfg.ad3.vplus, board_cfg.ad3.vminus)
-    yield device
-    device.close()
 
 
 @pytest.fixture(autouse=True)

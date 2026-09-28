@@ -3,8 +3,7 @@
 import time
 
 import pytest
-
-from hal_ti_validation.terminal import FirmwareError
+from ad3_waveforms_bench.terminal import FirmwareError
 
 
 @pytest.mark.family("tm4c123")

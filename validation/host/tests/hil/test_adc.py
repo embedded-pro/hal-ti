@@ -7,9 +7,8 @@ actual level, which then replaces the programmed one as reference.
 import time
 
 import pytest
-
-from hal_ti_validation import analysis
-from hal_ti_validation.terminal import FirmwareError
+from ad3_waveforms_bench import analysis
+from ad3_waveforms_bench.terminal import FirmwareError
 
 pytestmark = pytest.mark.ad3
 

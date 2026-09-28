@@ -6,9 +6,8 @@ Wiring set `gpio`: every pin of `tests.gpio.loop_pins`/`locked_pins`/`output_onl
 import statistics
 
 import pytest
-
-from hal_ti_validation import analysis
-from hal_ti_validation.terminal import FirmwareError
+from ad3_waveforms_bench import analysis
+from ad3_waveforms_bench.terminal import FirmwareError
 
 pytestmark = pytest.mark.ad3
 
