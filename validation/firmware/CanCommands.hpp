@@ -36,6 +36,7 @@ namespace validation
         uint32_t generation = 0;
         bool transmitting = false;
         bool awaiting = false;
+        bool closing = false;
         std::optional<hal::tiva::Can::Error> lastError;
         infra::TimePoint lastErrorTime;
         infra::TimerSingleShot timer;

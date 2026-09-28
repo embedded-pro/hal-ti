@@ -97,7 +97,7 @@ namespace validation
         if (!arguments.Shape(0, 0, {}))
             return Status::usage;
 
-        timer.Start(resetFlushTime, []()
+        resetTimer.Start(resetFlushTime, []()
             {
                 NVIC_SystemReset();
             });

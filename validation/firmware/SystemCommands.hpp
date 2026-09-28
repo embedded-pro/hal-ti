@@ -31,6 +31,7 @@ namespace validation
         Context& context;
         const char* resetCause;
         infra::TimerSingleShot timer;
+        infra::TimerSingleShot resetTimer;
         std::array<Command, 5> commands;
     };
 }

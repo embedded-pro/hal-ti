@@ -252,6 +252,7 @@ namespace validation
             runsRemaining = 0;
             measuringSlot = std::nullopt;
             timer.Cancel();
+            context.response.Error(Status::failed);
         }
 
         slots[slot]->driver.emplace<std::monostate>();

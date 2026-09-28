@@ -1,6 +1,8 @@
 #include "validation/firmware/CanCommands.hpp"
 #include "BoardProfile.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/Tokenizer.hpp"
+#include DEVICE_HEADER
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -208,14 +210,24 @@ namespace validation
         if (status != Status::done)
             return status;
 
-        can = std::nullopt;
-        context.pins.Release(owner::can);
-        index = std::nullopt;
         ++generation;
         transmitting = false;
         awaiting = false;
+        closing = true;
         timer.Cancel();
-        context.response.Ok();
+
+        // The driver schedules events capturing itself from its ISR; with the interrupt masked, destroying it
+        // behind the already queued events guarantees none of them runs on a destroyed driver
+        NVIC_DisableIRQ(*index == 0 ? CAN0_IRQn : CAN1_IRQn);
+        infra::EventDispatcher::Instance().Schedule([this]()
+            {
+                can = std::nullopt;
+                context.pins.Release(owner::can);
+                index = std::nullopt;
+                closing = false;
+                context.response.Ok();
+            });
+
         return Status::done;
     }
 
@@ -227,7 +239,7 @@ namespace validation
         if (status != Status::done)
             return status;
 
-        if (index != requested)
+        if (index != requested || closing)
             return Status::notOpen;
 
         return Status::done;
