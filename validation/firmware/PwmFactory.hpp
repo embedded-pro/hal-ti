@@ -98,6 +98,7 @@ namespace validation
         services::HilResponse& response;
         services::HilPinOwner faultPins;
         std::optional<hal::tiva::PeripheralPin> faultPin;
+        std::optional<services::HilPinId> faultPinId;
         std::optional<Settings> settings;
         hal::tiva::Pwm::Config asyncConfig;
         hal::tiva::SynchronousPwm::Config syncConfig;

@@ -137,6 +137,19 @@ def test_pwm_fault_validation():
     assert reason(terminal, "pwm.fault 0 on inputs=1") == "unsupported"
 
 
+def test_pwm_fault_keeps_previous_pin_when_new_pin_is_busy():
+    terminal, _ = make_terminal()
+    terminal.command("pwm.open 0 gens=0")
+    assert reason(terminal, "pwm.fault 0 on inputs=1 pin=PD2") == "ok"
+    assert reason(terminal, "gpio.cfg PD6 in") == "ok"
+    assert reason(terminal, "pwm.fault 0 on inputs=1 pin=PD6") == "busy"
+    assert reason(terminal, "gpio.cfg PD2 in") == "busy", "the previous fault pin stays claimed"
+    assert reason(terminal, "pwm.fault 0 on inputs=1 pin=PD2") == "ok", "repeating the held pin keeps it"
+    assert reason(terminal, "gpio.release PD6") == "ok"
+    assert reason(terminal, "pwm.fault 0 on inputs=1 pin=PD6") == "ok"
+    assert reason(terminal, "gpio.cfg PD2 in") == "ok", "the replaced fault pin is released"
+
+
 def test_pwm_interrupt_counts_follow_time():
     clock = Clock()
     terminal, _ = make_terminal(clock=clock, sleep=clock.sleep)

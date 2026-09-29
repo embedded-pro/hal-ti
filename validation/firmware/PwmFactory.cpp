@@ -233,23 +233,34 @@ namespace validation
         if (settings->synchronous)
             return HilStatus::unsupported;
 
+        hal::GpioPin* claimed = nullptr;
+        const bool newPin = pin.has_value() && pin != faultPinId;
+        if (newPin)
+        {
+            status = faultPins.ClaimFunction(*pin, Function(hal::tiva::PinConfigPeripheral::pwmFault), settings->module, claimed);
+            if (status != HilStatus::done)
+                return status;
+        }
+
         adapter.emplace<std::monostate>();
         driver.emplace<std::monostate>();
-        ReleaseFaultPin();
 
-        if (pin)
+        if (faultPinId.has_value() && pin != faultPinId)
         {
-            hal::GpioPin* gpio = nullptr;
-            status = faultPins.ClaimFunction(*pin, Function(hal::tiva::PinConfigPeripheral::pwmFault), settings->module, gpio);
-            if (status == HilStatus::done)
-                faultPin.emplace(PinOrDummy(gpio), hal::tiva::PinConfigPeripheral::pwmFault);
-            else
-                fault = std::nullopt;
+            faultPin.reset();
+            faultPins.Release(*faultPinId);
+            faultPinId = std::nullopt;
+        }
+
+        if (newPin)
+        {
+            faultPin.emplace(PinOrDummy(claimed), hal::tiva::PinConfigPeripheral::pwmFault);
+            faultPinId = pin;
         }
 
         settings->fault = fault;
         Construct();
-        return status;
+        return HilStatus::done;
     }
 
     uint32_t TivaPwmFactory::InterruptCount(uint8_t generator, bool clear)
@@ -539,6 +550,7 @@ namespace validation
     void TivaPwmFactory::ReleaseFaultPin()
     {
         faultPin.reset();
+        faultPinId = std::nullopt;
         faultPins.Release();
     }
 

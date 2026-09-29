@@ -589,14 +589,15 @@ class FakeFirmware(FakeTerminalDevice):
         if state["sync"]:
             _fail("unsupported")
         owner = ("pwm", str(state["module"]))
-        self.claims = {
-            claimed: holder for claimed, holder in self.claims.items() if not (holder == owner and claimed == state.get("fault_pin"))
-        }
-        state["fault_pin"] = None
-        if args[1] == "on" and pin is not None:
-            self._check_pins(owner, [pin])
-            self._claim(owner, [pin])
-            state["fault_pin"] = pin
+        previous = state.get("fault_pin")
+        requested = pin if args[1] == "on" else None
+        if requested is not None and requested != previous:
+            self._check_pins(owner, [requested])
+        if previous is not None and requested != previous:
+            self.claims = {claimed: holder for claimed, holder in self.claims.items() if not (holder == owner and claimed == previous)}
+        if requested is not None and requested != previous:
+            self._claim(owner, [requested])
+        state["fault_pin"] = requested
         state["fault"] = dict(options) if args[1] == "on" else None
         state["running"] = False
         return "OK"

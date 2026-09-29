@@ -79,6 +79,7 @@ The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix
   - `latch` (default 0) sets the driver's latch flag, so the fault stays asserted after its source clears; `minperiod` (default 0, off) is the minimum fault period in PWM clocks, at most 65535
   - `pin` muxes a fault pin of the module (`ERR pin` for another pin): TM4C123 PD2, PD6, PF2 (M0FAULT0) and PF4 (M1FAULT0); TM4C129 PF4 (M0FAULT0), PK6 (M0FAULT1), PK7 (M0FAULT2), PL0 (M0FAULT3); a high level is a fault
   - the pin is released by `pwm.fault <module> off`, the next accepted `pwm.fault` or `pwm.close`
+  - the pin is claimed before the module is rebuilt: a `pin=` that answers `ERR pin` or `ERR busy` leaves the previous fault configuration, its pin and the running outputs untouched; repeating the same `pin=` keeps it
   - the driver takes the fault configuration only at construction, so the module is rebuilt and its outputs stay stopped until the next `pwm.duty`; the driver does not force the outputs on a fault, it only reports it
   - faults report `EVT pwm module=<m> gens=<mask> comparators=<mask> inputs=<mask>` (generator fault status, digital comparator and pin fault inputs of all generators OR-ed)
   - with `sync=1` returns `ERR unsupported`
