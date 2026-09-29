@@ -141,17 +141,17 @@ wiring_sets:
         note: C1o output
   comparator_c0:
     description: >-
-      analog comparator 1 with its positive input taken from C0+ (C0+ PC7,
+      analog comparator 1 with its positive input taken from C0+ (C0+ PC6,
       C1- PC4, C1o PD1)
     wavegen:
       1:
-        pin: PC7
+        pin: PC6
         note: C0+ input
       2:
         pin: PC4
         note: C1- input
     scope:
-      1: PC7
+      1: PC6
       2: PC4
     dio:
       0:
@@ -451,7 +451,7 @@ tests:
     # comparator_c0.
     c0_instances:
       - index: 1
-        c0: PC7
+        c0: PC6
         neg: PC4
         out: PD1
     output:

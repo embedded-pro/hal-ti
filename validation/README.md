@@ -225,9 +225,9 @@ The `wdt` set reuses the `gpio0` connection of the `gpio` set.
 | `comparator`    | Scope 1+ | PC5           |                                                                            |
 | `comparator`    | Scope 2+ | PC4           |                                                                            |
 | `comparator_c0` | DIO0     | PD1           | C1o output                                                                 |
-| `comparator_c0` | W1       | PC7           | C0+ input                                                                  |
+| `comparator_c0` | W1       | PC6           | C0+ input                                                                  |
 | `comparator_c0` | W2       | PC4           | C1- input                                                                  |
-| `comparator_c0` | Scope 1+ | PC7           |                                                                            |
+| `comparator_c0` | Scope 1+ | PC6           |                                                                            |
 | `comparator_c0` | Scope 2+ | PC4           |                                                                            |
 | `qei`           | DIO0     | PL1 (qei0a)   |                                                                            |
 | `qei`           | DIO1     | PL2 (qei0b)   |                                                                            |
