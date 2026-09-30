@@ -34,7 +34,11 @@
       "gdbTarget": "host.docker.internal:3333",
       "gdbPath": "gdb-multiarch",
       "device": "TM4C123GH6PM",
-      "overrideLaunchCommands": ["monitor reset halt", "load", "monitor reset halt"]
+      "overrideLaunchCommands": [
+        "monitor reset halt",
+        "load",
+        "monitor reset halt"
+      ]
     },
     {
       "name": "ek-tm4c1294xl (OpenOCD on host)",
@@ -46,7 +50,11 @@
       "gdbTarget": "host.docker.internal:3333",
       "gdbPath": "gdb-multiarch",
       "device": "TM4C1294NCPDT",
-      "overrideLaunchCommands": ["monitor reset halt", "load", "monitor reset halt"]
+      "overrideLaunchCommands": [
+        "monitor reset halt",
+        "load",
+        "monitor reset halt"
+      ]
     }
   ]
 }
