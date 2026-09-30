@@ -76,7 +76,8 @@ python3 -m venv .venv
 pip install -e "validation/host[ad3]"
 ```
 
-This also installs `ad3-waveforms-bench` from `git+https://github.com/embedded-pro/ad3-waveforms-bench@main` (see `host/pyproject.toml`; the reference can be pinned to a tag once the repository has releases).
+This also installs `ad3-waveforms-bench` from `git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0` (see `host/pyproject.toml`), the first release that can use an AD3 on another machine.
+This is the setup for one machine that has the AD3, the LaunchPad and Python together. When the AD3 and the LaunchPad are on a Windows PC and the build and the tests run in Docker, follow [Windows host and Docker (bridge mode)](#windows-host-and-docker-bridge-mode) instead.
 To work on both at the same time, install a local checkout first and then this package without dependencies:
 
 ```bash
@@ -124,6 +125,86 @@ Tests that reset the board on purpose (watchdog, EEPROM persistence) are marked 
 Every instance a test opened is closed afterwards and the AD3 outputs are released, so tests are independent (the firmware keeps at most one PWM module, UART, SSI, comparator, QEI and CAN open at a time).
 Where a known driver gap makes an assertion fail on hardware, the test is marked `xfail(strict=False)` with the reason, so the run reports it without failing.
 Use `-k`, `-m "not slow"` and `--junitxml report.xml` as usual.
+
+## Windows host and Docker (bridge mode)
+
+Use this when the build and the tests run in the hal-ti devcontainer (Docker) but the AD3, the LaunchPad's serial port and its ICDI debugger are plugged into a Windows PC. Docker cannot reach those USB devices, so Windows shares them over TCP and the container uses them through `host.docker.internal`:
+
+```text
+ Docker container (devcontainer)                  Windows host
+ ┌─────────────────────────────────┐  TCP 5025   ┌─────────────────────────────┐
+ │ pytest --ad3-remote ...         │ ──────────▶ │ ad3-bench-server            │── WaveForms ── AD3 (USB)
+ │ pytest --port socket://...:5000 │  TCP 5000   │ port-bridge  (serial)       │── COMx ─────── LaunchPad UART
+ │ gdb-multiarch (flash, debug)    │  TCP 3333   │ port-bridge  (OpenOCD)      │── ICDI ─────── LaunchPad debug
+ └─────────────────────────────────┘             └─────────────────────────────┘
+```
+
+| Port | Windows service                                                                             | Used in the container                                                      |
+|------|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| 5025 | [`ad3-bench-server`](https://github.com/embedded-pro/ad3-waveforms-bench) (WaveForms, AD3)  | `--ad3-remote host.docker.internal:5025` or `AD3_REMOTE`                   |
+| 5000 | [`port-bridge`](https://github.com/gabrielfrasantos/port-bridge) serial (firmware terminal) | `--port socket://host.docker.internal:5000` or `HAL_TI_PORT`               |
+| 3333 | `port-bridge` OpenOCD GDB server (ICDI)                                                     | `gdb-multiarch ... -ex "target extended-remote host.docker.internal:3333"` |
+
+The container needs no USB access, no WaveForms runtime and no OpenOCD: the devcontainer already has `gdb-multiarch`, and its `runArgs` map `host.docker.internal` to the host (Docker Desktop defines the name anyway; the mapping makes it work with Docker Engine in WSL2 too).
+
+### On Windows
+
+1. Install [WaveForms](https://digilent.com/reference/software/waveforms/waveforms-3/start), plug in the AD3 and check that WaveForms sees it. Close WaveForms afterwards: only one program can own the AD3.
+2. Install OpenOCD for Windows (for example the [xPack OpenOCD](https://xpack-dev-tools.github.io/openocd-xpack/) build) and put it on `PATH`. OpenOCD reaches the ICDI through libusb:
+   - if it reports that it cannot open the ICDI, install the WinUSB driver for the "In-Circuit Debug Interface" with [Zadig](https://zadig.akeo.ie/);
+   - this replaces TI's driver, so switch it back to use LM Flash Programmer or UniFlash;
+   - this step has not been checked on every Windows and OpenOCD combination.
+3. Install Python 3.10 or newer, then both bridges (neither is on PyPI; the [ad3-waveforms-bench releases](https://github.com/embedded-pro/ad3-waveforms-bench/releases) and [port-bridge releases](https://github.com/gabrielfrasantos/port-bridge/releases) also provide Windows installers with a GUI):
+
+   ```powershell
+   py -m venv $env:USERPROFILE\hil-bridge
+   & $env:USERPROFILE\hil-bridge\Scripts\Activate.ps1
+   pip install "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0"
+   pip install "port-bridge @ git+https://github.com/gabrielfrasantos/port-bridge@v0.1.5"
+   ```
+
+4. Start both, in two terminals:
+
+   ```powershell
+   ad3-bench-server
+   port-bridge --serial-port COM5 --serial-baudrate 921600 --probe openocd --openocd-board ek-tm4c1294xl
+   ```
+
+   - `COM5` is the COM port of the firmware terminal: the ICDI virtual COM port (on the EK-TM4C1294XL with JP4/JP5 in the UART2 position) or the USB-UART adapter on PD4/PD5.
+   - 921600 is the terminal baud rate of the firmware. The serial bridge is a plain byte stream, so the baud rate is set here and `--baud` has no effect in the container.
+   - Use `--openocd-board ek-tm4c123gxl` for the EK-TM4C123GXL.
+   - `port-bridge` holds the COM port and the ICDI while it runs; stop it before flashing with UniFlash or opening the port in another tool.
+   - `ad3-bench-server --fake` serves a simulated AD3 to try the setup without hardware.
+
+Both listen on `127.0.0.1` by default, which Docker Desktop reaches through `host.docker.internal`. If the container cannot connect (for example Docker Engine inside WSL2):
+
+- listen on all interfaces with `ad3-bench-server --host 0.0.0.0 --token <secret>` (and `AD3_REMOTE_TOKEN=<secret>` in the container) and `port-bridge --bind 0.0.0.0`;
+- keep ports 5025, 5000 and 3333 blocked from the network in the Windows firewall: whoever reaches them controls the AD3 and the board.
+
+### In the container
+
+Build, flash through the OpenOCD of the host, then run the tests against the host's AD3 and serial port:
+
+```bash
+cmake --preset tm4c1294ncpdt
+cmake --build --preset tm4c1294ncpdt-Debug --target hal_ti.validation_firmware
+
+gdb-multiarch build/tm4c1294ncpdt/validation/firmware/hal_ti.validation_firmware.elf -batch \
+    -ex "target extended-remote host.docker.internal:3333" \
+    -ex "monitor reset halt" -ex load -ex "monitor reset run" -ex detach
+
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e "validation/host[ad3]"
+
+export AD3_REMOTE=host.docker.internal:5025
+export HAL_TI_PORT=socket://host.docker.internal:5000
+pytest validation/host/tests/hil --board ek_tm4c1294xl --wiring-set pwm --depth quick
+```
+
+- `AD3_REMOTE` and `HAL_TI_PORT` can be replaced by `--ad3-remote` and `--port` on the pytest command line.
+- If `python3 -m venv` is not available in the image, use `pip install --user -e "validation/host[ad3]"`.
+- To debug from VS Code inside the container, use the `ek-tm4c123gxl (OpenOCD on host)` or `ek-tm4c1294xl (OpenOCD on host)` launch configuration: it attaches `gdb-multiarch` to the OpenOCD of the host instead of starting a local debug server.
+- The AD3 serves one client at a time; a second pytest run is refused until the first one disconnects. When a client disconnects, the server releases every AD3 output and switches the supplies off.
 
 ## Wiring sets
 

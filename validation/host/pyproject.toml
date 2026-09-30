@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 # ad3-waveforms-bench brings the AD3 wrapper, the terminal client and the pytest plugin (--ad3-serial,
 # --no-ad3, --fake, the ad3 fixture). Pin it to a tag instead of main once the repository has releases.
 dependencies = [
-    "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@main",
+    "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0",
     "pyserial>=3.5",
     "pyyaml>=6.0",
     "pytest>=7.4",

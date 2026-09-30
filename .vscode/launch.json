@@ -23,6 +23,30 @@
       "servertype": "jlink",
       "interface": "swd",
       "device": "TM4C1294NCPDT"
+    },
+    {
+      "name": "ek-tm4c123gxl (OpenOCD on host)",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "executable": "${command:cmake.launchTargetPath}",
+      "type": "cortex-debug",
+      "servertype": "external",
+      "gdbTarget": "host.docker.internal:3333",
+      "gdbPath": "gdb-multiarch",
+      "device": "TM4C123GH6PM",
+      "overrideLaunchCommands": ["monitor reset halt", "load", "monitor reset halt"]
+    },
+    {
+      "name": "ek-tm4c1294xl (OpenOCD on host)",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "executable": "${command:cmake.launchTargetPath}",
+      "type": "cortex-debug",
+      "servertype": "external",
+      "gdbTarget": "host.docker.internal:3333",
+      "gdbPath": "gdb-multiarch",
+      "device": "TM4C1294NCPDT",
+      "overrideLaunchCommands": ["monitor reset halt", "load", "monitor reset halt"]
     }
   ]
 }
