@@ -9,9 +9,9 @@ namespace hal::tiva
         constexpr uint32_t UART_RIS_OERIS = 0x00000400; // UART Overrun Error Raw Interrupt Status
         constexpr uint32_t UART_RIS_RXRIS = 0x00000010; // UART Receive Raw Interrupt Status
         constexpr uint32_t UART_RIS_RTRIS = 0x00000040; // UART Receive Time-Out Raw Interrupt Status
-        constexpr uint32_t UART_RIS_TXRIS = 0x00000020; // UART Transmit Raw Interrupt Status
 
         constexpr uint32_t UART_FR_RXFE = 0x00000010; // UART Receive FIFO Empty
+        constexpr uint32_t UART_FR_TXFF = 0x00000020; // UART Transmit FIFO Full
 
         constexpr uint32_t UART_ICR_OEIC = 0x00000400; // Overrun Error Interrupt Clear
         constexpr uint32_t UART_ICR_RTIC = 0x00000040; // Receive Time-Out Interrupt Clear
@@ -33,6 +33,8 @@ namespace hal::tiva
             sending = true;
 
             uartArray[uartIndex]->IM |= UART_IM_TXIM;
+            // The transmit interrupt fires when the FIFO drains through its trigger level, never for a FIFO that is already empty
+            NVIC_SetPendingIRQ(static_cast<IRQn_Type>(irqArray[uartIndex]));
         }
     }
 
@@ -67,10 +69,10 @@ namespace hal::tiva
 
         if (sending)
         {
-            if (!sendData.empty() && (uartArray[uartIndex]->RIS & UART_RIS_TXRIS))
-            {
-                uartArray[uartIndex]->ICR = UART_ICR_TXIC;
+            uartArray[uartIndex]->ICR = UART_ICR_TXIC;
 
+            while (!sendData.empty() && !(uartArray[uartIndex]->FR & UART_FR_TXFF))
+            {
                 uartArray[uartIndex]->DR = sendData.front();
                 sendData.pop_front();
             }
