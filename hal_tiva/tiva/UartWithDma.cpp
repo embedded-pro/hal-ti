@@ -2,6 +2,7 @@
 #include "UartWithDmaFamily.hpp"
 #include "hal_tiva/tiva/Dma.hpp"
 #include "infra/util/MemoryRange.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 namespace hal::tiva
 {
@@ -37,9 +38,11 @@ namespace hal::tiva
         } };
 
         constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
-        constexpr DmaChannel::Attributes rxAttributes{ false, false, true, false };
+        // Burst-only, with bursts smaller than the RX FIFO trigger level: a character always stays in the FIFO so the
+        // receive time-out fires; otherwise a short message waits in the DMA buffer until the half-buffer fills.
+        constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
-        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_2_items };
+        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
@@ -74,7 +77,8 @@ namespace hal::tiva
     void UartWithDma::Initialize() const
     {
         DisableUart();
-        SetFifo(Fifo::_1_8, Fifo::_4_8);
+        really_assert(rxBufferPrimary.size() % 4 == 0 && rxBufferAlternate.size() % 4 == 0);
+        SetFifo(Fifo::_4_8, Fifo::_4_8);
         EnableRxDma();
         EnableTxDma();
         EnableUart();
