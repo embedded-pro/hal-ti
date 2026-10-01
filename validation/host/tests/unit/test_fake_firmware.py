@@ -208,6 +208,27 @@ def test_can_loopback_filter(filter_option, ident, ext, accepted):
     assert bool(frames) == accepted
 
 
+def test_can_bus_frames_both_ways_through_the_filter():
+    can = pytest.importorskip("can")
+    terminal, _ = make_terminal(can_bus="unit-fake-bus")
+    peer = can.Bus(interface="virtual", channel="unit-fake-bus")
+    try:
+        terminal.command("can.open 0 filter=0x120,0x7f0,0")
+        terminal.command("can.send 0 0x123 0102")
+        sent = peer.recv(0.5)
+        assert (sent.arbitration_id, bytes(sent.data)) == (0x123, b"\x01\x02")
+        peer.send(can.Message(arbitration_id=0x12F, is_extended_id=False, data=b"\x05"))
+        peer.send(can.Message(arbitration_id=0x130, is_extended_id=False, data=b"\x06"))
+        event = terminal.wait_event("can", timeout=0.5)
+        assert (event["id"], event["data"]) == ("0x12f", "05")
+        assert not terminal.drain_events("can")
+        terminal.command("can.close 0")
+        peer.send(can.Message(arbitration_id=0x120, is_extended_id=False, data=b"\x07"))
+        assert not terminal.drain_events("can")
+    finally:
+        peer.shutdown()
+
+
 @pytest.mark.parametrize(
     ("line", "expected"),
     [

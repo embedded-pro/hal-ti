@@ -67,8 +67,7 @@ def test_parameters_reference_wired_pins(name):
         assert wired("comparator_c0", instance["out"])
     for pin in board.param("adc.inputs"):
         assert wired("adc", pin, "wavegen")
-    can = board.wiring(["can"])
-    assert can.dio(role="can_ad3_tx") is not None and can.dio(role="can_ad3_rx") is not None
+    assert not board.wiring(["can"]).connections, "the CAN bus goes to a CANable, not to the AD3"
     assert board.wiring(["gpio", "wdt"]).dio(role="wdt_pin") is not None
 
 

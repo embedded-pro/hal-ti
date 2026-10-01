@@ -6,6 +6,9 @@ marker adds the dimensions of a YAML mapping; `--depth full` runs their cartesia
 
 `--ad3-serial`, `--no-ad3`, `--fake`, the `ad3` marker and the `ad3` fixture come from the
 `ad3_waveforms_bench` pytest plugin; `ad3_settings` below feeds it the board file's AD3 section.
+
+Tests with a `link` argument run once per `--can-mode` link: `loopback` (the controller's internal test mode)
+and `bus` (a CANable on the other end of the transceiver, `--can-peer`; see `hal_ti_validation.can_peer`).
 """
 
 from __future__ import annotations
@@ -19,12 +22,15 @@ import pytest
 from ad3_waveforms_bench.pytest_plugin import Ad3Settings
 from ad3_waveforms_bench.terminal import FirmwareTerminal, TerminalError
 
+from hal_ti_validation.can_peer import CanPeer, CanPeerError, open_peer
 from hal_ti_validation.config import BoardConfig, ConfigError, Connection, Wiring, load_board
 from hal_ti_validation.firmware import Firmware
 from hal_ti_validation.pairwise import DEPTHS, combinations
 
 HIL_DIR = Path(__file__).parent / "hil"
 _BOARD_KEY = pytest.StashKey[BoardConfig]()
+CAN_MODES = {"loopback": ["loopback"], "bus": ["bus"], "both": ["loopback", "bus"]}
+FAKE_CAN_BUS = "hal-ti-fake"
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -40,6 +46,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         choices=DEPTHS,
         default=os.environ.get("HAL_TI_DEPTH", "quick"),
         help="quick: pairwise subset of every parameter matrix (default); full: complete cartesian products",
+    )
+    group.addoption(
+        "--can-mode",
+        choices=sorted(CAN_MODES),
+        default=os.environ.get("HAL_TI_CAN_MODE", "loopback"),
+        help="CAN link of the frame, timing and filter tests: loopback (default, no wiring), bus (needs --can-peer) or both",
+    )
+    group.addoption(
+        "--can-peer",
+        default=os.environ.get("HAL_TI_CAN_PEER"),
+        help="CAN adapter on the bus: <python-can interface>:<channel> (slcan:COM7, slcan:socket://host:5002, gs_usb:0) "
+        "or port-bridge:<host>:<port>",
+    )
+    group.addoption(
+        "--can-peer-bitrate",
+        type=int,
+        default=int(os.environ["HAL_TI_CAN_PEER_BITRATE"]) if os.environ.get("HAL_TI_CAN_PEER_BITRATE") else None,
+        help="bit rate the adapter is fixed at (port-bridge --can-bitrate, socketcan ip link); tests at other rates skip",
     )
 
 
@@ -120,6 +144,8 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
         dimensions, skip = _dimensions(metafunc, board)
     except ConfigError as error:
         raise pytest.UsageError(str(error)) from error
+    if "link" in metafunc.fixturenames:
+        metafunc.parametrize("link", CAN_MODES[metafunc.config.getoption("--can-mode")])
     if not dimensions and skip is None:
         return
     argnames = [name for dimension in dimensions for name in dimension.names]
@@ -161,7 +187,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
 def _pending_names(metafunc: pytest.Metafunc) -> list[str]:
     """Arguments that no fixture provides: the ones a skipped parametrisation still has to set."""
     fixtures = getattr(metafunc, "_arg2fixturedefs", {})
-    return [name for name in metafunc.fixturenames if name not in fixtures and name != "request"]
+    return [name for name in metafunc.fixturenames if name not in fixtures and name not in ("request", "link")]
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -267,6 +293,7 @@ def terminal(pytestconfig: pytest.Config, board_cfg: BoardConfig) -> Iterator[Fi
             pins=dict(board_cfg.pins),
             eeprom_size=eeprom_size,
             style="line",
+            can_bus=FAKE_CAN_BUS,
         )
         serial = FakeSerial(fake)
     elif not port:
@@ -293,6 +320,38 @@ def fw(terminal: FirmwareTerminal, board_cfg: BoardConfig) -> Firmware:
     if not board_cfg.matches_firmware_name(info.board):
         pytest.exit(f"--board {board_cfg.name} but the firmware reports {info.board}", returncode=3)
     return firmware
+
+
+_CAN_PEER_KEY = pytest.StashKey["CanPeer | None"]()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Check `--can-peer` before collection, so a bad spec stops the run once instead of erroring every test."""
+    spec = config.getoption("--can-peer", None)
+    if spec is None and config.getoption("--fake", False):
+        spec = f"virtual:{FAKE_CAN_BUS}"
+    try:
+        config.stash[_CAN_PEER_KEY] = None if spec is None else open_peer(spec, config.getoption("--can-peer-bitrate", None))
+    except CanPeerError as error:
+        raise pytest.UsageError(str(error)) from error
+
+
+@pytest.fixture(scope="session")
+def _can_peer(pytestconfig: pytest.Config) -> Iterator[CanPeer | None]:
+    peer = pytestconfig.stash[_CAN_PEER_KEY]
+    yield peer
+    if peer is not None:
+        peer.close()
+
+
+@pytest.fixture
+def can_peer(_can_peer: CanPeer | None) -> CanPeer:
+    """The CAN adapter on the bus (`--can-peer`), with nothing left over from earlier tests."""
+    if _can_peer is None:
+        pytest.skip("CAN bus test: pass --can-peer")
+    if _can_peer.bitrate is not None:
+        _can_peer.flush()
+    return _can_peer
 
 
 @pytest.fixture(scope="session")

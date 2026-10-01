@@ -217,20 +217,12 @@ wiring_sets:
         role: spi_miso
         note: AD3 drives the MISO level unless the loopback jumper is fitted
   can:
-    description: CAN0 at logic level on a diode wired-AND bus (no transceiver)
+    description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:
-      - bus node = PF0 (can0rx) + DIO1 + 1 kOhm pull-up to 3.3 V
-      - Schottky diode, anode on the bus, cathode on PF3 (can0tx)
-      - Schottky diode, anode on the bus, cathode on DIO0
-    dio:
-      0:
-        pin: can0rx
-        role: can_ad3_tx
-        note: AD3 CAN TX through a diode onto the bus
-      1:
-        pin: can0rx
-        role: can_ad3_rx
-        note: AD3 CAN RX on the bus
+      - 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V
+      - transceiver TXD to PF3 (can0tx), RXD to PF0 (can0rx)
+      - transceiver CANH/CANL/GND to the CANable CANH/CANL/GND
+      - 120 Ohm across CANH/CANL at each end (CANable jumper on)
 
 # Test parameters. A mapping used by `@pytest.mark.matrix` is one dimension
 # per key: `--depth full` runs the cartesian product, `--depth quick` a
@@ -554,14 +546,11 @@ tests:
         accepted: [[0x1abc0000, 1], [0x1abcffff, 1]]
         rejected: [[0x1abd0000, 1], [0x6af, 0]]
     recover: [0, 1]
-    # The AD3 CAN receiver is assumed not to acknowledge frames; when it
-    # does not, firmware-to-AD3 transfers may end with ERR failed.
-    ad3_acknowledges: false
-    # Dominant bursts the pattern generator forces onto the bus.
-    error_burst:
-      pulses: 100
-      frequency_hz: 1000
-      duty: 0.05
+    # Bus tests: the controller at `bitrate`; the CANable at
+    # `wrong_bitrate` destroys its frames with error flags.
+    bus:
+      bitrate: 500000
+      wrong_bitrate: 125000
   eeprom:
     size: 2048
     max_chunk: 64

@@ -1,8 +1,11 @@
-"""CAN (`hal::tiva::Can`): internal loopback test mode (no wiring) and logic-level traffic with the AD3.
+"""CAN (`hal::tiva::Can`) over the link `--can-mode` selects:
 
-The LaunchPads have no CAN transceiver. Wiring set `can` builds a wired-AND bus from diodes and a pull-up
-(see the README), so the controller sees its own bits and the AD3 frames without transceivers. The AD3 CAN
-receiver's acknowledge behaviour is unverified, so firmware-to-AD3 transfers accept `ERR failed` as outcome.
+- `loopback`: the controller's internal test mode (`loopback=1`); needs no wiring;
+- `bus`: CAN0 through a 3.3 V transceiver to a CANable (wiring set `can`, `--can-peer`); every frame goes
+  from the firmware to the CANable and back.
+
+The `test_bus_*` tests need the CANable whatever `--can-mode` is: a missing acknowledge (CANable listen-only),
+receive errors and bus off (CANable at a wrong bit rate) and the automatic bus-off recovery.
 """
 
 from __future__ import annotations
@@ -12,12 +15,37 @@ from ad3_waveforms_bench.protocol import format_command
 from ad3_waveforms_bench.terminal import FirmwareError
 
 from hal_ti_validation import expect
+from hal_ti_validation.can_peer import CanPeer
 from hal_ti_validation.firmware import settle
+
+ERROR_NAMES = {
+    "stuffError",
+    "formError",
+    "ackError",
+    "bit1Error",
+    "bit0Error",
+    "crcError",
+    "busOff",
+    "errorWarning",
+    "errorPassive",
+    "messageLost",
+}
 
 
 @pytest.fixture
 def can(board_cfg):
     return board_cfg.param("can")
+
+
+@pytest.fixture
+def peer(request, link) -> CanPeer | None:
+    return request.getfixturevalue("can_peer") if link == "bus" else None
+
+
+@pytest.fixture
+def no_fake(pytestconfig):
+    if pytestconfig.getoption("--fake"):
+        pytest.skip("the fake bus does not model bit errors")
 
 
 def make_frame(can, ext, dlc):
@@ -29,40 +57,71 @@ def matches(frame):
     return lambda received: received.id == frame["id"] and received.ext == frame["ext"]
 
 
-def open_can(fw, can, **options):
+def open_can(fw, can, link=None, **options):
+    if link == "loopback":
+        options["loopback"] = True
     fw.can.open(can["index"], rx=can["rx"], tx=can["tx"], **options)
 
 
-def send_and_expect(fw, can, frame):
+def attach(peer, bitrate, listen_only=False):
+    bitrate = int(round(bitrate))
+    if not peer.supports(bitrate, listen_only):
+        pytest.skip(f"{peer} cannot run at {bitrate} bit/s{' listen-only' if listen_only else ''}")
+    peer.configure(bitrate, listen_only)
+
+
+def transfer(fw, can, peer, frame):
+    """Loopback: the controller receives its own frame. Bus: the CANable receives it and sends it back."""
     fw.can.send(can["index"], frame["id"], frame["data"], ext=frame["ext"])
+    if peer is not None:
+        received = peer.receive(timeout=1.0, predicate=matches(frame))
+        assert received is not None, f"{peer} did not receive the frame"
+        assert received.data == frame["data"]
+        peer.send(frame["id"], frame["data"], ext=frame["ext"])
     received = fw.can.wait_frame(can["index"], matches(frame), timeout=1.0)
     assert received.data == frame["data"]
 
 
 @pytest.mark.matrix("can.frames")
-def test_loopback(fw, can, bitrate, ext, dlc):
-    open_can(fw, can, bitrate=bitrate, loopback=True)
-    send_and_expect(fw, can, make_frame(can, ext, dlc))
+def test_frames(fw, can, link, peer, bitrate, ext, dlc):
+    if peer is not None:
+        attach(peer, bitrate)
+    open_can(fw, can, link, bitrate=bitrate)
+    transfer(fw, can, peer, make_frame(can, ext, dlc))
 
 
 @pytest.mark.board_params("timing", "can.timings")
-def test_loopback_with_explicit_timing(fw, can, timing):
-    open_can(fw, can, timing=tuple(timing), loopback=True)
+def test_explicit_timing(fw, can, link, peer, timing):
+    """On the bus, the CANable runs at sysclk / (brp * (1 + tseg1 + tseg2)): frames only pass at that bit rate."""
+    if peer is not None:
+        attach(peer, expect.can_timing_bitrate(fw.system.info().sysclk, *timing))
+    open_can(fw, can, link, timing=tuple(timing))
     for ext in (0, 1):
-        send_and_expect(fw, can, make_frame(can, ext, 8))
+        transfer(fw, can, peer, make_frame(can, ext, 8))
 
 
 @pytest.mark.board_params("case", "can.filters")
-def test_acceptance_filter(fw, can, case):
-    """Standard and extended filters, with and without `match` (id type ignored when 0)."""
+def test_acceptance_filter(fw, can, link, peer, case):
+    """Standard and extended filters, with and without `match` (id type ignored when 0). On the bus the CANable
+    sends the frames."""
+    bitrate = can["bus"]["bitrate"]
+    if peer is not None:
+        attach(peer, bitrate)
     ident, mask, ext, match = case["filter"]
-    open_can(fw, can, bitrate=500000, filter=(ident, mask, bool(ext), bool(match)), loopback=True)
+    open_can(fw, can, link, bitrate=bitrate, filter=(ident, mask, bool(ext), bool(match)))
+
+    def send(frame_id, frame_ext, data):
+        if peer is None:
+            fw.can.send(can["index"], frame_id, data, ext=bool(frame_ext))
+        else:
+            peer.send(frame_id, data, ext=bool(frame_ext))
+
     for frame_id, frame_ext in case["accepted"]:
-        fw.can.send(can["index"], frame_id, b"\x01", ext=bool(frame_ext))
+        send(frame_id, frame_ext, b"\x01")
         received = fw.can.wait_frame(can["index"], lambda f, i=frame_id: f.id == i, timeout=1.0)
         assert (received.ext, received.data) == (bool(frame_ext), b"\x01")
     for frame_id, frame_ext in case["rejected"]:
-        fw.can.send(can["index"], frame_id, b"\x02", ext=bool(frame_ext))
+        send(frame_id, frame_ext, b"\x02")
     fw.system.delay(100)
     leaked = [event.raw for event in fw.terminal.drain_events("can") if "id" in event]
     assert not leaked, f"frames outside the filter were received: {leaked}"
@@ -107,104 +166,60 @@ def test_default_pins(fw, can):
     assert error.value.reason == "usage"
 
 
-def ad3_bus(ad3, need, bitrate):
-    tx, rx = need.dio(role="can_ad3_tx"), need.dio(role="can_ad3_rx")
-    ad3.can.configure(tx=tx, rx=rx, bitrate=int(round(bitrate)))
-    return tx
-
-
-def firmware_to_ad3(fw, ad3, can, frame):
+def begin_send(fw, can, frame):
     command = format_command("can.send", can["index"], f"0x{frame['id']:x}", frame["data"], ext=frame["ext"])
-    pending = fw.terminal.begin(command, timeout=3.0)
+    return fw.terminal.begin(command, timeout=3.0)
+
+
+def test_bus_no_acknowledge(fw, can, can_peer, no_fake):
+    """A listen-only CANable sees the frame but does not acknowledge it: the send fails with `ackError`."""
+    bitrate = can["bus"]["bitrate"]
+    attach(can_peer, bitrate, listen_only=True)
+    open_can(fw, can, bitrate=bitrate)
+    frame = make_frame(can, 0, 4)
+    pending = begin_send(fw, can, frame)
     try:
-        received = ad3.can.receive(timeout=1.0)
+        received = can_peer.receive(timeout=1.0, predicate=matches(frame))
     finally:
         response = settle(pending)
-    outcome = "no answer" if response is None else response.reason or "ok"
-    assert received is not None, "the AD3 did not receive the frame"
-    assert (received.id, received.ext, received.data) == (frame["id"], frame["ext"], frame["data"])
-    if can["ad3_acknowledges"]:
-        assert outcome == "ok"
-    else:
-        assert outcome in ("ok", "failed", "timeout", "no answer")
+    assert received is not None and received.data == frame["data"], "the listen-only CANable did not see the frame"
+    assert response is not None and response.reason in ("failed", "timeout"), f"unacknowledged send answered {response}"
+    errors = fw.can.errors(can["index"])
+    assert "ackError" in errors, f"no ackError reported: {errors}"
 
 
-@pytest.mark.ad3
-@pytest.mark.matrix("can.frames")
-def test_ad3_to_firmware(fw, ad3, need, can, bitrate, ext, dlc):
-    frame = make_frame(can, ext, dlc)
-    open_can(fw, can, bitrate=bitrate)
-    ad3_bus(ad3, need, bitrate)
-    ad3.can.send(frame["id"], frame["data"], ext=frame["ext"])
-    received = fw.can.wait_frame(can["index"], matches(frame), timeout=1.0)
-    assert received.data == frame["data"]
-
-
-@pytest.mark.ad3
-@pytest.mark.matrix("can.frames")
-def test_firmware_to_ad3(fw, ad3, need, can, bitrate, ext, dlc):
-    open_can(fw, can, bitrate=bitrate)
-    ad3_bus(ad3, need, bitrate)
-    firmware_to_ad3(fw, ad3, can, make_frame(can, ext, dlc))
-
-
-@pytest.mark.ad3
-@pytest.mark.board_params("timing", "can.timings")
-def test_explicit_timing_on_the_bus(fw, ad3, need, can, timing):
-    """The AD3 runs at sysclk / (brp * (1 + tseg1 + tseg2)): frames only decode at the programmed bit rate."""
-    bitrate = expect.can_timing_bitrate(fw.system.info().sysclk, *timing)
-    open_can(fw, can, timing=tuple(timing))
-    ad3_bus(ad3, need, bitrate)
-    frame = make_frame(can, 1, 8)
-    ad3.can.send(frame["id"], frame["data"], ext=True)
-    assert fw.can.wait_frame(can["index"], matches(frame), timeout=1.0).data == frame["data"]
-    firmware_to_ad3(fw, ad3, can, make_frame(can, 0, 3))
-
-
-@pytest.mark.ad3
-def test_error_events(fw, ad3, need, can):
-    """Dominant bursts forced onto the bus by the pattern generator are reported as `EVT can error=`."""
-    burst = can["error_burst"]
-    open_can(fw, can, bitrate=500000)
-    tx = need.dio(role="can_ad3_tx")
-    ad3.pattern.pulses(tx, burst["pulses"], burst["frequency_hz"], duty=burst["duty"], idle="high")
-    ad3.pattern.wait_done(timeout=burst["pulses"] / burst["frequency_hz"] + 2)
+def test_bus_receive_errors(fw, can, can_peer, no_fake):
+    """Frames sent by the CANable at a wrong bit rate are reported as receive errors (`EVT can error=`)."""
+    if not can_peer.adjustable:
+        pytest.skip(f"{can_peer} has a fixed bit rate")
+    attach(can_peer, can["bus"]["wrong_bitrate"])
+    open_can(fw, can, bitrate=can["bus"]["bitrate"])
+    can_peer.send(0x000, bytes(8))
     fw.system.delay(150)
     errors = fw.can.errors(can["index"])
-    assert errors, "no error reported for dominant bursts on the bus"
-    assert set(errors) <= {
-        "stuffError",
-        "formError",
-        "ackError",
-        "bit1Error",
-        "bit0Error",
-        "crcError",
-        "busOff",
-        "errorWarning",
-        "errorPassive",
-        "messageLost",
-    }
+    assert errors, "no error reported for frames at a wrong bit rate"
+    assert set(errors) <= ERROR_NAMES
 
 
-@pytest.mark.ad3
 @pytest.mark.board_params("recover", "can.recover")
-def test_bus_off_and_recovery(fw, ad3, need, can, recover):
-    """Dominant bits injected into a transmission drive the controller to bus off; with `recover=1` it returns
-    to the bus by itself and the pending frame leaves, with `recover=0` it stays off."""
-    bitrate = 500000
+def test_bus_off_and_recovery(fw, can, can_peer, no_fake, recover):
+    """The CANable at a wrong bit rate destroys every attempt of an all-dominant frame with error flags, so the
+    controller's transmit error counter reaches bus off. Back at the right bit rate, `recover=1` returns to the
+    bus by itself and the pending frame leaves; with `recover=0` it stays off."""
+    if not can_peer.adjustable:
+        pytest.skip(f"{can_peer} has a fixed bit rate")
+    bitrate = can["bus"]["bitrate"]
+    attach(can_peer, can["bus"]["wrong_bitrate"])
     open_can(fw, can, bitrate=bitrate, recover=recover)
-    tx = need.dio(role="can_ad3_tx")
-    ad3.pattern.pulses(tx, 20000, bitrate / 20, duty=0.1, idle="high")
-    frame = make_frame(can, 0, 8)
-    pending = fw.terminal.begin(format_command("can.send", can["index"], f"0x{frame['id']:x}", frame["data"]), timeout=3.0)
+    frame = {"id": 0x000, "ext": False, "data": bytes(8)}
+    pending = begin_send(fw, can, frame)
     try:
         fw.terminal.wait_event("can", lambda event: event.get("error") == "busOff", timeout=2.0)
     finally:
-        ad3.pattern.stop()
         settle(pending)
-    ad3_bus(ad3, need, bitrate)
-    received = ad3.can.receive(timeout=1.0)
+    attach(can_peer, bitrate)
+    received = can_peer.receive(timeout=1.0, predicate=matches(frame))
     if recover:
-        assert received is not None and received.id == frame["id"], "no frame after the automatic bus-off recovery"
+        assert received is not None, "no frame after the automatic bus-off recovery"
     else:
         assert received is None, "the controller left bus off although recover=0"

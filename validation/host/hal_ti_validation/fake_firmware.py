@@ -3,7 +3,8 @@
 
 It validates arguments like the firmware (`usage`, `range`, `pin`, `unsupported`, `busy`, `notopen`) and models
 what needs no hardware: pin ownership, open instances, EEPROM contents, PWM interrupt counts and ADC triggers
-over time, CAN loopback with the acceptance filter, watchdog warnings and resets, and the board alias table.
+over time, CAN loopback with the acceptance filter, CAN frames to and from a python-can virtual bus (`can_bus`,
+the `--fake` bus peer), watchdog warnings and resets, and the board alias table.
 Measured signals (DIO levels, analog codes, UART/SPI peers, faults) are not emulated.
 """
 
@@ -198,6 +199,8 @@ class FakeFirmware(FakeTerminalDevice):
     spi_miso: int = 0x00
     opened: dict[tuple[str, str], dict[str, Any]] = field(default_factory=dict)
     reset_cause: str = "por"
+    # python-can virtual channel a CAN instance opened with loopback=0 joins (the `--fake` bus peer).
+    can_bus: str | None = None
     clock: Callable[[], float] = time.monotonic
     sleep: Callable[[float], None] = time.sleep
 
@@ -216,6 +219,9 @@ class FakeFirmware(FakeTerminalDevice):
         return _FAMILIES[self.family]
 
     def boot(self) -> None:
+        for (group, _), state in self.opened.items():
+            if group == "can" and state["bus"] is not None:
+                state["bus"].shutdown()
         self.opened.clear()
         self.claims = {}
         self.watchdog = None
@@ -907,7 +913,17 @@ class FakeFirmware(FakeTerminalDevice):
             rx, tx = pins.get("can0rx"), pins.get("can0tx")
         if rx is None or tx is None:
             _fail("usage")
-        self._open("can", str(index), {"loopback": loopback, "filter": can_filter}, [rx, tx])
+        bus = None
+        if not loopback and self.can_bus is not None:
+            import can
+
+            bus = can.Bus(interface="virtual", channel=self.can_bus)
+        try:
+            self._open("can", str(index), {"loopback": loopback, "filter": can_filter, "bus": bus}, [rx, tx])
+        except _Error:
+            if bus is not None:
+                bus.shutdown()
+            raise
         return "OK"
 
     def _can_bitrate_achievable(self, bitrate: int) -> bool:
@@ -962,12 +978,33 @@ class FakeFirmware(FakeTerminalDevice):
         if len(data) > 8:
             _fail("range")
         if state["loopback"] and self.can_accepts(state["filter"], ident, ext):
-            self.emit(f"EVT can index={index} id=0x{ident:x} ext={int(ext)} data={format_hex(data) or '-'}")
+            self.emit(self._can_frame_event(index, ident, ext, data))
+        elif state["bus"] is not None:
+            import can
+
+            state["bus"].send(can.Message(arbitration_id=ident, is_extended_id=ext, data=data))
         return "OK"
+
+    @staticmethod
+    def _can_frame_event(index: int, ident: int, ext: bool, data: bytes) -> str:
+        return f"EVT can index={index} id=0x{ident:x} ext={int(ext)} data={format_hex(data) or '-'}"
+
+    def _poll_can(self) -> None:
+        for (group, key), state in list(self.opened.items()):
+            if group != "can" or state["bus"] is None:
+                continue
+            while (message := state["bus"].recv(0)) is not None:
+                ext = bool(message.is_extended_id)
+                if self.can_accepts(state["filter"], message.arbitration_id, ext):
+                    self.event(self._can_frame_event(int(key), message.arbitration_id, ext, bytes(message.data)))
 
     def _cmd_can_close(self, args: list[str], options: dict[str, str]) -> str:
         _positionals(args, 1)
-        return self._close("can", str(self._instance(args[0], 2)))
+        key = str(self._instance(args[0], 2))
+        bus = self._state("can", key)["bus"]
+        if bus is not None:
+            bus.shutdown()
+        return self._close("can", key)
 
     # eeprom
 
@@ -1027,7 +1064,9 @@ class FakeFirmware(FakeTerminalDevice):
         return "OK"
 
     def poll(self) -> None:
-        """Early warnings every timeout; without feeding, `reset=1` resets the board at the second timeout."""
+        """Frames from the CAN bus peer; early warnings every timeout; without feeding, `reset=1` resets the
+        board at the second timeout."""
+        self._poll_can()
         watchdog = self.watchdog
         if watchdog is None:
             return
