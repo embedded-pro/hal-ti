@@ -74,7 +74,8 @@ def test_warning_period(fw, ad3, need, wdt_cfg, index, timeout_ms, reset):
     rate = min(ad3.logic.clock_hz, ad3.logic.buffer_size / duration)
     capture = ad3.logic.arm(rate, int(duration * rate), trigger=(dio, "either"), pretrigger=0.02)
     fw.wdt.start(index, timeout=timeout_ms, reset=reset, feed="auto", pin=pin)
-    result = capture.wait(timeout=duration + 2.0)
+    # The capture triggers on the first toggle, one timeout after the start
+    result = capture.wait(timeout=duration + timeout_ms / 1000 + 2.0)
     edges = [edge.index for edge in analysis.edges(result.channel(dio))]
     assert len(edges) >= periods, f"{len(edges)} toggles in {duration:.3f} s"
     intervals = [(b - a) / result.rate for a, b in zip(edges, edges[1:])]

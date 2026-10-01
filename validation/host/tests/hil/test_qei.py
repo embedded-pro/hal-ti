@@ -103,7 +103,8 @@ def test_index_resets_position(fw, ad3, need, qei, instance, direction, invi, ev
     ad3.pattern.quadrature(dios["a"], dios["b"], 1000, cycles, direction, z=dios["idx"], index_every=every)
     ad3.pattern.wait_done(timeout=cycles / 1000 + 2)
     position = fw.qei.read(instance["index"]).pos
-    expected = 4 * extra * (1 if direction == "fwd" else -1)
+    # The pattern repeats every `every` cycles with the index at the start, so the last index can fall inside `extra`.
+    expected = 4 * ((cycles - 1) % every + 1) * (1 if direction == "fwd" else -1)
     assert wrap_delta(position - expected, qei["resolution"]) == pytest.approx(0, abs=qei["index_tolerance"])
 
 

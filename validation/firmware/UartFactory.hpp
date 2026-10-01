@@ -35,7 +35,8 @@ namespace validation
 
     private:
         using Base = hal::tiva::UartBase;
-        using SynchronousUart = hal::tiva::SynchronousUart::WithStorage<64>;
+        // The polled driver buffers everything until uart.recv drains it: one ring slot stays empty, uart.recv returns up to 256 bytes
+        using SynchronousUart = hal::tiva::SynchronousUart::WithStorage<257>;
         using UartWithDma = hal::tiva::UartWithDma::WithRxBuffer<64>;
 
         struct Request
