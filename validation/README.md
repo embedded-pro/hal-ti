@@ -35,7 +35,9 @@ Hardware baseline: the pin assignment follows LaunchPads modified for the e-foc 
 - The LaunchPad is powered from its USB debug port. The AD3 V+/V- supplies stay off unless `ad3.vplus`/`ad3.vminus` are set in the board file.
 - Wavegen outputs are refused outside `ad3.analog_limits` (0..3.3 V by default) so a wrong parameter cannot overdrive an analog input.
 - Run the tests with nothing else connected to the pins of the selected wiring sets: the tests drive them directly.
-- The AD3 has 16 DIOs, so the wiring is split into named wiring sets (tables below). Tests whose connections are missing from the selected sets are skipped with the reason.
+- The `harness` wiring set (tables below) wires all 16 DIOs once and stays connected. Each harness pin serves several tests: the PWM outputs are also the SPI pins and GPIO test pins, the QEI0 phase A pin is also the PWM fault input, and so on. The firmware frees every pin between tests, so a pin can change role from one test to the next.
+- The analog sets (`adc`, `comparator`, `comparator_c0`) only add W1/W2 and the scope inputs; `adc` combines with the harness (`--wiring-set harness,adc`). On the EK-TM4C1294XL the comparator sets and the `locked` set also move one harness DIO and are used on their own.
+- Tests whose connections are missing from the selected sets are skipped with the reason.
 - EK-TM4C123GXL: the terminal is UART0 on the ICDI virtual COM port (`/dev/ttyACM0`, `COMx`). Stock boards connect PB6-PD0 and PB7-PD1 through R9/R10; remove them (part of the baseline modification) or leave PD0/PD1 unconfigured.
 - EK-TM4C1294XL: the terminal is UART2 on PD5 (TX) / PD4 (RX), because PA0/PA1 are the CAN0 pins. Use a 3.3 V USB-UART adapter on PD4/PD5 (`/dev/ttyUSB0`), or move JP4/JP5 to the UART2 position so the ICDI virtual COM port is routed to PD4/PD5 (check the EK-TM4C1294XL user's guide for the jumper positions). The adapter must handle 921600 baud.
 - CAN: CAN0 goes through a 3.3 V transceiver to a CANable (wiring set `can`, see [CAN bus](#can-bus)); the AD3 is not on the bus.
@@ -93,20 +95,20 @@ pytest validation/host/tests/unit
 Hardware tests need `--port`; without it they are skipped. Select the board file and the wiring sets that are actually connected, and start with the quick depth:
 
 ```bash
-pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --wiring-set pwm --depth quick
-pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --wiring-set pwm --depth full
-pytest validation/host/tests/hil/test_uart.py --board ek_tm4c1294xl --port /dev/ttyUSB0 --wiring-set uart --with flow
+pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --wiring-set harness,adc --depth quick
+pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --wiring-set harness,adc --depth full
+pytest validation/host/tests/hil/test_comparator.py --board ek_tm4c1294xl --port /dev/ttyUSB0 --wiring-set comparator
 pytest validation/host/tests/hil --board ek_tm4c123gxl --port /dev/ttyACM0 --no-ad3
 ```
 
-Run each wiring set with `--depth quick` first; once it passes, run it again with `--depth full`, which takes much longer. Collect the reports with `--junitxml report-<board>-<set>-<depth>.xml`.
+Run with `--depth quick` first; once it passes, run it again with `--depth full`, which takes much longer. Collect the reports with `--junitxml report-<board>-<sets>-<depth>.xml`.
 
 Options from `tests/conftest.py`:
 
 - `--board` - board file name in `host/boards/` or a path to a YAML file (default `ek_tm4c123gxl`, or `HAL_TI_BOARD`).
 - `--port`, `--baud` - firmware terminal serial port (or `HAL_TI_PORT`) and baud rate (default from the board file, 921600).
-- `--wiring-set a,b` - active wiring sets; sets that use different AD3 channels, or the same channels on the same pins, can be combined (`--wiring-set gpio,wdt`).
-- `--with <tag>` - enable optional wiring (`pwm4`, `faultpin`, `dcmp`, `qei1`, `flow`, `loopback`, `ethernet`), repeatable.
+- `--wiring-set a,b` - active wiring sets (or `HAL_TI_WIRING`); sets that use different AD3 channels, or the same channels on the same pins, can be combined (`--wiring-set harness,adc`).
+- `--with <tag>` - enable optional wiring (`loopback` for the SPI MOSI-MISO jumper, `ethernet`), repeatable.
 - `--depth quick|full` - `quick` (default, or `HAL_TI_DEPTH`) runs a pairwise subset of every parameter matrix: every pair of values of any two parameters appears in at least one test. `full` runs the complete cartesian products.
 - `--set path=value` - override a test parameter, value parsed as YAML: `--set pwm.waveform.freq=[20000] --set uart.transfer.baud=[921600]`.
 - `--can-mode loopback|bus|both`, `--can-peer`, `--can-peer-bitrate` - the CAN link and the adapter on the bus (or `HAL_TI_CAN_MODE`, `HAL_TI_CAN_PEER`, `HAL_TI_CAN_PEER_BITRATE`), see [CAN bus](#can-bus).
@@ -237,7 +239,7 @@ pip install -e "validation/host[ad3]"
 
 export AD3_REMOTE=host.docker.internal:5025
 export HAL_TI_PORT=socket://host.docker.internal:5000
-pytest validation/host/tests/hil --board ek_tm4c1294xl --wiring-set pwm --depth quick
+pytest validation/host/tests/hil --board ek_tm4c1294xl --wiring-set harness,adc --depth quick
 
 export HAL_TI_CAN_PEER=slcan:socket://host.docker.internal:5002
 pytest validation/host/tests/hil/test_can.py --board ek_tm4c1294xl --can-mode both
@@ -250,64 +252,47 @@ pytest validation/host/tests/hil/test_can.py --board ek_tm4c1294xl --can-mode bo
 
 ## Wiring sets
 
-The tables are generated from the board files; `role` and `requires` entries of the YAML are shown as notes. Scope inputs are single ended: connect the `-` input of each used scope channel to GND.
-The mandatory connections are the same physical pins as before the tests became generic; the only additions are optional (`--with pwm4`, `--with faultpin`, `--with dcmp` on the EK-TM4C123GXL, `--with qei1`) and the `comparator_c0` set, which replaces the `comparator` set when used.
-The `wdt` set reuses the `gpio0` connection of the `gpio` set.
+The tables are generated from the board files; the notes list every function a pin serves. Scope inputs are single ended: connect the `-` input of each used scope channel to GND.
+
+- EK-TM4C123GXL: the CAN transceiver stays on PF0/PF3, so comparator 0's output (C0o, PF0) is read through the firmware only and PF0 is not tested as a locked pin (PD7 is). The comparator sets put W1/W2 on PC6/PC4, which are also harness DIOs; those DIOs only listen there.
+- EK-TM4C1294XL: the comparator sets move DIO15 from PP5 to PD1 (C1o) and the `locked` set moves DIO14 from PP4 to PD7; put them back for the harness.
+- The SPI pins follow the pinout table on `main`: SSI3 TX (MOSI) on PF0 and RX (MISO) on PF1 on the EK-TM4C1294XL. hal-ti#119 swaps TX/RX on every TM4C129 SSI instance; after it is merged, swap `mosi`/`miso` in `tests.spi.instances`.
 
 ### EK-TM4C123GXL wiring
 
 | Wiring set      | AD3      | Pin           | Note                                                                                             |
 |-----------------|----------|---------------|--------------------------------------------------------------------------------------------------|
-| `gpio`          | DIO0     | PB2           |                                                                                                  |
-| `gpio`          | DIO1     | PB3           |                                                                                                  |
-| `gpio`          | DIO2     | PA7           |                                                                                                  |
-| `gpio`          | DIO3     | PC6           |                                                                                                  |
-| `gpio`          | DIO4     | PF0 (can0rx)  | locked pin, also SW2 (open unless pressed)                                                       |
-| `gpio`          | DIO5     | PD7 (qei0b)   | locked pin (NMI)                                                                                 |
-| `gpio`          | DIO6     | PF1 (led0)    |                                                                                                  |
-| `gpio`          | DIO7     | PA2 (gpio0)   |                                                                                                  |
-| `wdt`           | DIO7     | PA2 (gpio0)   | wdt pin                                                                                          |
-| `pwm`           | DIO0     | PB6 (m0pwm0)  |                                                                                                  |
-| `pwm`           | DIO1     | PB7 (m0pwm1)  |                                                                                                  |
-| `pwm`           | DIO2     | PB4 (m0pwm2)  |                                                                                                  |
-| `pwm`           | DIO3     | PB5 (m0pwm3)  |                                                                                                  |
-| `pwm`           | DIO4     | PE4 (m0pwm4)  |                                                                                                  |
-| `pwm`           | DIO5     | PE5 (m0pwm5)  |                                                                                                  |
-| `pwm`           | DIO6     | PC4           | M0PWM6, generator 3 A; only with `--with pwm4`                                                   |
-| `pwm`           | DIO7     | PC5           | M0PWM7, generator 3 B; only with `--with pwm4`                                                   |
-| `pwm`           | DIO8     | PD2           | M0FAULT0, driven by the AD3; only with `--with faultpin`                                         |
-| `pwm`           | W1       | PE3 (ain0)    | ADC digital comparator input of the fault path; only with `--with dcmp`                          |
-| `pwm`           | Scope 1+ | PE3 (ain0)    | only with `--with dcmp`                                                                          |
-| `pwm`           | -        | -             | stock boards short PB6-PD0 and PB7-PD1 through R9/R10; remove them or leave PD0/PD1 unconfigured |
+| `harness`       | DIO0     | PB6 (m0pwm0)  | M0PWM0, SSI2 MISO, GPIO                                                                          |
+| `harness`       | DIO1     | PB7 (m0pwm1)  | M0PWM1, SSI2 MOSI, GPIO                                                                          |
+| `harness`       | DIO2     | PB4 (m0pwm2)  | M0PWM2, SSI2 CLK, GPIO                                                                           |
+| `harness`       | DIO3     | PB5 (m0pwm3)  | M0PWM3, SSI2 FSS, GPIO                                                                           |
+| `harness`       | DIO4     | PE4 (m0pwm4)  | M0PWM4, GPIO                                                                                     |
+| `harness`       | DIO5     | PE5 (m0pwm5)  | M0PWM5, GPIO                                                                                     |
+| `harness`       | DIO6     | PC4           | M0PWM6, QEI1 index, UART1 RTS, GPIO                                                              |
+| `harness`       | DIO7     | PC5           | M0PWM7, QEI1 phase A, UART1 CTS, GPIO                                                            |
+| `harness`       | DIO8     | PC6           | QEI1 phase B, GPIO; also C0+ in the comparator sets                                              |
+| `harness`       | DIO9     | PD6 (qei0a)   | QEI0 phase A, M0FAULT0, GPIO                                                                     |
+| `harness`       | DIO10    | PD7 (qei0b)   | QEI0 phase B, locked pin (NMI)                                                                   |
+| `harness`       | DIO11    | PD3 (qei0idx) | QEI0 index, GPIO                                                                                 |
+| `harness`       | DIO12    | PB1           | UART1 TX                                                                                         |
+| `harness`       | DIO13    | PB0           | UART1 RX, GPIO                                                                                   |
+| `harness`       | DIO14    | PA2 (gpio0)   | GPIO, watchdog early-warning toggle                                                              |
+| `harness`       | DIO15    | PF1 (led0)    | C1o output, red LED, GPIO                                                                        |
+| `harness`       | -        | -             | stock boards short PB6-PD0 and PB7-PD1 through R9/R10; remove them or leave PD0/PD1 unconfigured |
+| `harness`       | -        | -             | `--with loopback`: jumper PB7 (SSI2 MOSI) to PB6 (SSI2 MISO); DIO0 then only listens             |
 | `adc`           | W1       | PE3 (ain0)    |                                                                                                  |
 | `adc`           | W2       | PE0 (ain3)    |                                                                                                  |
 | `adc`           | Scope 1+ | PE3 (ain0)    |                                                                                                  |
 | `adc`           | Scope 2+ | PE0 (ain3)    |                                                                                                  |
-| `comparator`    | DIO0     | PF0 (can0rx)  | C0o output                                                                                       |
 | `comparator`    | W1       | PC6           | C0+ input                                                                                        |
 | `comparator`    | W2       | PC7           | C0- input                                                                                        |
 | `comparator`    | Scope 1+ | PC6           |                                                                                                  |
 | `comparator`    | Scope 2+ | PC7           |                                                                                                  |
-| `comparator_c0` | DIO1     | PF1 (led0)    | C1o output                                                                                       |
+| `comparator_c0` | DIO15    | PF1 (led0)    | C1o output                                                                                       |
 | `comparator_c0` | W1       | PC6           | C0+ input                                                                                        |
 | `comparator_c0` | W2       | PC4           | C1- input                                                                                        |
 | `comparator_c0` | Scope 1+ | PC6           |                                                                                                  |
 | `comparator_c0` | Scope 2+ | PC4           |                                                                                                  |
-| `qei`           | DIO0     | PD6 (qei0a)   |                                                                                                  |
-| `qei`           | DIO1     | PD7 (qei0b)   |                                                                                                  |
-| `qei`           | DIO2     | PD3 (qei0idx) |                                                                                                  |
-| `qei`           | DIO3     | PC5           | QEI1 phase A; only with `--with qei1`                                                            |
-| `qei`           | DIO4     | PC6           | QEI1 phase B; only with `--with qei1`                                                            |
-| `qei`           | DIO5     | PC4           | QEI1 index; only with `--with qei1`                                                              |
-| `uart`          | DIO0     | PB1           | firmware TX, AD3 UART RX                                                                         |
-| `uart`          | DIO1     | PB0           | firmware RX, AD3 UART TX                                                                         |
-| `uart`          | DIO2     | PC4           | firmware RTS; only with `--with flow`                                                            |
-| `uart`          | DIO3     | PC5           | firmware CTS, driven by the AD3; only with `--with flow`                                         |
-| `spi`           | DIO0     | PA2 (gpio0)   | spi clk                                                                                          |
-| `spi`           | DIO1     | PA3           | spi cs                                                                                           |
-| `spi`           | DIO2     | PA5 (gpio2)   | spi mosi                                                                                         |
-| `spi`           | DIO3     | PA4 (gpio1)   | AD3 drives the MISO level unless the loopback jumper is fitted                                   |
-| `spi`           | -        | -             | `--with loopback`: jumper PA5 (MOSI) to PA4 (MISO); DIO3 then only listens                       |
 | `can`           | -        | -             | 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V                                         |
 | `can`           | -        | -             | transceiver TXD to PF3 (can0tx), RXD to PF0 (can0rx)                                             |
 | `can`           | -        | -             | transceiver CANH/CANL/GND to the CANable CANH/CANL/GND                                           |
@@ -315,65 +300,51 @@ The `wdt` set reuses the `gpio0` connection of the `gpio` set.
 
 ### EK-TM4C1294XL wiring
 
-| Wiring set      | AD3      | Pin           | Note                                                                       |
-|-----------------|----------|---------------|----------------------------------------------------------------------------|
-| `gpio`          | DIO0     | PB2           |                                                                            |
-| `gpio`          | DIO1     | PB3           |                                                                            |
-| `gpio`          | DIO2     | PE4 (gpio1)   |                                                                            |
-| `gpio`          | DIO3     | PE5 (gpio2)   |                                                                            |
-| `gpio`          | DIO4     | PD7           | locked pin (NMI)                                                           |
-| `gpio`          | DIO5     | PN3 (led0)    |                                                                            |
-| `gpio`          | DIO6     | PN4 (gpio0)   |                                                                            |
-| `wdt`           | DIO6     | PN4 (gpio0)   | wdt pin                                                                    |
-| `pwm`           | DIO0     | PF2 (m0pwm2)  |                                                                            |
-| `pwm`           | DIO1     | PF3 (m0pwm3)  |                                                                            |
-| `pwm`           | DIO2     | PG0 (m0pwm4)  |                                                                            |
-| `pwm`           | DIO3     | PG1 (m0pwm5)  |                                                                            |
-| `pwm`           | DIO4     | PK4 (m0pwm6)  |                                                                            |
-| `pwm`           | DIO5     | PK5 (m0pwm7)  |                                                                            |
-| `pwm`           | DIO6     | PF0           | M0PWM0, generator 0 A; only with `--with pwm4`                             |
-| `pwm`           | DIO7     | PF1           | M0PWM1, generator 0 B; only with `--with pwm4`                             |
-| `pwm`           | DIO8     | PK6           | M0FAULT1, driven by the AD3; only with `--with faultpin`                   |
-| `pwm`           | W1       | PB5 (ain11)   | ADC digital comparator input of the fault path                             |
-| `pwm`           | W2       | PB4 (ain10)   |                                                                            |
-| `pwm`           | Scope 1+ | PB5 (ain11)   |                                                                            |
-| `adc`           | W1       | PE3 (ain0)    |                                                                            |
-| `adc`           | W2       | PB5 (ain11)   |                                                                            |
-| `adc`           | Scope 1+ | PE3 (ain0)    |                                                                            |
-| `adc`           | Scope 2+ | PB5 (ain11)   |                                                                            |
-| `comparator`    | DIO0     | PD1           | C1o output                                                                 |
-| `comparator`    | W1       | PC5           | C1+ input                                                                  |
-| `comparator`    | W2       | PC4           | C1- input                                                                  |
-| `comparator`    | Scope 1+ | PC5           |                                                                            |
-| `comparator`    | Scope 2+ | PC4           |                                                                            |
-| `comparator_c0` | DIO0     | PD1           | C1o output                                                                 |
-| `comparator_c0` | W1       | PC6 (gpio6)   | C0+ input                                                                  |
-| `comparator_c0` | W2       | PC4           | C1- input                                                                  |
-| `comparator_c0` | Scope 1+ | PC6 (gpio6)   |                                                                            |
-| `comparator_c0` | Scope 2+ | PC4           |                                                                            |
-| `qei`           | DIO0     | PL1 (qei0a)   |                                                                            |
-| `qei`           | DIO1     | PL2 (qei0b)   |                                                                            |
-| `qei`           | DIO2     | PL3 (qei0idx) |                                                                            |
-| `uart`          | DIO0     | PA5           | firmware TX, AD3 UART RX                                                   |
-| `uart`          | DIO1     | PA4           | firmware RX, AD3 UART TX                                                   |
-| `uart`          | DIO2     | PP4           | firmware RTS; only with `--with flow`                                      |
-| `uart`          | DIO3     | PP5           | firmware CTS, driven by the AD3; only with `--with flow`                   |
-| `spi`           | DIO0     | PD3           | spi clk                                                                    |
-| `spi`           | DIO1     | PD2           | spi cs                                                                     |
-| `spi`           | DIO2     | PD0           | spi mosi                                                                   |
-| `spi`           | DIO3     | PD1           | AD3 drives the MISO level unless the loopback jumper is fitted             |
-| `spi`           | -        | -             | `--with loopback`: jumper PD0 (MOSI) to PD1 (MISO); DIO3 then only listens |
-| `can`           | -        | -             | JP4/JP5 in the UART2 position so PA0/PA1 are not driven by the ICDI        |
-| `can`           | -        | -             | 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V                   |
-| `can`           | -        | -             | transceiver TXD to PA1 (can0tx), RXD to PA0 (can0rx)                       |
-| `can`           | -        | -             | transceiver CANH/CANL/GND to the CANable CANH/CANL/GND                     |
-| `can`           | -        | -             | 120 Ohm across CANH/CANL at each end (CANable jumper on)                   |
-| `ethernet`      | -        | -             | `--with ethernet`: the Ethernet cable is plugged in                        |
+| Wiring set      | AD3      | Pin           | Note                                                                                 |
+|-----------------|----------|---------------|--------------------------------------------------------------------------------------|
+| `harness`       | DIO0     | PF0           | M0PWM0, SSI3 MOSI, LED D4, GPIO                                                      |
+| `harness`       | DIO1     | PF1           | M0PWM1, SSI3 MISO, GPIO                                                              |
+| `harness`       | DIO2     | PF2 (m0pwm2)  | M0PWM2, SSI3 FSS, GPIO                                                               |
+| `harness`       | DIO3     | PF3 (m0pwm3)  | M0PWM3, SSI3 CLK, GPIO                                                               |
+| `harness`       | DIO4     | PG0 (m0pwm4)  | M0PWM4, GPIO                                                                         |
+| `harness`       | DIO5     | PG1 (m0pwm5)  | M0PWM5, GPIO, watchdog early-warning toggle                                          |
+| `harness`       | DIO6     | PK4 (m0pwm6)  | M0PWM6, GPIO                                                                         |
+| `harness`       | DIO7     | PK5 (m0pwm7)  | M0PWM7, GPIO                                                                         |
+| `harness`       | DIO8     | PK6           | M0FAULT1, GPIO                                                                       |
+| `harness`       | DIO9     | PL1 (qei0a)   | QEI0 phase A, GPIO                                                                   |
+| `harness`       | DIO10    | PL2 (qei0b)   | QEI0 phase B, GPIO                                                                   |
+| `harness`       | DIO11    | PL3 (qei0idx) | QEI0 index, GPIO                                                                     |
+| `harness`       | DIO12    | PA5           | UART3 TX                                                                             |
+| `harness`       | DIO13    | PA4           | UART3 RX, GPIO                                                                       |
+| `harness`       | DIO14    | PP4           | UART3 RTS, GPIO                                                                      |
+| `harness`       | DIO15    | PP5           | UART3 CTS, GPIO                                                                      |
+| `harness`       | -        | -             | `--with loopback`: jumper PF0 (SSI3 MOSI) to PF1 (SSI3 MISO); DIO1 then only listens |
+| `adc`           | W1       | PE3 (ain0)    |                                                                                      |
+| `adc`           | W2       | PB5 (ain11)   |                                                                                      |
+| `adc`           | Scope 1+ | PE3 (ain0)    |                                                                                      |
+| `adc`           | Scope 2+ | PB5 (ain11)   |                                                                                      |
+| `comparator`    | DIO15    | PD1           | C1o output                                                                           |
+| `comparator`    | W1       | PC5           | C1+ input                                                                            |
+| `comparator`    | W2       | PC4           | C1- input                                                                            |
+| `comparator`    | Scope 1+ | PC5           |                                                                                      |
+| `comparator`    | Scope 2+ | PC4           |                                                                                      |
+| `comparator_c0` | DIO15    | PD1           | C1o output                                                                           |
+| `comparator_c0` | W1       | PC6 (gpio6)   | C0+ input                                                                            |
+| `comparator_c0` | W2       | PC4           | C1- input                                                                            |
+| `comparator_c0` | Scope 1+ | PC6 (gpio6)   |                                                                                      |
+| `comparator_c0` | Scope 2+ | PC4           |                                                                                      |
+| `locked`        | DIO14    | PD7           | locked pin (NMI)                                                                     |
+| `can`           | -        | -             | JP4/JP5 in the UART2 position so PA0/PA1 are not driven by the ICDI                  |
+| `can`           | -        | -             | 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V                             |
+| `can`           | -        | -             | transceiver TXD to PA1 (can0tx), RXD to PA0 (can0rx)                                 |
+| `can`           | -        | -             | transceiver CANH/CANL/GND to the CANable CANH/CANL/GND                               |
+| `can`           | -        | -             | 120 Ohm across CANH/CANL at each end (CANable jumper on)                             |
+| `ethernet`      | -        | -             | `--with ethernet`: the Ethernet cable is plugged in                                  |
 
 ## What is tested
 
 - `test_system.py` - `ping`, `info`, and the `board.pins` alias table against the board file in both directions, every alias accepted as a pin, generic alias names, reserved terminal pins/UART, error reasons (`usage`, `busy`, `notopen`, `range`), `delay`, `reset` and the `EVT boot` cause.
-- `test_gpio.py` - output levels with every drive strength, inputs following the AD3 with every pull, pull-only idle levels, open drain, locked pins (PF0/PD7), LED output, interrupt counts for edge x handler type x pulse count x frequency against exact AD3 pulse trains, `gpio.pulse` timing.
+- `test_gpio.py` - output levels with every drive strength, inputs following the AD3 with every pull, pull-only idle levels, open drain, locked pins (PD7), LED output, interrupt counts for edge x handler type x pulse count x frequency against exact AD3 pulse trains, `gpio.pulse` timing.
 - `test_pwm.py` - for `Pwm` and `SynchronousPwm`:
   - mode x divisor x frequency x duty (0 and 100 % included), with `ERR range` exactly where LOAD does not fit;
   - 1-4 generators with A-and-B, A-only and B-only outputs;
@@ -392,7 +363,7 @@ The `wdt` set reuses the `gpio0` connection of the `gpio` set.
   - digital comparator bands x modes reported through the PWM fault path, with the comparator steps kept out of the FIFO;
   - two sequencers with explicit priorities; internal reference. The external reference is `xfail` (the driver never writes the reference selection) and needs `tests.adc.external_reference_v`.
 - `test_comparator.py` - output and output pin for inputs above/below each other with and without inversion for both drivers, the positive input taken from C0+ (`src=c0`), the internal reference ladder located by a wavegen search, every ADC trigger sense accepted (its effect is not observable), edge interrupt counts against a square wave, level interrupts and synchronous interrupts refused.
-- `test_qei.py` - position counts for frequency x cycles x direction x capture mode x phase inversion, physically inverted phases restored by `inva`/`invb`, offset and rollover, reset on the index pulse with and without `invi`, speed against the velocity period, clock/direction mode, default pins; QEI1 on the EK-TM4C123GXL with `--with qei1`.
+- `test_qei.py` - position counts for frequency x cycles x direction x capture mode x phase inversion, physically inverted phases restored by `inva`/`invb`, offset and rollover, reset on the index pulse with and without `invi`, speed against the velocity period, clock/direction mode, default pins; QEI1 on the EK-TM4C123GXL.
 - `test_can.py`:
   - over loopback and/or the bus (`--can-mode`): bit rate x standard/extended id x DLC 0-8, explicit bit timing (on the bus, the CANable runs at the computed bit rate), standard and extended acceptance filters with and without id-type match;
   - on the bus only: `ackError` with a listen-only CANable, receive errors and bus off with the CANable at a wrong bit rate, `recover=0/1`;
@@ -406,7 +377,7 @@ The `wdt` set reuses the `gpio0` connection of the `gpio` set.
 Each board file (`host/boards/<board>.yaml`) holds:
 
 - `terminal`, `pins` (the PROTOCOL.md alias table, compared with `board.pins`; only the generic names of `hal_ti_validation.protocol.PIN_ALIASES` are accepted) and `ad3` (supplies, analog limits).
-- `wiring_sets` - per set, `dio`, `wavegen` and `scope` maps from AD3 channel to pin or alias. An entry is either a pin or a mapping with `pin`, `role` (looked up by tests, e.g. `wdt_pin`), `note` and `requires` (only used with `--with <tag>`); `jumpers` and `options` document extra wiring.
+- `wiring_sets` - per set, `dio`, `wavegen` and `scope` maps from AD3 channel to pin or alias. An entry is either a pin or a mapping with `pin`, `role` (a name tests can look up), `note` and `requires` (only used with `--with <tag>`); `jumpers` and `options` document extra wiring.
 - `tests` - the parameters of every test module: parameter matrices, pins and instances, levels and tolerances.
   - `@pytest.mark.matrix("pwm.waveform")` turns every key of that mapping into one test parameter of the same name; `@pytest.mark.board_params("argname", "section.key")` adds one parameter from a list.
   - All parameters of a test form one matrix: `--depth full` runs its product, `--depth quick` a pairwise subset (`hal_ti_validation.pairwise`); `@pytest.mark.constraint(valid=...)` removes combinations a driver cannot take (for example parity with the synchronous UART).

@@ -57,66 +57,71 @@ ad3:
   # Wavegen levels are refused outside this range (TM4C pins are 3.3 V).
   analog_limits: [0.0, 3.3]
 
-# Each set is one way of wiring the AD3; select with --wiring-set a,b.
+# `harness` wires every DIO once; each pin serves several tests (notes list
+# the functions). The adc set only adds W1/W2 and the scope inputs, so it
+# combines with the harness: --wiring-set harness,adc. The comparator and
+# locked sets move one harness DIO and are used on their own.
 # dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
-# `requires: <tag>` entries are only used with --with <tag>.
-# `role` names a connection that tests look up by function.
 # Always connect AD3 GND to LaunchPad GND.
 wiring_sets:
-  gpio:
-    description: GPIO loop pins, the locked pin and the LED output
-    dio:
-      0: PB2
-      1: PB3
-      2: gpio1
-      3: gpio2
-      4:
-        pin: PD7
-        note: locked pin (NMI)
-      5: led0
-      6: gpio0
-  wdt:
+  harness:
     description: >-
-      watchdog early-warning toggle pin (the DIO6 connection of the gpio
-      set)
+      the fixed AD3 harness: PWM, SPI, QEI, UART, PWM fault, GPIO and
+      watchdog tests share these 16 DIOs
+    options:
+      loopback: >-
+        jumper PF0 (SSI3 MOSI) to PF1 (SSI3 MISO); DIO1 then only listens
     dio:
-      6:
-        pin: gpio0
-        role: wdt_pin
-  pwm:
-    description: >-
-      PWM0 generator A/B outputs, optional generator 0 and fault input; W1/W2
-      on the ADC inputs of the digital comparator fault path
-    dio:
-      0: m0pwm2
-      1: m0pwm3
-      2: m0pwm4
-      3: m0pwm5
-      4: m0pwm6
-      5: m0pwm7
-      6:
+      0:
         pin: PF0
-        note: M0PWM0, generator 0 A
-        requires: pwm4
-      7:
+        note: M0PWM0, SSI3 MOSI, LED D4, GPIO
+      1:
         pin: PF1
-        note: M0PWM1, generator 0 B
-        requires: pwm4
+        note: M0PWM1, SSI3 MISO, GPIO
+      2:
+        pin: m0pwm2
+        note: M0PWM2, SSI3 FSS, GPIO
+      3:
+        pin: m0pwm3
+        note: M0PWM3, SSI3 CLK, GPIO
+      4:
+        pin: m0pwm4
+        note: M0PWM4, GPIO
+      5:
+        pin: m0pwm5
+        note: M0PWM5, GPIO, watchdog early-warning toggle
+      6:
+        pin: m0pwm6
+        note: M0PWM6, GPIO
+      7:
+        pin: m0pwm7
+        note: M0PWM7, GPIO
       8:
         pin: PK6
-        role: pwm_fault
-        note: M0FAULT1, driven by the AD3
-        requires: faultpin
-    wavegen:
-      1:
-        pin: ain11
-        role: pwm_dcmp
-        note: ADC digital comparator input of the fault path
-      2: ain10
-    scope:
-      1: ain11
+        note: M0FAULT1, GPIO
+      9:
+        pin: qei0a
+        note: QEI0 phase A, GPIO
+      10:
+        pin: qei0b
+        note: QEI0 phase B, GPIO
+      11:
+        pin: qei0idx
+        note: QEI0 index, GPIO
+      12:
+        pin: PA5
+        note: UART3 TX
+      13:
+        pin: PA4
+        note: UART3 RX, GPIO
+      14:
+        pin: PP4
+        note: UART3 RTS, GPIO
+      15:
+        pin: PP5
+        note: UART3 CTS, GPIO
   adc:
-    description: wavegen levels on two analog inputs
+    description: wavegen levels on two analog inputs (also the PWM fault dcmp)
     wavegen:
       1: ain0
       2: ain11
@@ -124,7 +129,9 @@ wiring_sets:
       1: ain0
       2: ain11
   comparator:
-    description: analog comparator 1 (C1+ PC5, C1- PC4, C1o PD1)
+    description: >-
+      analog comparator 1 (C1+ PC5, C1- PC4, C1o PD1); DIO15 moves from PP5
+      to PD1
     wavegen:
       1:
         pin: PC5
@@ -136,13 +143,13 @@ wiring_sets:
       1: PC5
       2: PC4
     dio:
-      0:
+      15:
         pin: PD1
         note: C1o output
   comparator_c0:
     description: >-
       analog comparator 1 with its positive input taken from C0+ (C0+ PC6,
-      C1- PC4, C1o PD1)
+      C1- PC4, C1o PD1); DIO15 moves from PP5 to PD1
     wavegen:
       1:
         pin: PC6
@@ -154,56 +161,15 @@ wiring_sets:
       1: PC6
       2: PC4
     dio:
-      0:
+      15:
         pin: PD1
         note: C1o output
-  qei:
-    description: QEI0 driven by the pattern generator
+  locked:
+    description: the locked pin PD7 (NMI); DIO14 moves from PP4 to PD7
     dio:
-      0: qei0a
-      1: qei0b
-      2: qei0idx
-  uart:
-    description: UART3 PA5 (TX) / PA4 (RX) against the AD3 UART
-    options:
-      flow: UART3 RTS on PP4 and CTS on PP5 wired to DIO2/DIO3
-    dio:
-      0:
-        pin: PA5
-        role: uart_tx
-        note: firmware TX, AD3 UART RX
-      1:
-        pin: PA4
-        role: uart_rx
-        note: firmware RX, AD3 UART TX
-      2:
-        pin: PP4
-        role: uart_rts
-        note: firmware RTS
-        requires: flow
-      3:
-        pin: PP5
-        role: uart_cts
-        note: firmware CTS, driven by the AD3
-        requires: flow
-  spi:
-    description: SSI2 on PD3 (CLK), PD2 (FSS), PD0 (MOSI), PD1 (MISO)
-    options:
-      loopback: jumper PD0 (MOSI) to PD1 (MISO); DIO3 then only listens
-    dio:
-      0:
-        pin: PD3
-        role: spi_clk
-      1:
-        pin: PD2
-        role: spi_cs
-      2:
-        pin: PD0
-        role: spi_mosi
-      3:
-        pin: PD1
-        role: spi_miso
-        note: AD3 drives the MISO level unless the loopback jumper is fitted
+      14:
+        pin: PD7
+        note: locked pin (NMI)
   can:
     description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:
@@ -229,9 +195,10 @@ tests:
     missing_instances: ["pwm.open 1 gens=0", "qei.open 1 a=PL1 b=PL2"]
   gpio:
     # gpio.irq serves ports A-F only (other ports: ERR unsupported).
-    loop_pins: [PB2, PB3, gpio1, gpio2, gpio0]
+    loop_pins: [PA4, m0pwm2, m0pwm4, m0pwm6, qei0a]
     locked_pins: [PD7]
-    output_pins: [led0]
+    # PF0 drives LED D4.
+    output_pins: [PF0]
     drives: [2, 4, 8]
     pulls: [up, down]
     irq:
@@ -376,11 +343,11 @@ tests:
     bit_rate_tolerance: 0.03
   spi:
     instances:
-      - index: 2
-        clk: PD3
-        cs: PD2
-        mosi: PD0
-        miso: PD1
+      - index: 3
+        clk: m0pwm3
+        cs: m0pwm2
+        mosi: PF0
+        miso: PF1
     transfer:
       mode: [0, 1, 2, 3]
       baud: [100000, 1000000, 4000000, 10000000, 20000000, 60000000]
@@ -557,6 +524,7 @@ tests:
       index: [0, 1]
       timeout_ms: [1, 10, 100, 1000, 5000]
       reset: [0, 1]
+    pin: m0pwm5
     observe_periods: 3
     period_tolerance: 0.03
   ethernet:

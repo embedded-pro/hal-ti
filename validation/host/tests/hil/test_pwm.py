@@ -1,9 +1,8 @@
 """PWM (`hal::tiva::Pwm` / `SynchronousPwm`): waveforms, outputs, dead band, update modes, interrupts, ADC
 triggers and the fault path.
 
-Wiring set `pwm`: the A/B outputs of `tests.pwm.generators` on DIOs; `--with pwm4` adds the fourth generator,
-`--with faultpin` a DIO on a fault input, and W1 drives the ADC input of the digital comparator fault path
-(`--with dcmp` on TM4C123). Interrupt and ADC-trigger tests need no wiring.
+Wiring set `harness`: the A/B outputs of `tests.pwm.generators` and the fault pin on DIOs; the digital comparator
+fault path also needs set `adc` (W1/W2 on its ADC input). Interrupt and ADC-trigger tests need no wiring.
 """
 
 from __future__ import annotations
@@ -340,7 +339,7 @@ def generator_mask(generators):
 def test_fault_input_pin(fw, ad3, need, pwm, latch, minperiod, gens):
     """A high level on the fault pin raises `EVT pwm` naming the pin input and the configured generators."""
     fault = pwm["fault"]
-    dio = need.dio(role="pwm_fault")
+    dio = need.dio(fault["pin"])
     ad3.dio.drive(dio, 0)
     opened = [generator["gen"] for generator in pwm["generators"]]
     selected = fault_generators(pwm, gens)
@@ -364,7 +363,7 @@ def test_fault_forces_outputs(fw, ad3, need, pwm):
     fault = pwm["fault"]
     generator = configured(pwm, 1)[0]
     a, b = need.dio(generator["a"]), need.dio(generator["b"])
-    dio = need.dio(role="pwm_fault")
+    dio = need.dio(fault["pin"])
     ad3.dio.drive(dio, 0)
     open_generators(fw, pwm, [generator], freq=10000)
     fw.pwm.fault(pwm["module"], inputs=fault["inputs"], pin=fault["pin"])
@@ -383,7 +382,7 @@ def test_fault_digital_comparator(fw, ad3, need, pwm):
     """An ADC digital comparator (`adc.open dcmp=`) above its window raises `EVT pwm` with its comparator bit."""
     fault = pwm["fault"]
     config = fault["dcmp"]
-    wavegen = need.wavegen(role="pwm_dcmp")
+    wavegen = need.wavegen(config["pin"])
     ad3.wavegen.dc(wavegen, config["safe_v"])
     generator = configured(pwm, 1)[0]["gen"]
     fw.pwm.open(pwm["module"], gens=[generator], freq=10000, trigger="zero")

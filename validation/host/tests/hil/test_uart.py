@@ -1,6 +1,6 @@
 """UART (`hal::tiva::Uart`, `UartWithDma`, `SynchronousUart`) against the AD3 protocol UART.
 
-Wiring set `uart`: firmware TX and RX of `tests.uart.instances` on DIOs; `--with flow` adds RTS/CTS. The logic
+Wiring set `harness`: firmware TX, RX, RTS and CTS of `tests.uart` on DIOs. The logic
 analyzer also records the firmware TX line to decode the frames and measure the bit rate.
 """
 
@@ -152,8 +152,8 @@ def test_flow_control(fw, ad3, need, uart_cfg, flow, variant):
     """CTS deasserted (high) holds the firmware's transmitter; RTS is asserted (low) while it can receive."""
     instance = uart_cfg["flow_instance"]
     uses_rts, uses_cts = flow in ("rts", "rtscts"), flow in ("cts", "rtscts")
-    rts = need.dio(role="uart_rts") if uses_rts else None
-    cts = need.dio(role="uart_cts") if uses_cts else None
+    rts = need.dio(instance["rts"]) if uses_rts else None
+    cts = need.dio(instance["cts"]) if uses_cts else None
     baud = 115200
     if cts is not None:
         ad3.dio.drive(cts, 1)

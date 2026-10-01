@@ -35,40 +35,48 @@ def test_alias_table_matches_protocol(name):
 
 
 @pytest.mark.parametrize("name", BOARDS)
-def test_parameters_reference_wired_pins(name):
-    """Pins listed in the test parameters are wired in the matching wiring set (optional ones with their tag)."""
+def test_harness_wires_every_dio_once(name):
+    """The fixed harness uses all 16 DIOs, each on its own pin; the AD3 is not on the CAN bus."""
     board = load_board(name)
-    tags = ["pwm4", "faultpin", "dcmp", "flow", "qei1", "loopback"]
+    harness = board.wiring(["harness"])
+    dios = [connection for connection in harness.connections if connection.kind == "dio"]
+    assert sorted(connection.channel for connection in dios) == list(range(16))
+    assert len({connection.pin for connection in dios}) == 16
+    assert not board.wiring(["can"]).connections
 
-    def wired(set_name, pin, kind="dio"):
-        return board.wiring([set_name], tags).channel(kind, board.resolve_pin(pin)) is not None
 
-    for pin in board.param("gpio.loop_pins") + board.param("gpio.locked_pins") + board.param("gpio.output_pins"):
-        assert wired("gpio", pin), pin
+@pytest.mark.parametrize("name", BOARDS)
+def test_parameters_reference_wired_pins(name):
+    """Pins listed in the test parameters are on the harness, or in the analog/extra set their tests name."""
+    board = load_board(name)
+
+    def wired(sets, pin, kind="dio"):
+        return board.wiring(sets).channel(kind, board.resolve_pin(pin)) is not None
+
+    harness = ["harness"]
+    for pin in board.param("gpio.loop_pins") + board.param("gpio.output_pins"):
+        assert wired(harness, pin), pin
+    for pin in board.param("gpio.locked_pins"):
+        assert wired(harness, pin) or wired(["locked"], pin), pin
     for generator in board.param("pwm.generators"):
-        assert wired("pwm", generator["a"]) and wired("pwm", generator["b"]), generator
-    assert wired("pwm", board.param("pwm.fault.pin"))
-    assert wired("pwm", board.param("pwm.fault.dcmp.pin"), "wavegen")
+        assert wired(harness, generator["a"]) and wired(harness, generator["b"]), generator
+    assert wired(harness, board.param("pwm.fault.pin"))
+    assert wired(["harness", "adc"], board.param("pwm.fault.dcmp.pin"), "wavegen")
     for instance in board.param("uart.instances"):
-        assert wired("uart", instance["tx"]) and wired("uart", instance["rx"])
+        assert wired(harness, instance["tx"]) and wired(harness, instance["rx"])
     flow = board.param("uart.flow_instance")
-    assert wired("uart", flow["rts"]) and wired("uart", flow["cts"])
+    assert all(wired(harness, flow[key]) for key in ("tx", "rx", "rts", "cts"))
     for instance in board.param("spi.instances"):
-        assert all(wired("spi", instance[key]) for key in ("clk", "cs", "mosi", "miso"))
+        assert all(wired(harness, instance[key]) for key in ("clk", "cs", "mosi", "miso"))
     for instance in board.param("qei.instances"):
-        assert all(wired("qei", instance[key]) for key in ("a", "b", "idx")), instance
-    for instance in board.param("comparator.instances"):
-        assert wired("comparator", instance["pos"], "wavegen")
-        assert wired("comparator", instance["neg"], "wavegen")
-        assert wired("comparator", instance["out"])
-    for instance in board.param("comparator.c0_instances"):
-        assert wired("comparator_c0", instance["c0"], "wavegen")
-        assert wired("comparator_c0", instance["neg"], "wavegen")
-        assert wired("comparator_c0", instance["out"])
+        assert all(wired(harness, instance[key]) for key in ("a", "b", "idx")), instance
+    assert wired(harness, board.param("watchdog.pin"))
+    for set_name, key, instances in (("comparator", "pos", "comparator.instances"), ("comparator_c0", "c0", "comparator.c0_instances")):
+        for instance in board.param(instances):
+            assert wired([set_name], instance[key], "wavegen") and wired([set_name], instance["neg"], "wavegen")
+            assert instance["out"] is None or wired([set_name], instance["out"]), instance
     for pin in board.param("adc.inputs"):
-        assert wired("adc", pin, "wavegen")
-    assert not board.wiring(["can"]).connections, "the CAN bus goes to a CANable, not to the AD3"
-    assert board.wiring(["gpio", "wdt"]).dio(role="wdt_pin") is not None
+        assert wired(["harness", "adc"], pin, "wavegen")
 
 
 @pytest.mark.parametrize("name", BOARDS)
@@ -89,31 +97,36 @@ def test_matrices_load(name):
         board.matrix("pwm.module")
 
 
-def test_wiring_merge_and_optional_connections():
+def test_wiring_merge_and_conflicts():
     board = load_board("ek_tm4c123gxl")
-    wiring = board.wiring(["pwm", "adc"])
+    wiring = board.wiring(["harness", "adc"])
     assert wiring.dio(board.resolve_pin("m0pwm0")) == 0
     assert wiring.wavegen(board.resolve_pin("ain0")) == 1
     assert wiring.scope(board.resolve_pin("ain3")) == 2
-    assert wiring.dio(role="pwm_fault") is None
-    assert board.wiring(["pwm"], ["faultpin"]).dio(role="pwm_fault") == 8
-    uart = board.wiring(["uart"])
-    assert uart.dio(role="uart_rts") is None
-    flow = board.wiring(["uart"], ["flow"])
-    assert flow.dio(role="uart_rts") == 2
-    assert flow.has("flow")
-    assert "DIO0" in flow.describe()
-    assert board.wiring(["gpio", "wdt"]).dio(role="wdt_pin") == 7
-
-
-def test_conflicting_wiring_sets():
-    board = load_board("ek_tm4c123gxl")
-    with pytest.raises(ConfigError):
-        board.wiring(["pwm", "gpio"])
+    assert "DIO15" in wiring.describe()
+    assert board.wiring(["harness", "comparator_c0"]).dio(board.resolve_pin("led0")) == 15
+    assert board.wiring(["harness"], ["loopback"]).has("loopback")
     with pytest.raises(ConfigError):
         board.wiring(["comparator", "comparator_c0"])
     with pytest.raises(ConfigError):
         board.wiring(["nosuchset"])
+    other = load_board("ek_tm4c1294xl")
+    with pytest.raises(ConfigError):
+        other.wiring(["harness", "comparator"])
+    with pytest.raises(ConfigError):
+        other.wiring(["harness", "locked"])
+
+
+def test_optional_connections_and_roles():
+    raw = {
+        "board": "x",
+        "family": "tm4c123",
+        "pins": {"gpio0": "PA2"},
+        "wiring_sets": {"s": {"dio": {0: "gpio0", 1: {"pin": "PB0", "role": "probe", "requires": "extra"}}}},
+    }
+    board = parse_board(raw)
+    assert board.wiring(["s"]).dio(role="probe") is None
+    assert board.wiring(["s"], ["extra"]).dio(role="probe") == 1
 
 
 def test_params_and_overrides():

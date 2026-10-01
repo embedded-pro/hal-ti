@@ -1,7 +1,7 @@
 """Watchdog (`hal::tiva::WatchDog`): early warnings, feeding, resets and the early-warning period.
 
-A started watchdog cannot be stopped, so every test resets the board afterwards. Wiring set `wdt` puts the
-`pin=` toggle output on a DIO so the logic analyzer measures the warning period.
+A started watchdog cannot be stopped, so every test resets the board afterwards. `tests.watchdog.pin` is a
+harness pin: the `pin=` toggle output is on its DIO, so the logic analyzer measures the warning period.
 """
 
 from __future__ import annotations
@@ -67,8 +67,8 @@ def test_behaviour(fw, board_cfg, wdt_cfg, index, timeout_ms, reset, feed):
 @pytest.mark.matrix("watchdog.period")
 def test_warning_period(fw, ad3, need, wdt_cfg, index, timeout_ms, reset):
     """The `pin=` output toggles on every early warning: the toggle interval is the programmed timeout."""
-    connection = need.connection("wdt_pin")
-    dio, pin = connection.channel, connection.pin
+    pin = wdt_cfg["pin"]
+    dio = need.dio(pin)
     periods = wdt_cfg["observe_periods"]
     duration = (periods + 1.5) * timeout_ms / 1000
     rate = min(ad3.logic.clock_hz, ad3.logic.buffer_size / duration)

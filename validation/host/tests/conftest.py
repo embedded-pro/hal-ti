@@ -23,7 +23,7 @@ from ad3_waveforms_bench.pytest_plugin import Ad3Settings
 from ad3_waveforms_bench.terminal import FirmwareTerminal, TerminalError
 
 from hal_ti_validation.can_peer import CanPeer, CanPeerError, open_peer
-from hal_ti_validation.config import BoardConfig, ConfigError, Connection, Wiring, load_board
+from hal_ti_validation.config import BoardConfig, ConfigError, Wiring, load_board
 from hal_ti_validation.firmware import Firmware
 from hal_ti_validation.pairwise import DEPTHS, combinations
 
@@ -251,13 +251,6 @@ class Need:
     def optional_dio(self, pin: str | None = None, role: str | None = None) -> int | None:
         resolved = None if pin is None else self.board.resolve_pin(pin)
         return self.wiring.dio(resolved, role)
-
-    def connection(self, role: str) -> Connection:
-        """The wired connection with `role` (its channel and pin)."""
-        for connection in self.wiring.connections:
-            if connection.role == role:
-                return connection
-        pytest.skip(f"{role} is not wired in wiring set(s) {', '.join(self.wiring.sets) or '(none)'}")
 
     def tag(self, tag: str) -> None:
         if not self.wiring.has(tag):

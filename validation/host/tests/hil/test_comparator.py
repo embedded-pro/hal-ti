@@ -1,8 +1,8 @@
 """Analog comparator (`hal::tiva::AnalogComparator` / `SynchronousAnalogComparator`).
 
-Wiring set `comparator`: W1 on the positive input, W2 on the negative input, the output pin on a DIO; wiring set
-`comparator_c0` the comparators whose positive input is C0+ (`src=c0`). The output is high while VIN- < VIN+
-(inverted with `invert=1`).
+Wiring set `comparator`: W1 on the positive input, W2 on the negative input, the output pin on a DIO when the
+instance has one; wiring set `comparator_c0` the comparators whose positive input is C0+ (`src=c0`). The output is
+high while VIN- < VIN+ (inverted with `invert=1`).
 """
 
 from __future__ import annotations
@@ -27,7 +27,8 @@ def settle():
 def check_output(fw, ad3, need, index, out, pos_level, neg_level, invert):
     expected = int(pos_level > neg_level) ^ invert
     assert fw.comp.read(index) == expected
-    assert ad3.dio.read(need.dio(out)) == expected, "output pin"
+    if out is not None:
+        assert ad3.dio.read(need.dio(out)) == expected, "output pin"
 
 
 @pytest.mark.ad3
