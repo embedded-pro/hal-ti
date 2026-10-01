@@ -8,6 +8,8 @@ namespace hal::tiva
 {
     namespace
     {
+        constexpr std::size_t fifoDepth = 8;
+
         constexpr const uint32_t SSI_CR0_SCR_M = 0x0000FF00;     // SSI Serial Clock Rate
         constexpr const uint32_t SSI_CR0_SPH_SPO_M = 0x000000C0; // SSI Serial Clock Rate
         constexpr const uint32_t SSI_CR0_SPH = 0x00000080;       // SSI Serial Clock Phase
@@ -163,13 +165,21 @@ namespace hal::tiva
         really_assert(sendData.size() == receiveData.size() || sendData.empty() || receiveData.empty());
 
         const std::size_t count = sendData.size() > receiveData.size() ? sendData.size() : receiveData.size();
-        for (std::size_t i = 0; i < count; i++)
+        std::size_t sent = 0;
+
+        for (std::size_t received = 0; received < count; ++received)
         {
-            Send(i < sendData.size() ? sendData[i] : 0);
+            // Frames queued ahead are clocked back to back; at most a FIFO's worth so the receive FIFO cannot overflow
+            while (sent < count && sent - received < fifoDepth)
+            {
+                Send(sent < sendData.size() ? sendData[sent] : 0);
+                ++sent;
+            }
+
             auto data = Receive();
 
-            if (i < receiveData.size())
-                receiveData[i] = data;
+            if (received < receiveData.size())
+                receiveData[received] = data;
         }
 
         while (ssiArray[ssiIndex]->SR & SSI_SR_BSY)

@@ -282,10 +282,8 @@ namespace hal::tiva
             spiInterruptRegistration->ClearPending();
             if (chipSelectConfigurator && !continuedSession)
                 chipSelectConfigurator->EndSession();
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    onDone();
-                });
+            infra::EventDispatcher::Instance().Schedule(onDone.Clone());
+            onDone = nullptr;
         }
     }
 
