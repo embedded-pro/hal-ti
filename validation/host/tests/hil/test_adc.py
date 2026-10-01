@@ -7,6 +7,7 @@ generator trigger (the driver has no processor trigger), which each test opens i
 
 from __future__ import annotations
 
+import statistics
 import time
 
 import pytest
@@ -25,11 +26,16 @@ def adc_cfg(board_cfg):
 
 
 def apply_level(ad3, need, pin, volts):
-    """Drive `pin` to `volts`; returns the measured level (scope) or the programmed one."""
+    """Drive `pin` to `volts`; returns the measured level (scope) or the programmed one.
+
+    The scope reads on a 5 V range centred on mid-supply: the default 10 V range is some 25 mV off, most of the ADC tolerance.
+    """
     ad3.wavegen.dc(need.wavegen(pin), volts)
     time.sleep(0.02)
     scope = need.optional_scope(pin)
-    return ad3.scope.average(scope) if scope is not None else volts
+    if scope is None:
+        return volts
+    return statistics.fmean(ad3.scope.acquire([scope], rate=1e5, samples=1000, range_v=5.0, offset_v=1.65)[scope])
 
 
 def start_trigger(fw, adc_cfg, sync):
@@ -54,7 +60,7 @@ def check_codes(samples, volts, adc_cfg, vref=None):
     expected = analysis.adc_code(volts, vref or adc_cfg["vref"], adc_cfg["bits"])
     result = analysis.stats(samples)
     assert result.mean == pytest.approx(expected, abs=adc_cfg["tolerance_codes"]), f"{volts:.3f} V: {result}"
-    assert result.maximum - result.minimum <= 2 * adc_cfg["tolerance_codes"], f"noisy samples {result}"
+    assert result.maximum - result.minimum <= adc_cfg.get("spread_codes", 2 * adc_cfg["tolerance_codes"]), f"noisy samples {result}"
 
 
 @pytest.mark.ad3

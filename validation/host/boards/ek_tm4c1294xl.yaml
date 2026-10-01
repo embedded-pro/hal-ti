@@ -393,6 +393,9 @@ tests:
     vref: 3.3
     bits: 12
     tolerance_codes: 40
+    # Peak-to-peak of raw samples: this board's analog supply carries a ~100 kHz ripple of about 1 % of the reading (measured:
+    # +-45 codes at 3.1 V, gone with hardware averaging), so single conversions spread wider than twice the mean tolerance.
+    spread_codes: 120
     samples: 16
     # The two inputs driven by W1/W2 in the adc wiring set.
     inputs: [ain0, ain11]

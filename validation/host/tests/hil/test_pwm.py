@@ -229,18 +229,27 @@ def test_frequency_change_and_stop(fw, ad3, need, pwm, mode, sync):
 
 
 def interrupt_window(fw, pwm, generator):
-    window_ms = pwm["irq_window_ms"]
+    """Count events over `irq_window_ms`; returns the count and the shortest and longest window it can cover.
+
+    The firmware clears and reads the counter somewhere within the round trips of those commands, so the counted window lies
+    between the time from the clear's reply to the read's request and the time from the clear's request to the read's reply.
+    """
+    started = time.monotonic()
     fw.pwm.count(pwm["module"], generator, clear=True)
-    fw.system.delay(window_ms)
-    return fw.pwm.count(pwm["module"], generator), window_ms / 1000
+    cleared = time.monotonic()
+    fw.system.delay(pwm["irq_window_ms"])
+    reading = time.monotonic()
+    count = fw.pwm.count(pwm["module"], generator)
+    ended = time.monotonic()
+    return count, (reading - cleared, ended - started)
 
 
 def check_count(count, frequency, per_period, window_s, pwm):
-    expected = frequency * window_s * per_period
+    shortest, longest = window_s
     slack = frequency * per_period * 0.02
-    assert expected * (1 - pwm["irq_tolerance"]) <= count <= expected * (1 + pwm["irq_tolerance"]) + slack, (
-        f"{count} events, expected {expected:.0f}"
-    )
+    lowest = frequency * shortest * per_period * (1 - pwm["irq_tolerance"])
+    highest = frequency * longest * per_period * (1 + pwm["irq_tolerance"]) + slack
+    assert lowest <= count <= highest, f"{count} events, expected {lowest:.0f} to {highest:.0f}"
 
 
 @pytest.mark.matrix("pwm.irq")
