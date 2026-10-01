@@ -251,6 +251,9 @@ pytest validation/host/tests/hil/test_can.py --board ek_tm4c1294xl --can-mode bo
 
 - `AD3_REMOTE` and `HAL_TI_PORT` can be replaced by `--ad3-remote` and `--port` on the pytest command line.
 - If `python3 -m venv` is not available in the image, use `pip install --user -e "validation/host[ad3]"`.
+- To let Claude Code work on the hardware from the container, use Remote Control (needs a claude.ai Pro, Max, Team or Enterprise login):
+  - the devcontainer feature installs the `claude` CLI; run `claude` once in the checkout to sign in (it prints a login URL to open in the Windows browser);
+  - then run `claude remote-control --name "hal-ti HIL"` and keep it running. The session appears in the Claude Code app and can build, flash and run pytest through the bridges above.
 - To debug from VS Code inside the container, use the `ek-tm4c123gxl (OpenOCD on host)` or `ek-tm4c1294xl (OpenOCD on host)` launch configuration: it attaches `gdb-multiarch` to the OpenOCD of the host instead of starting a local debug server.
 - The AD3 serves one client at a time; a second pytest run is refused until the first one disconnects. When a client disconnects, the server releases every AD3 output and switches the supplies off.
 
