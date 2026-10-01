@@ -54,7 +54,7 @@ def test_parameters_reference_wired_pins(name):
         return board.wiring(sets).channel(kind, board.resolve_pin(pin)) is not None
 
     harness = ["harness"]
-    for pin in board.param("gpio.loop_pins") + board.param("gpio.output_pins"):
+    for pin in board.param("gpio.loop_pins") + board.param("gpio.output_pins", []):
         assert wired(harness, pin), pin
     for pin in board.param("gpio.locked_pins"):
         assert wired(harness, pin) or wired(["locked"], pin), pin
@@ -65,7 +65,8 @@ def test_parameters_reference_wired_pins(name):
     for instance in board.param("uart.instances"):
         assert wired(harness, instance["tx"]) and wired(harness, instance["rx"])
     flow = board.param("uart.flow_instance")
-    assert all(wired(harness, flow[key]) for key in ("tx", "rx", "rts", "cts"))
+    flow_sets = harness if all(wired(harness, flow[key]) for key in ("rts", "cts")) else ["flow"]
+    assert all(wired(flow_sets, flow[key]) for key in ("tx", "rx", "rts", "cts"))
     for instance in board.param("spi.instances"):
         assert all(wired(harness, instance[key]) for key in ("clk", "cs", "mosi", "miso"))
     for instance in board.param("qei.instances"):
@@ -74,7 +75,7 @@ def test_parameters_reference_wired_pins(name):
     for set_name, key, instances in (("comparator", "pos", "comparator.instances"), ("comparator_c0", "c0", "comparator.c0_instances")):
         for instance in board.param(instances):
             assert wired([set_name], instance[key], "wavegen") and wired([set_name], instance["neg"], "wavegen")
-            assert instance["out"] is None or wired([set_name], instance["out"]), instance
+            assert instance["out"] is None or wired(["harness", set_name], instance["out"]), instance
     for pin in board.param("adc.inputs"):
         assert wired(["harness", "adc"], pin, "wavegen")
 
@@ -111,8 +112,9 @@ def test_wiring_merge_and_conflicts():
     with pytest.raises(ConfigError):
         board.wiring(["nosuchset"])
     other = load_board("ek_tm4c1294xl")
+    assert other.wiring(["harness", "comparator"]).dio("PD1") == 15
     with pytest.raises(ConfigError):
-        other.wiring(["harness", "comparator"])
+        other.wiring(["harness", "flow"])
     with pytest.raises(ConfigError):
         other.wiring(["harness", "locked"])
 

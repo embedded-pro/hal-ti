@@ -58,124 +58,136 @@ ad3:
   analog_limits: [0.0, 3.3]
 
 # `harness` wires every DIO once; each pin serves several tests (notes list
-# the functions). The adc set only adds W1/W2 and the scope inputs, so it
-# combines with the harness: --wiring-set harness,adc. The comparator and
-# locked sets move one harness DIO and are used on their own.
+# the functions and the BoosterPack header pin). The adc and comparator sets
+# only add W1/W2 and the scope inputs, so they combine with the harness:
+# --wiring-set harness,adc. The flow and locked sets move harness DIOs and
+# are used on their own. PF0 (M0PWM0, SSI3) is not on the headers.
 # dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
 # Always connect AD3 GND to LaunchPad GND.
 wiring_sets:
   harness:
     description: >-
-      the fixed AD3 harness: PWM, SPI, QEI, UART, PWM fault, GPIO and
-      watchdog tests share these 16 DIOs
+      the fixed AD3 harness: PWM, SPI, QEI, UART, PWM fault, comparator
+      output, GPIO and watchdog tests share these 16 DIOs
     options:
       loopback: >-
-        jumper PF0 (SSI3 MOSI) to PF1 (SSI3 MISO); DIO1 then only listens
+        jumper PD0 (SSI2 MOSI) to PD1 (SSI2 MISO); DIO15 then only listens
     dio:
       0:
-        pin: PF0
-        note: M0PWM0, SSI3 MOSI, LED D4, GPIO
+        pin: PD3
+        note: SSI2 CLK, GPIO (X8_13)
       1:
-        pin: PF1
-        note: M0PWM1, SSI3 MISO, GPIO
+        pin: PD2
+        note: SSI2 FSS, GPIO (X6_03)
       2:
         pin: m0pwm2
-        note: M0PWM2, SSI3 FSS, GPIO
+        note: M0PWM2, GPIO (X9_03)
       3:
         pin: m0pwm3
-        note: M0PWM3, SSI3 CLK, GPIO
+        note: M0PWM3, GPIO (X9_05)
       4:
         pin: m0pwm4
-        note: M0PWM4, GPIO
+        note: M0PWM4, GPIO (X9_07)
       5:
         pin: m0pwm5
-        note: M0PWM5, GPIO, watchdog early-warning toggle
+        note: M0PWM5, GPIO, watchdog early-warning toggle (X7_01)
       6:
         pin: m0pwm6
-        note: M0PWM6, GPIO
+        note: M0PWM6, GPIO (X7_03)
       7:
         pin: m0pwm7
-        note: M0PWM7, GPIO
+        note: M0PWM7, GPIO (X7_05)
       8:
         pin: PK6
-        note: M0FAULT1, GPIO
+        note: M0FAULT1, GPIO (X7_17)
       9:
         pin: qei0a
-        note: QEI0 phase A, GPIO
+        note: QEI0 phase A, GPIO (X9_15)
       10:
         pin: qei0b
-        note: QEI0 phase B, GPIO
+        note: QEI0 phase B, GPIO (X9_17)
       11:
         pin: qei0idx
-        note: QEI0 index, GPIO
+        note: QEI0 index, GPIO (X9_19)
       12:
         pin: PA5
-        note: UART3 TX
+        note: UART3 TX (X6_20)
       13:
         pin: PA4
-        note: UART3 RX, GPIO
+        note: UART3 RX, GPIO (X6_18)
       14:
-        pin: PP4
-        note: UART3 RTS, GPIO
+        pin: PD0
+        note: SSI2 MOSI, GPIO (X9_14)
       15:
-        pin: PP5
-        note: UART3 CTS, GPIO
+        pin: PD1
+        note: SSI2 MISO, C1o output, GPIO (X9_12)
   adc:
     description: wavegen levels on two analog inputs (also the PWM fault dcmp)
     wavegen:
-      1: ain0
-      2: ain11
+      1:
+        pin: ain0
+        note: X8_12
+      2:
+        pin: ain11
+        note: X6_08
     scope:
       1: ain0
       2: ain11
   comparator:
     description: >-
-      analog comparator 1 (C1+ PC5, C1- PC4, C1o PD1); DIO15 moves from PP5
-      to PD1
+      analog comparator 1 (C1+ PC5, C1- PC4); C1o is the harness DIO15 on PD1
     wavegen:
       1:
         pin: PC5
-        note: C1+ input
+        note: C1+ input (X8_07)
       2:
         pin: PC4
-        note: C1- input
+        note: C1- input (X8_05)
     scope:
       1: PC5
       2: PC4
-    dio:
-      15:
-        pin: PD1
-        note: C1o output
   comparator_c0:
     description: >-
       analog comparator 1 with its positive input taken from C0+ (C0+ PC6,
-      C1- PC4, C1o PD1); DIO15 moves from PP5 to PD1
+      C1- PC4); C1o is the harness DIO15 on PD1
     wavegen:
       1:
         pin: PC6
-        note: C0+ input
+        note: C0+ input (X8_09)
       2:
         pin: PC4
-        note: C1- input
+        note: C1- input (X8_05)
     scope:
       1: PC6
       2: PC4
+  flow:
+    description: >-
+      UART3 with RTS/CTS; DIO14/DIO15 move from PD0/PD1 to PP4/PP5
     dio:
+      12:
+        pin: PA5
+        note: UART3 TX (X6_20)
+      13:
+        pin: PA4
+        note: UART3 RX (X6_18)
+      14:
+        pin: PP4
+        note: UART3 RTS (X6_15)
       15:
-        pin: PD1
-        note: C1o output
+        pin: PP5
+        note: UART3 CTS (X7_06)
   locked:
-    description: the locked pin PD7 (NMI); DIO14 moves from PP4 to PD7
+    description: the locked pin PD7 (NMI); DIO14 moves from PD0 to PD7
     dio:
       14:
         pin: PD7
-        note: locked pin (NMI)
+        note: locked pin (NMI) (X8_14)
   can:
     description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:
       - JP4/JP5 in the UART2 position so PA0/PA1 are not driven by the ICDI
       - 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V
-      - transceiver TXD to PA1 (can0tx), RXD to PA0 (can0rx)
+      - transceiver TXD to PA1 (can0tx, JP5), RXD to PA0 (can0rx, JP4)
       - transceiver CANH/CANL/GND to the CANable CANH/CANL/GND
       - 120 Ohm across CANH/CANL at each end (CANable jumper on)
   ethernet:
@@ -197,8 +209,7 @@ tests:
     # gpio.irq serves ports A-F only (other ports: ERR unsupported).
     loop_pins: [PA4, m0pwm2, m0pwm4, m0pwm6, qei0a]
     locked_pins: [PD7]
-    # PF0 drives LED D4.
-    output_pins: [PF0]
+    # No user LED is on the headers, so there are no output_pins.
     drives: [2, 4, 8]
     pulls: [up, down]
     irq:
@@ -214,6 +225,7 @@ tests:
   pwm:
     module: 0
     # Generators in the order the tests use them, with their wired outputs.
+    # Generator 0 is left out: M0PWM0 (PF0) is not on the headers.
     generators:
       - gen: 1
         a: m0pwm2
@@ -224,9 +236,6 @@ tests:
       - gen: 3
         a: m0pwm6
         b: m0pwm7
-      - gen: 0
-        a: PF0
-        b: PF1
     waveform:
       mode: [edge, center]
       div: [1, 2, 4, 8, 16, 32, 64]
@@ -234,7 +243,7 @@ tests:
       duty: [0, 12.5, 50, 90, 100]
       sync: [0, 1]
     outputs:
-      generators: [1, 2, 3, 4]
+      generators: [1, 2, 3]
       output: [ab, a, b]
       sync: [0, 1]
     dead_time:
@@ -246,7 +255,7 @@ tests:
     update:
       update: [local, global]
       mode: [edge, center]
-      generators: [2, 3, 4]
+      generators: [2, 3]
       sync: [0, 1]
     irq:
       source: [zero, load, cmpau, cmpad, cmpbu, cmpbd]
@@ -343,11 +352,12 @@ tests:
     bit_rate_tolerance: 0.03
   spi:
     instances:
-      - index: 3
-        clk: m0pwm3
-        cs: m0pwm2
-        mosi: PF0
-        miso: PF1
+      # TX/RX as in the pinout table on main; hal-ti#119 swaps PD0/PD1.
+      - index: 2
+        clk: PD3
+        cs: PD2
+        mosi: PD0
+        miso: PD1
     transfer:
       mode: [0, 1, 2, 3]
       baud: [100000, 1000000, 4000000, 10000000, 20000000, 60000000]

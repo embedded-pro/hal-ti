@@ -68,57 +68,61 @@ wiring_sets:
     dio:
       0:
         pin: m0pwm0
-        note: M0PWM0, SSI2 MISO, GPIO
+        note: M0PWM0, SSI2 MISO, GPIO (J2.7)
       1:
         pin: m0pwm1
-        note: M0PWM1, SSI2 MOSI, GPIO
+        note: M0PWM1, SSI2 MOSI, GPIO (J2.6)
       2:
         pin: m0pwm2
-        note: M0PWM2, SSI2 CLK, GPIO
+        note: M0PWM2, SSI2 CLK, GPIO (J1.7)
       3:
         pin: m0pwm3
-        note: M0PWM3, SSI2 FSS, GPIO
+        note: M0PWM3, SSI2 FSS, GPIO (J1.2)
       4:
         pin: m0pwm4
-        note: M0PWM4, GPIO
+        note: M0PWM4, GPIO (J1.5)
       5:
         pin: m0pwm5
-        note: M0PWM5, GPIO
+        note: M0PWM5, GPIO (J1.6)
       6:
         pin: PC4
-        note: M0PWM6, QEI1 index, UART1 RTS, GPIO
+        note: M0PWM6, QEI1 index, UART1 RTS, GPIO (J4.4)
       7:
         pin: PC5
-        note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO
+        note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO (J4.5)
       8:
         pin: PC6
-        note: QEI1 phase B, GPIO; also C0+ in the comparator sets
+        note: QEI1 phase B, GPIO; also C0+ in the comparator sets (J4.6)
       9:
         pin: qei0a
-        note: QEI0 phase A, M0FAULT0, GPIO
+        note: QEI0 phase A, M0FAULT0, GPIO (J4.8)
       10:
         pin: qei0b
-        note: QEI0 phase B, locked pin (NMI)
+        note: QEI0 phase B, locked pin (NMI) (J4.9)
       11:
         pin: qei0idx
-        note: QEI0 index, GPIO
+        note: QEI0 index, GPIO (J3.6)
       12:
         pin: PB1
-        note: UART1 TX
+        note: UART1 TX (J1.4)
       13:
         pin: PB0
-        note: UART1 RX, GPIO
+        note: UART1 RX, GPIO (J1.3)
       14:
         pin: gpio0
-        note: GPIO, watchdog early-warning toggle
+        note: GPIO, watchdog early-warning toggle (J2.10)
       15:
         pin: led0
-        note: C1o output, red LED, GPIO
+        note: C1o output, red LED, GPIO (J3.10)
   adc:
     description: wavegen levels on two analog inputs (also the PWM fault dcmp)
     wavegen:
-      1: ain0
-      2: ain3
+      1:
+        pin: ain0
+        note: J3.9
+      2:
+        pin: ain3
+        note: J2.3
     scope:
       1: ain0
       2: ain3
@@ -129,10 +133,10 @@ wiring_sets:
     wavegen:
       1:
         pin: PC6
-        note: C0+ input
+        note: C0+ input (J4.6)
       2:
         pin: PC7
-        note: C0- input
+        note: C0- input (J4.7)
     scope:
       1: PC6
       2: PC7
@@ -143,10 +147,10 @@ wiring_sets:
     wavegen:
       1:
         pin: PC6
-        note: C0+ input
+        note: C0+ input (J4.6)
       2:
         pin: PC4
-        note: C1- input
+        note: C1- input (J4.4)
     scope:
       1: PC6
       2: PC4
@@ -158,7 +162,7 @@ wiring_sets:
     description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:
       - 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V
-      - transceiver TXD to PF3 (can0tx), RXD to PF0 (can0rx)
+      - transceiver TXD to PF3 (can0tx, J4.2), RXD to PF0 (can0rx, J2.4)
       - transceiver CANH/CANL/GND to the CANable CANH/CANL/GND
       - 120 Ohm across CANH/CANL at each end (CANable jumper on)
 
