@@ -42,6 +42,7 @@ namespace
     const infra::MemoryRange<PWM0_Type* const> peripheralPwm =
         infra::ReinterpretCastMemoryRange<PWM0_Type* const>(infra::MakeRange(peripheralPwmArray));
 
+    constexpr const std::size_t fltstatStride = 0x80 / sizeof(uint32_t); // PWMnFLTSTATx of consecutive generators
     constexpr const uint32_t PWM_INTEN_INTFAULT3 = 0x00080000;
     constexpr const uint32_t PWM_INTEN_INTFAULT2 = 0x00040000;
     constexpr const uint32_t PWM_INTEN_INTFAULT1 = 0x00020000;
@@ -215,16 +216,16 @@ namespace hal::tiva
 
     Pwm::~Pwm()
     {
-        for (auto& h : generatorHandlers)
-            h.reset();
-        faultHandler.reset();
-
         Stop();
 
         for (auto& gen : generators)
             gen.address->INTEN &= ~PWM_CHANNEL_ISC_NORMAL_MASK;
 
         peripheralPwm[pwmIndex]->INTEN = 0;
+
+        for (auto& h : generatorHandlers)
+            h.reset();
+        faultHandler.reset();
 
         uint32_t invertMask = 0;
         for (const auto& gen : generators)
@@ -299,15 +300,20 @@ namespace hal::tiva
                 ctlFaultBits |= PWM_CHANNEL_CTL_LATCH;
             channel->CTL |= ctlFaultBits;
 
-            peripheralPwm[pwmIndex]->INTEN |= faultIntEnBit[genIdx];
+            configuredFaultInterrupts |= faultIntEnBit[genIdx];
             hasFault = true;
         }
 
         if (hasFault)
         {
             peripheralPwm[pwmIndex]->ISC = PWM_ISC_INTFAULT3 | PWM_ISC_INTFAULT2 | PWM_ISC_INTFAULT1 | PWM_ISC_INTFAULT0;
+            peripheralPwm[pwmIndex]->INTEN |= configuredFaultInterrupts;
             NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq));
             faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq, interruptConfig.priority);
+            faultRearmTimer.Start(std::chrono::milliseconds(1), [this]()
+                {
+                    RearmFaultInterrupts();
+                });
         }
     }
 
@@ -321,43 +327,55 @@ namespace hal::tiva
             if (gen.a || gen.b)
                 gen.address->LOAD = load;
 
+        // The comparators count against the old period; recompute them so a running generator keeps its duty cycle
+        for (auto& gen : generators)
+            if (gen.duty && (gen.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+                SetComparator(gen, *gen.duty);
+
         Sync();
     }
 
     void Pwm::Start(hal::DutyCycle dutyCycle)
     {
         really_assert(generators.size() >= 1);
+        const uint32_t running = RunningGenerators();
 
         for (auto& gen : generators)
             SetComparator(gen, dutyCycle);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2)
     {
         really_assert(generators.size() == 2);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3)
     {
         really_assert(generators.size() == 3);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
         SetComparator(generators[2], dutyCycle3);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4)
     {
         really_assert(generators.size() == 4);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
@@ -365,6 +383,7 @@ namespace hal::tiva
         SetComparator(generators[3], dutyCycle4);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void Pwm::Stop()
@@ -432,6 +451,7 @@ namespace hal::tiva
     void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
     {
         really_assert(dutyCycle.IsValid());
+        generator.duty = dutyCycle;
 
         auto load = generator.address->LOAD;
         auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad(generator)));
@@ -484,6 +504,29 @@ namespace hal::tiva
         peripheralPwm[pwmIndex]->CTL = ctl;
     }
 
+    uint32_t Pwm::RunningGenerators() const
+    {
+        uint32_t running = 0;
+
+        for (const auto& gen : generators)
+            if ((gen.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+                running |= gen.generatorId;
+
+        return running;
+    }
+
+    // Each counter starts when its generator is enabled, so newly started generators are restarted together to keep their edges aligned
+    void Pwm::SynchronizeCounters(uint32_t runningBefore) const
+    {
+        uint32_t all = 0;
+
+        for (const auto& gen : generators)
+            all |= gen.generatorId;
+
+        if (runningBefore != all)
+            peripheralPwm[pwmIndex]->SYNC = all;
+    }
+
     uint32_t Pwm::GetLoad(const Generator& generator) const
     {
         if (IsCenterAligned(config.control.mode))
@@ -531,24 +574,63 @@ namespace hal::tiva
         
     }
 
+    // A fault pulse pends the NVIC line but the PWM raw status follows the live fault, so the ISR cannot tell which source fired
+    // once a short pulse (such as a digital comparator step) is over. The line is disabled for the whole fault episode instead:
+    // RearmFaultInterrupts keeps it disabled while new pulses still pend it and enables it again after a quiet period.
     void Pwm::HandleFaultIrq()
     {
         auto* pwm = peripheralPwm[pwmIndex];
+        const auto irq = static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq);
+
+        NVIC_DisableIRQ(irq);
+        pwm->ISC = configuredFaultInterrupts;
+
+        const uint32_t configuredGenerators = configuredFaultInterrupts >> 16;
+        uint32_t generators = pwm->STATUS & configuredGenerators;
+        if (generators == 0)
+            generators = configuredGenerators;
 
         FaultEvent ev{};
-        ev.generatorStatus = static_cast<FaultStatus>(pwm->STATUS & 0x0F);
-        ev.inputsByGenerator[0] = static_cast<FaultInput>(pwm->_0_FLTSTAT0 & 0x0F);
-        ev.inputsByGenerator[1] = static_cast<FaultInput>(pwm->_1_FLTSTAT0 & 0x0F);
-        ev.inputsByGenerator[2] = static_cast<FaultInput>(pwm->_2_FLTSTAT0 & 0x0F);
-        ev.inputsByGenerator[3] = static_cast<FaultInput>(pwm->_3_FLTSTAT0 & 0x0F);
-        ev.comparatorInputsByGenerator[0] = static_cast<FaultInputComparator>(pwm->_0_FLTSTAT1 & 0xFF);
-        ev.comparatorInputsByGenerator[1] = static_cast<FaultInputComparator>(pwm->_1_FLTSTAT1 & 0xFF);
-        ev.comparatorInputsByGenerator[2] = static_cast<FaultInputComparator>(pwm->_2_FLTSTAT1 & 0xFF);
-        ev.comparatorInputsByGenerator[3] = static_cast<FaultInputComparator>(pwm->_3_FLTSTAT1 & 0xFF);
+        ev.generatorStatus = static_cast<FaultStatus>(generators);
 
-        pwm->ISC = pwm->RIS & (PWM_ISC_INTFAULT3 | PWM_ISC_INTFAULT2 | PWM_ISC_INTFAULT1 | PWM_ISC_INTFAULT0);
+        for (uint8_t gen = 0; gen < static_cast<uint8_t>(faultIntEnBit.size()); ++gen)
+        {
+            if ((generators & (1u << gen)) == 0)
+                continue;
+
+            auto* channel = PwmChannel(peripheralPwmArray[pwmIndex], static_cast<GeneratorIndex>(gen));
+            uint32_t inputs = *(&pwm->_0_FLTSTAT0 + gen * fltstatStride) & 0x0F;
+            uint32_t comparators = *(&pwm->_0_FLTSTAT1 + gen * fltstatStride) & 0xFF;
+
+            if (inputs == 0 && comparators == 0)
+            {
+                inputs = channel->FLTSRC0 & 0x0F;
+                comparators = channel->FLTSRC1 & 0xFF;
+            }
+
+            ev.inputsByGenerator[gen] = static_cast<FaultInput>(inputs);
+            ev.comparatorInputsByGenerator[gen] = static_cast<FaultInputComparator>(comparators);
+        }
 
         onFault(ev);
+    }
+
+    void Pwm::RearmFaultInterrupts()
+    {
+        auto* pwm = peripheralPwm[pwmIndex];
+        const auto irq = static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq);
+
+        if (NVIC_GetEnableIRQ(irq) != 0)
+            return;
+
+        if (NVIC_GetPendingIRQ(irq) != 0 || (pwm->STATUS & (configuredFaultInterrupts >> 16)) != 0)
+        {
+            pwm->ISC = configuredFaultInterrupts;
+            NVIC_ClearPendingIRQ(irq);
+            return;
+        }
+
+        NVIC_EnableIRQ(irq);
     }
 
     uint16_t Pwm::CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor)

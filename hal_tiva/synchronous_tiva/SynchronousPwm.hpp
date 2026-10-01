@@ -150,6 +150,7 @@ namespace hal::tiva
             uint32_t enable = 0;
             uint32_t generatorId = 0;
             std::optional<PinChannel::Trigger> trigger;
+            std::optional<hal::DutyCycle> duty;
         };
 
         uint8_t pwmIndex;
@@ -166,6 +167,8 @@ namespace hal::tiva
         void DisableOutput(const Generator& generator) const;
         void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const;
         void Sync() const;
+        uint32_t RunningGenerators() const;
+        void SynchronizeCounters(uint32_t runningBefore) const;
         uint32_t GetLoad(const Generator& generator) const;
         void EnableClock() const;
         void DisableClock() const;

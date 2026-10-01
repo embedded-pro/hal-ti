@@ -3,6 +3,7 @@
 #include "hal/interfaces/Pwm.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
+#include "infra/timer/Timer.hpp"
 #include "infra/util/BoundedVector.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/Function.hpp"
@@ -231,6 +232,7 @@ namespace hal::tiva
             uint32_t enable = 0;
             uint32_t generatorId = 0;
             std::optional<PinChannel::Trigger> trigger;
+            std::optional<hal::DutyCycle> duty;
         };
 
         struct GeneratorInterruptSlot
@@ -257,6 +259,8 @@ namespace hal::tiva
         infra::Function<void(FaultEvent)> onFault;
         std::optional<GeneratorInterruptSlot> generatorHandlers[4];
         std::optional<FaultInterruptSlot> faultHandler;
+        uint32_t configuredFaultInterrupts = 0;
+        infra::TimerRepeating faultRearmTimer;
 
         void Initialize();
         void ConfigureNormalInterrupts(const Config::InterruptConfig& interruptConfig);
@@ -275,5 +279,8 @@ namespace hal::tiva
         void ConfigureInvert() const;
         void HandleGeneratorIrq(GeneratorIndex gen);
         void HandleFaultIrq();
+        uint32_t RunningGenerators() const;
+        void SynchronizeCounters(uint32_t runningBefore) const;
+        void RearmFaultInterrupts();
     };
 }

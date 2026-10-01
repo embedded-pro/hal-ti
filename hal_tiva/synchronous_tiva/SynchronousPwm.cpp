@@ -407,43 +407,55 @@ namespace hal::tiva
             if (generator.a || generator.b)
                 generator.address->LOAD = load;
 
+        // The comparators count against the old period; recompute them so a running generator keeps its duty cycle
+        for (auto& generator : generators)
+            if (generator.duty && (generator.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+                SetComparator(generator, *generator.duty);
+
         Sync();
     }
 
     void SynchronousPwm::Start(hal::DutyCycle dutyCycle)
     {
         really_assert(generators.size() >= 1);
+        const uint32_t running = RunningGenerators();
 
         for (auto& generator : generators)
             SetComparator(generator, dutyCycle);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2)
     {
         really_assert(generators.size() == 2);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3)
     {
         really_assert(generators.size() == 3);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
         SetComparator(generators[2], dutyCycle3);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void SynchronousPwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4)
     {
         really_assert(generators.size() == 4);
+        const uint32_t running = RunningGenerators();
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
@@ -451,6 +463,7 @@ namespace hal::tiva
         SetComparator(generators[3], dutyCycle4);
 
         Sync();
+        SynchronizeCounters(running);
     }
 
     void SynchronousPwm::Stop()
@@ -487,6 +500,7 @@ namespace hal::tiva
     void SynchronousPwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
     {
         really_assert(dutyCycle.IsValid());
+        generator.duty = dutyCycle;
 
         auto load = generator.address->LOAD;
         auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad(generator)));
@@ -537,6 +551,29 @@ namespace hal::tiva
             ctl |= generator.generatorId;
 
         peripheralPwm[pwmIndex]->CTL = ctl;
+    }
+
+    uint32_t SynchronousPwm::RunningGenerators() const
+    {
+        uint32_t running = 0;
+
+        for (const auto& generator : generators)
+            if ((generator.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+                running |= generator.generatorId;
+
+        return running;
+    }
+
+    // Each counter starts when its generator is enabled, so newly started generators are restarted together to keep their edges aligned
+    void SynchronousPwm::SynchronizeCounters(uint32_t runningBefore) const
+    {
+        uint32_t all = 0;
+
+        for (const auto& generator : generators)
+            all |= generator.generatorId;
+
+        if (runningBefore != all)
+            peripheralPwm[pwmIndex]->SYNC = all;
     }
 
     uint32_t SynchronousPwm::GetLoad(const Generator& generator) const
