@@ -54,6 +54,13 @@ def test_terminal_pins_are_reserved(fw, board_cfg):
         assert error.value.reason == "busy"
 
 
+def test_debug_led_is_reserved(fw, board_cfg):
+    """The firmware blinks its debug LED, so tests cannot claim that pin."""
+    with pytest.raises(FirmwareError) as error:
+        fw.gpio.cfg(board_cfg.param("system.debug_led"), "in")
+    assert error.value.reason == "busy"
+
+
 @pytest.mark.board_params("index", "system.reserved_uarts")
 def test_terminal_uart_is_reserved(fw, index):
     with pytest.raises(FirmwareError) as error:

@@ -15,6 +15,7 @@
 #include "services/hil/commands/HilSpiCommands.hpp"
 #include "services/hil/commands/HilUartCommands.hpp"
 #include "services/hil/commands/HilWatchDogCommands.hpp"
+#include "services/peripheral/DebugLed.hpp"
 #include "validation/firmware/AdcFactory.hpp"
 #include "validation/firmware/CanFactory.hpp"
 #include "validation/firmware/ComparatorFactory.hpp"
@@ -36,6 +37,8 @@ int main()
 
     static instantiations::EventInfrastructure eventInfrastructure;
     static validation::Console console;
+    static hal::tiva::GpioPin debugLedPin{ validation::PortOf(validation::board::debugLed), validation::board::debugLed.index };
+    static services::DebugLed debugLed{ debugLedPin, std::chrono::milliseconds(100), std::chrono::milliseconds(1400) };
     static validation::TivaPinFactory pinFactory;
     static services::HilPinPool::WithCapacity<validation::TivaPinFactory::capacity> pins{ pinFactory, infra::MakeRange(validation::board::reservedPins) };
     static services::HilPinNamingDefault naming{ validation::board::portLetters, validation::board::maximumPinIndex, infra::MakeRange(validation::board::aliases) };

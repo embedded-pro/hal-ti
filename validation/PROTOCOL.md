@@ -40,7 +40,7 @@ The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix
 - After reset the firmware prints `EVT boot board=<name> family=<tm4c123|tm4c129> sysclk=<hz> reset=<cause>` once; `<cause>` is `wdt0`, `wdt1`, `sw`, `moscfail`, `bor`, `por`, `ext` or `unknown`.
 - Pins are written as `P<port><index>`, for example `PF1`, `PJ0`, `PQ3`: ports A-F on TM4C123 and A-H, J-N, P, Q on TM4C129, index 0-7.
 - Instance numbers are the hardware index (UART 0-7, SSI 0-3, ADC 0-1, sequencer 0-3, PWM module 0-1, QEI 0-1, CAN 0-1, comparator 0-2, watchdog 0-1); an index the running MCU lacks (PWM module 1 and QEI 1 on TM4C129, comparator 2 on TM4C123) returns `ERR range`.
-- The terminal UART and its pins are reserved and cannot be opened (`ERR busy`); any other pin, aliased or not, can be reconfigured freely. A pin held by another open instance returns `ERR busy`; a pin the pinout table does not offer for the requested function and instance returns `ERR pin`.
+- The terminal UART and its pins, and the debug LED (TM4C123 PF2, TM4C129 PN1, blinking while the firmware runs), are reserved and cannot be opened (`ERR busy`); any other pin, aliased or not, can be reconfigured freely. A pin held by another open instance returns `ERR busy`; a pin the pinout table does not offer for the requested function and instance returns `ERR pin`.
 - RAM limits how many instances are open at the same time: 1 PWM module, 1 UART besides the terminal, 1 SSI, 2 ADC sequencers, 1 comparator, 1 QEI, 1 CAN, 1 watchdog and 8 GPIO pins; one more returns `ERR busy`.
 - Argument errors (`usage`, `range`, `pin`, `unsupported`) are reported before `ERR busy`.
 

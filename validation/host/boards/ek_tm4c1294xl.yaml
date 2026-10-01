@@ -218,6 +218,8 @@ tests:
   system:
     boot_timeout: 5.0
     reserved_uarts: [2]
+    # Blinking debug LED D1, reserved by the firmware.
+    debug_led: PN1
     # Instances the MCU lacks: ERR range.
     missing_instances: ["pwm.open 1 gens=0", "qei.open 1 a=PL1 b=PL2"]
   gpio:

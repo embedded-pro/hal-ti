@@ -26,7 +26,8 @@ namespace validation::board
     inline constexpr uint8_t watchDogs = 2;
 
     inline constexpr UartPins terminal{ 2, Pin(Port::D, 5), Pin(Port::D, 4) };
-    inline constexpr std::array<HilPinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
+    inline constexpr HilPinId debugLed = Pin(Port::N, 1);
+    inline constexpr std::array<HilPinId, 3> reservedPins{ { terminal.tx, terminal.rx, debugLed } };
     inline constexpr std::optional<UartPins> defaultUart = std::nullopt;
     inline constexpr std::optional<QeiPins> defaultQei = QeiPins{ 0, Pin(Port::L, 1), Pin(Port::L, 2), Pin(Port::L, 3) };
     inline constexpr std::optional<CanPins> defaultCan = CanPins{ 0, Pin(Port::A, 0), Pin(Port::A, 1) };

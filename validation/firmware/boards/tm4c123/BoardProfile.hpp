@@ -26,7 +26,9 @@ namespace validation::board
     inline constexpr uint8_t watchDogs = 2;
 
     inline constexpr UartPins terminal{ 0, Pin(Port::A, 1), Pin(Port::A, 0) };
-    inline constexpr std::array<HilPinId, 2> reservedPins{ { terminal.tx, terminal.rx } };
+    // Blue LED: the green one (PF3) is the CAN0 transmit pin.
+    inline constexpr HilPinId debugLed = Pin(Port::F, 2);
+    inline constexpr std::array<HilPinId, 3> reservedPins{ { terminal.tx, terminal.rx, debugLed } };
     inline constexpr std::optional<UartPins> defaultUart = UartPins{ 1, Pin(Port::B, 1), Pin(Port::B, 0) };
     inline constexpr std::optional<QeiPins> defaultQei = QeiPins{ 0, Pin(Port::D, 6), Pin(Port::D, 7), Pin(Port::D, 3) };
     inline constexpr std::optional<CanPins> defaultCan = CanPins{ 0, Pin(Port::F, 0), Pin(Port::F, 3) };

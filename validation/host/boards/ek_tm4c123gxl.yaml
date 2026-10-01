@@ -208,6 +208,8 @@ tests:
   system:
     boot_timeout: 5.0
     reserved_uarts: [0]
+    # Blinking debug LED (blue), reserved by the firmware.
+    debug_led: PF2
     # Instances the MCU lacks: ERR range.
     missing_instances: ["comp.open 2 neg=PC7"]
   gpio:

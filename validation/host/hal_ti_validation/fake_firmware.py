@@ -105,6 +105,9 @@ _PWM_PINS: dict[str, dict[int, tuple[tuple[str, ...], ...]]] = {
     "tm4c129": {0: (("PF0",), ("PF1",), ("PF2",), ("PF3",), ("PG0",), ("PG1",), ("PK4",), ("PK5",))},
 }
 
+# Blinking debug LED of the firmware, reserved like the terminal pins.
+_DEBUG_LEDS = {"tm4c123": "PF2", "tm4c129": "PN1"}
+
 _UART_BAUDS = frozenset({600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600})
 _PWM_SOURCES = ("none", "zero", "load", "cmpau", "cmpad", "cmpbu", "cmpbd")
 _PWM_DIVS = (1, 2, 4, 8, 16, 32, 64)
@@ -268,7 +271,8 @@ class FakeFirmware(FakeTerminalDevice):
         return f"P{port}{index}"
 
     def _reserved(self) -> set[str]:
-        return {pin for alias, pin in (self.pins or {}).items() if alias in ("terminaltx", "terminalrx")}
+        terminal = {pin for alias, pin in (self.pins or {}).items() if alias in ("terminaltx", "terminalrx")}
+        return terminal | {_DEBUG_LEDS[self.family]}
 
     def _check_pins(self, owner: tuple[str, str], pins: list[str | None], analog: bool = False) -> None:
         for pin in pins:

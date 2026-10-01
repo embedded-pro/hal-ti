@@ -17,6 +17,7 @@ target_include_directories(hal_ti.validation_firmware PRIVATE
 target_link_libraries(hal_ti.validation_firmware PRIVATE
     services.hil
     services.hil.commands
+    services.peripheral
     services.tracer
     hal_tiva.instantiations
     hal_tiva.tiva
