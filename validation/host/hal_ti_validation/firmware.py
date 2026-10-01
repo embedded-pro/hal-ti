@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
@@ -72,6 +73,16 @@ def settle(pending: PendingCommand, timeout: float | None = None) -> Response | 
         return pending.wait(timeout, check=False)
     except TerminalError:
         return None
+
+
+def quiesce(terminal: FirmwareTerminal, quiet: float = 0.1, limit: float = 3.0) -> bool:
+    """Read until the line has been silent for `quiet` seconds (at most `limit`), so a late reply to an earlier
+    command is read now and dropped by the next `begin` instead of being taken as that command's reply."""
+    deadline = time.monotonic() + limit
+    while time.monotonic() < deadline:
+        if terminal.pump(quiet) == 0:
+            return True
+    return False
 
 
 class _Group:

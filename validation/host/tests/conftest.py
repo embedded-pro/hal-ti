@@ -24,7 +24,7 @@ from ad3_waveforms_bench.terminal import FirmwareTerminal, TerminalError
 
 from hal_ti_validation.can_peer import CanPeer, CanPeerError, open_peer
 from hal_ti_validation.config import BoardConfig, ConfigError, Wiring, load_board
-from hal_ti_validation.firmware import Firmware
+from hal_ti_validation.firmware import Firmware, quiesce
 from hal_ti_validation.pairwise import DEPTHS, combinations
 
 HIL_DIR = Path(__file__).parent / "hil"
@@ -38,6 +38,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption("--board", default=os.environ.get("HAL_TI_BOARD", "ek_tm4c123gxl"), help="board YAML name or path")
     group.addoption("--port", default=os.environ.get("HAL_TI_PORT"), help="firmware terminal serial port; HIL tests skip without it")
     group.addoption("--baud", type=int, default=None, help="terminal baud rate (default from the board YAML)")
+    group.addoption(
+        "--command-timeout",
+        type=float,
+        default=float(os.environ["HAL_TI_COMMAND_TIMEOUT"]) if os.environ.get("HAL_TI_COMMAND_TIMEOUT") else None,
+        help="seconds to wait for a command's reply (default from the board YAML); raise it for slow links such as port-bridge",
+    )
     group.addoption("--wiring-set", default=os.environ.get("HAL_TI_WIRING", ""), help="comma separated wiring sets from the board YAML")
     group.addoption("--with", dest="with_tags", action="append", default=[], help="enable an optional wiring tag (repeatable)")
     group.addoption("--set", dest="overrides", action="append", default=[], help="override a test parameter: pwm.waveform.freq=[20000]")
@@ -292,17 +298,22 @@ def terminal(pytestconfig: pytest.Config, board_cfg: BoardConfig) -> Iterator[Fi
     elif not port:
         pytest.skip("pass --port")
     baud = pytestconfig.getoption("--baud") or board_cfg.terminal.baud
+    timeout = pytestconfig.getoption("--command-timeout") or board_cfg.terminal.command_timeout
     with FirmwareTerminal(
         port,
         baud,
-        timeout=board_cfg.terminal.command_timeout,
+        timeout=timeout,
         serial=serial,
         max_command_length=board_cfg.terminal.max_command_length,
     ) as term:
+        # A link with latency (port-bridge, USB-UART) can deliver a reply after the next command was written,
+        # which would hand every later command its predecessor's reply: sync with the full command timeout and
+        # let the line go quiet so the session starts with no reply in flight.
         try:
-            term.sync()
+            term.sync(timeout=timeout)
         except TerminalError as error:
             pytest.exit(f"firmware on {port} does not answer ping: {error}", returncode=3)
+        quiesce(term, quiet=0.3)
         yield term
 
 
@@ -363,6 +374,7 @@ def _hil_isolation(request: pytest.FixtureRequest) -> Iterator[None]:
         yield
         return
     firmware: Firmware = request.getfixturevalue("fw")
+    quiesce(firmware.terminal)
     firmware.terminal.drain_events()
     yield
     boots = firmware.terminal.drain_events("boot")
