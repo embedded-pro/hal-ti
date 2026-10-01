@@ -43,7 +43,6 @@ namespace hal::tiva
         uint8_t watchDogIndex;
         infra::Duration timeout;
         uint32_t reloadValue{ 0 };
-        hal::cortex::InterruptPriority interruptPriority{ hal::cortex::InterruptPriority::normal };
         infra::Function<void()> onEarlyWarning;
     };
 }

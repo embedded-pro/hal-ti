@@ -446,6 +446,7 @@ namespace hal::tiva
         {
             if (portAndRcgc[i].address == nullptr || portAndRcgc[i].irq < 0)
                 continue;
+            NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(portAndRcgc[i].irq));
             portHandlers[i].emplace(portAndRcgc[i].irq, [this, i]() { ExtiInterruptPort(i); });
         }
 
@@ -458,7 +459,10 @@ namespace hal::tiva
             {
                 const std::size_t ph = pinBase + pin;
                 if (perPinIrqs[ph] >= 0)
+                {
+                    NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(perPinIrqs[ph]));
                     pinHandlers[ph].emplace(perPinIrqs[ph], [this, h = i * 8 + pin]() { ExtiInterruptSinglePin(h); });
+                }
             }
         }
     }

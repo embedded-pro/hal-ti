@@ -37,6 +37,7 @@ namespace
     struct WatchDogSlot
     {
         hal::tiva::WatchDog* dog = nullptr;
+        hal::cortex::InterruptPriority priority{ hal::cortex::InterruptPriority::normal };
         infra::Function<void()> invoke;
     };
 
@@ -51,9 +52,15 @@ namespace
                 if (slot.dog == nullptr)
                 {
                     slot.dog = dog;
+                    slot.priority = priority;
                     slot.invoke = invoke;
                     if (!Registered())
-                        Register(WATCHDOG0_IRQn, priority);
+                        Enable();
+                    else if (priority < Priority())
+                    {
+                        Unregister();
+                        Enable();
+                    }
                     return;
                 }
             }
@@ -76,6 +83,17 @@ namespace
                     anyActive = true;
             if (!anyActive && Registered())
                 Unregister();
+            else if (anyActive && Registered() && HighestPriority() != Priority())
+            {
+                Unregister();
+                Enable();
+            }
+        }
+
+        void Enable()
+        {
+            NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(WATCHDOG0_IRQn));
+            Register(WATCHDOG0_IRQn, HighestPriority());
         }
 
         void Invoke() override
@@ -86,6 +104,15 @@ namespace
         }
 
     private:
+        hal::cortex::InterruptPriority HighestPriority() const
+        {
+            auto highest = hal::cortex::InterruptPriority::lowest;
+            for (const auto& slot : slots)
+                if (slot.dog != nullptr && slot.priority < highest)
+                    highest = slot.priority;
+            return highest;
+        }
+
         std::array<WatchDogSlot, numberOfWatchDogs> slots{};
     };
 
@@ -98,7 +125,6 @@ namespace hal::tiva
         : watchDogIndex(watchDogIndex)
         , timeout(config.timeout)
         , reloadValue(ToTicks(ClockFrequency(), config.timeout))
-        , interruptPriority(config.interruptPriority)
     {
         really_assert(watchDogIndex < numberOfWatchDogs);
 
@@ -148,10 +174,7 @@ namespace hal::tiva
         Peripheral().ICR = 0;
         WaitForWriteComplete();
         if (onEarlyWarning && !watchDogSharedHandler.Registered())
-        {
-            NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(WATCHDOG0_IRQn));
-            watchDogSharedHandler.Register(WATCHDOG0_IRQn, interruptPriority);
-        }
+            watchDogSharedHandler.Enable();
     }
 
     WATCHDOG0_Type& WatchDog::Peripheral() const
