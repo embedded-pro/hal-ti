@@ -77,7 +77,13 @@ def test_port_bridge_peer_round_trip():
     def serve():
         connection, _ = server.accept()
         with connection:
-            received.append(connection.recv(16))
+            frame = b""
+            while len(frame) < 16:
+                chunk = connection.recv(16 - len(frame))
+                if not chunk:
+                    break
+                frame += chunk
+            received.append(frame)
             connection.sendall(encode_frame(0x55, b"\x09", ext=False)[:7])
             connection.sendall(encode_frame(0x55, b"\x09", ext=False)[7:] + encode_frame(0x66, b"", ext=True))
 
