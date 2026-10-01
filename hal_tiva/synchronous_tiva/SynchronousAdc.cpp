@@ -1,4 +1,5 @@
 #include "hal_tiva/synchronous_tiva/SynchronousAdc.hpp"
+#include "hal_tiva/tiva/AdcClock.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <algorithm>
@@ -167,15 +168,11 @@ namespace hal::tiva
 
     void SynchronousAdc::EnableClock() const
     {
-        SYSCTL->RCGCADC |= 1 << adcIndex;
-
-        while ((SYSCTL->PRADC & (1 << adcIndex)) == 0)
-        {
-        }
+        AcquireAdcClock(adcIndex);
     }
 
     void SynchronousAdc::DisableClock() const
     {
-        SYSCTL->RCGCADC &= ~(1 << adcIndex);
+        ReleaseAdcClock(adcIndex);
     }
 }

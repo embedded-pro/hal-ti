@@ -18,6 +18,8 @@ target_link_libraries(hal_tiva.tiva PUBLIC
 target_sources(hal_tiva.tiva PRIVATE
     Adc.cpp
     Adc.hpp
+    AdcClock.cpp
+    AdcClock.hpp
     AnalogComparator.cpp
     AnalogComparator.hpp
     Can.cpp

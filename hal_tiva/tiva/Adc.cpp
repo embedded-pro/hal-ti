@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/Adc.hpp"
+#include "hal_tiva/tiva/AdcClock.hpp"
 #include "hal/interfaces/AdcMultiChannel.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
@@ -87,7 +88,7 @@ namespace
 
     constexpr static uint32_t ADC_DCCTL_CTC_LOW = 0x00000000;
     constexpr static uint32_t ADC_DCCTL_CTC_MID = 0x00000400;
-    constexpr static uint32_t ADC_DCCTL_CTC_HIGH = 0x00000800;
+    constexpr static uint32_t ADC_DCCTL_CTC_HIGH = 0x00000C00;
 
     constexpr static uint32_t ADC_DCCTL_CTE = 0x00001000;
 
@@ -243,6 +244,17 @@ namespace
         }
     }
 
+    void FlushFifo(ADC0_Type& adc, uint8_t sequencer)
+    {
+        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
+
+        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY))
+            static_cast<void>(*SSFIFO);
+
+        adc.OSTAT = 1u << sequencer;
+    }
+
     void SetPhaseDelay(uint8_t adcIndex, uint32_t delay)
     {
         ADC0_Type& adc = *peripheralAdc[adcIndex];
@@ -365,6 +377,7 @@ namespace hal::tiva
             ValidateDigitalComparators(config.digitalComparators, inputs.size());
             numberOfChannels = CountFifoSteps(config.digitalComparators);
             ConfigureDigitalComparators(*peripheralAdc[this->adcIndex], this->adcSequencer, config.digitalComparators);
+            monitorsWithComparators = true;
         }
 
         const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * this->adcIndex + this->adcSequencer]);
@@ -380,6 +393,9 @@ namespace hal::tiva
                         callback(infra::MakeRange(buffer));
                 }
             });
+
+        if (monitorsWithComparators)
+            SequenceEnable(*peripheralAdc[this->adcIndex], this->adcSequencer);
     }
 
     Adc::~Adc()
@@ -393,27 +409,27 @@ namespace hal::tiva
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
         callback = onDone;
+        if (monitorsWithComparators)
+            FlushFifo(*peripheralAdc[adcIndex], adcSequencer);
         InterruptEnable(*peripheralAdc[adcIndex], adcSequencer);
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
+    // Digital comparator steps keep feeding the PWM fault logic and the comparator interrupts, so such a sequence keeps converting
     void Adc::Stop()
     {
-        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
+        if (!monitorsWithComparators)
+            SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
         InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
     void Adc::EnableClock()
     {
-        SYSCTL->RCGCADC |= 1 << adcIndex;
-
-        while ((SYSCTL->PRADC & (1 << adcIndex)) == 0)
-        {
-        }
+        AcquireAdcClock(adcIndex);
     }
 
     void Adc::DisableClock()
     {
-        SYSCTL->RCGCADC &= ~(1 << adcIndex);
+        ReleaseAdcClock(adcIndex);
     }
 }
