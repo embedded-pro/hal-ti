@@ -118,8 +118,9 @@ namespace hal::tiva
         SetRegister(config.signalMode == Config::SignalMode::clockAndDirection, qeiArray[qeiIndex]->CTL, QEI_CTL_SIGMODE);
 
         qeiArray[qeiIndex]->MAXPOS = resolution - 1;
-        qeiArray[qeiIndex]->POS = config.offset;
         qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
+        // QEIPOS ignores writes while the module is disabled
+        qeiArray[qeiIndex]->POS = config.offset;
     }
 
     QuadratureEncoder::~QuadratureEncoder()
