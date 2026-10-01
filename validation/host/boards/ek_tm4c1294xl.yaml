@@ -72,7 +72,7 @@ wiring_sets:
       ADC; W1/W2 on the ADC inputs
     options:
       loopback: >-
-        jumper PD0 (SSI2 MOSI) to PD1 (SSI2 MISO); DIO15 then only listens
+        jumper PD1 (SSI2 MOSI) to PD0 (SSI2 MISO); DIO14 then only listens
     dio:
       0:
         pin: PD3
@@ -118,10 +118,10 @@ wiring_sets:
         note: UART3 RX, GPIO (X6_18)
       14:
         pin: PD0
-        note: SSI2 MOSI, GPIO (X9_14)
+        note: SSI2 MISO, GPIO (X9_14)
       15:
         pin: PD1
-        note: SSI2 MISO, C1o output, GPIO (X9_12)
+        note: SSI2 MOSI, C1o output, GPIO (X9_12)
     wavegen:
       1:
         pin: ain0
@@ -185,7 +185,7 @@ wiring_sets:
         note: locked pin (NMI) (X8_14)
       15:
         pin: PD1
-        note: SSI2 MISO, C1o output, GPIO (X9_12)
+        note: SSI2 MOSI, C1o output, GPIO (X9_12)
     wavegen:
       1:
         pin: PC5
@@ -369,12 +369,12 @@ tests:
     bit_rate_tolerance: 0.03
   spi:
     instances:
-      # TX/RX as in the pinout table on main; hal-ti#119 swaps PD0/PD1.
+      # SSI2XDAT0 (TX) is PD1 and SSI2XDAT1 (RX) is PD0, as in the pinout table fixed by hal-ti#119; main still has them swapped.
       - index: 2
         clk: PD3
         cs: PD2
-        mosi: PD0
-        miso: PD1
+        mosi: PD1
+        miso: PD0
     transfer:
       mode: [0, 1, 2, 3]
       baud: [100000, 1000000, 4000000, 10000000, 20000000, 60000000]
