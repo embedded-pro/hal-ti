@@ -148,18 +148,29 @@ namespace hal::tiva
     void UartWithDma::ProcessRxTimeout() const
     {
         dmaRx.StopTransfer();
+        ProcessDmaRx();
+
         bool fillingAlternate = dmaRx.IsAlternateActive();
         auto activeBuffer = fillingAlternate ? rxBufferAlternate : rxBufferPrimary;
         std::size_t bytesReceived = activeBuffer.size() - dmaRx.RemainingTransfers(fillingAlternate);
 
-        while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
+        // The FIFO residue can exceed the space left in the active half; the receiver copies delivered data, so the half is reused
+        while (true)
         {
-            activeBuffer[bytesReceived] = static_cast<uint8_t>(uartArray[uartIndex]->DR);
-            ++bytesReceived;
-        }
+            while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
+            {
+                activeBuffer[bytesReceived] = static_cast<uint8_t>(uartArray[uartIndex]->DR);
+                ++bytesReceived;
+            }
 
-        if (bytesReceived > 0 && dataReceived != nullptr)
-            dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
+            if (bytesReceived > 0 && dataReceived != nullptr)
+                dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
+
+            if ((uartArray[uartIndex]->FR & UART_FR_RXFE) != 0)
+                break;
+
+            bytesReceived = 0;
+        }
 
         if (dataReceived != nullptr)
             ReceiveData();
@@ -178,7 +189,8 @@ namespace hal::tiva
             family::ClearDmaTx(dmaTx);
             if constexpr (family::DmaTxClearMask != 0)
                 InterruptClear(family::DmaTxClearMask);
-            ProcessDmaTx();
+            if (sending && dmaTx.IsPrimaryTransferCompleted())
+                ProcessDmaTx();
         }
 
         if (family::DmaRxComplete(dmaRx, rawStatus))
