@@ -57,18 +57,19 @@ ad3:
   # Wavegen levels are refused outside this range (TM4C pins are 3.3 V).
   analog_limits: [0.0, 3.3]
 
-# `harness` wires every DIO once; each pin serves several tests (notes list
-# the functions and the BoosterPack header pin). The adc and comparator sets
-# only add W1/W2 and the scope inputs, so they combine with the harness:
-# --wiring-set harness,adc. The flow and locked sets move harness DIOs and
-# are used on their own. PF0 (M0PWM0, SSI3) is not on the headers.
-# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
+# Two fixed bundles: wire one, run its tests, then switch. Every AD3
+# channel is wired once per bundle and each pin serves several tests (the
+# notes list the functions and the BoosterPack header pin). bundle2 moves
+# DIO0, DIO1 and DIO14 and puts W1/W2/scope on the comparator inputs plus a
+# jumper. PF0 (M0PWM0, SSI3) is not on the headers.
+# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin;
+# `jumpered` pins are tied to `pin` with a wire.
 # Always connect AD3 GND to LaunchPad GND.
 wiring_sets:
-  harness:
+  bundle1:
     description: >-
-      the fixed AD3 harness: PWM, SPI, QEI, UART, PWM fault, comparator
-      output, GPIO and watchdog tests share these 16 DIOs
+      PWM, SPI, QEI, UART, PWM fault, comparator output, GPIO, watchdog and
+      ADC; W1/W2 on the ADC inputs
     options:
       loopback: >-
         jumper PD0 (SSI2 MOSI) to PD1 (SSI2 MISO); DIO15 then only listens
@@ -121,8 +122,6 @@ wiring_sets:
       15:
         pin: PD1
         note: SSI2 MISO, C1o output, GPIO (X9_12)
-  adc:
-    description: wavegen levels on two analog inputs (also the PWM fault dcmp)
     wavegen:
       1:
         pin: ain0
@@ -133,55 +132,71 @@ wiring_sets:
     scope:
       1: ain0
       2: ain11
-  comparator:
+  bundle2:
     description: >-
-      analog comparator 1 (C1+ PC5, C1- PC4); C1o is the harness DIO15 on PD1
+      comparators, UART flow control and the locked pin: DIO0/DIO1 move to
+      PP4/PP5, DIO14 to PD7, W1/W2 to the comparator inputs with PC5
+      jumpered to PC6, so C1+ and C0+ both follow W1
+    dio:
+      0:
+        pin: PP4
+        note: UART3 RTS (X6_15)
+      1:
+        pin: PP5
+        note: UART3 CTS (X7_06)
+      2:
+        pin: m0pwm2
+        note: M0PWM2, GPIO (X9_03)
+      3:
+        pin: m0pwm3
+        note: M0PWM3, GPIO (X9_05)
+      4:
+        pin: m0pwm4
+        note: M0PWM4, GPIO (X9_07)
+      5:
+        pin: m0pwm5
+        note: M0PWM5, GPIO, watchdog early-warning toggle (X7_01)
+      6:
+        pin: m0pwm6
+        note: M0PWM6, GPIO (X7_03)
+      7:
+        pin: m0pwm7
+        note: M0PWM7, GPIO (X7_05)
+      8:
+        pin: PK6
+        note: M0FAULT1, GPIO (X7_17)
+      9:
+        pin: qei0a
+        note: QEI0 phase A, GPIO (X9_15)
+      10:
+        pin: qei0b
+        note: QEI0 phase B, GPIO (X9_17)
+      11:
+        pin: qei0idx
+        note: QEI0 index, GPIO (X9_19)
+      12:
+        pin: PA5
+        note: UART3 TX (X6_20)
+      13:
+        pin: PA4
+        note: UART3 RX, GPIO (X6_18)
+      14:
+        pin: PD7
+        note: locked pin (NMI) (X8_14)
+      15:
+        pin: PD1
+        note: SSI2 MISO, C1o output, GPIO (X9_12)
     wavegen:
       1:
         pin: PC5
-        note: C1+ input (X8_07)
+        jumpered: [PC6]
+        note: C1+ input (X8_07), jumper to C0+ PC6 (X8_09)
       2:
         pin: PC4
         note: C1- input (X8_05)
     scope:
       1: PC5
       2: PC4
-  comparator_c0:
-    description: >-
-      analog comparator 1 with its positive input taken from C0+ (C0+ PC6,
-      C1- PC4); C1o is the harness DIO15 on PD1
-    wavegen:
-      1:
-        pin: PC6
-        note: C0+ input (X8_09)
-      2:
-        pin: PC4
-        note: C1- input (X8_05)
-    scope:
-      1: PC6
-      2: PC4
-  flow:
-    description: >-
-      UART3 with RTS/CTS; DIO14/DIO15 move from PD0/PD1 to PP4/PP5
-    dio:
-      12:
-        pin: PA5
-        note: UART3 TX (X6_20)
-      13:
-        pin: PA4
-        note: UART3 RX (X6_18)
-      14:
-        pin: PP4
-        note: UART3 RTS (X6_15)
-      15:
-        pin: PP5
-        note: UART3 CTS (X7_06)
-  locked:
-    description: the locked pin PD7 (NMI); DIO14 moves from PD0 to PD7
-    dio:
-      14:
-        pin: PD7
-        note: locked pin (NMI) (X8_14)
   can:
     description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:

@@ -1,6 +1,6 @@
 """SPI master (`hal::tiva::SpiMaster` / `SynchronousSpiMaster`), decoded from a logic-analyzer capture.
 
-Wiring set `harness`: CLK, FSS, MOSI and MISO on DIOs (the SSI pins are also PWM outputs). The AD3 SDK has no
+Wiring set `bundle1`: CLK, FSS, MOSI and MISO on DIOs (the SSI pins are also PWM outputs). The AD3 SDK has no
 verified SPI-slave mode, so the firmware master is observed with the logic analyzer: MISO is driven to a static
 level by the AD3, or, with `--with loopback` and a MOSI-MISO jumper, only monitored (the firmware must then read
 back what it sent).

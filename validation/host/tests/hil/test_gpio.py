@@ -1,7 +1,7 @@
 """GPIO (`hal::tiva::GpioPin`): levels, pulls, open drain, interrupts and timer-driven pulses.
 
-Wiring set `harness`: the pins of `tests.gpio.loop_pins`/`output_pins` are harness pins of other peripherals, used
-here as plain GPIO; a locked pin outside the harness needs its own set (`locked` on the EK-TM4C1294XL), and a board
+Wiring set `bundle1`: the pins of `tests.gpio.loop_pins`/`output_pins` are pins of other peripherals, used here as
+plain GPIO; a locked pin that does not fit in bundle1 is in `bundle2` (EK-TM4C1294XL), and a board
 without a user LED on its headers has no `output_pins`.
 """
 

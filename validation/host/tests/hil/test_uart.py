@@ -1,6 +1,6 @@
 """UART (`hal::tiva::Uart`, `UartWithDma`, `SynchronousUart`) against the AD3 protocol UART.
 
-Wiring set `harness`: firmware TX, RX, RTS and CTS of `tests.uart` on DIOs (set `flow` for RTS/CTS on the
+Wiring set `bundle1`: firmware TX, RX, RTS and CTS of `tests.uart` on DIOs (`bundle2` for RTS/CTS on the
 EK-TM4C1294XL). The logic
 analyzer also records the firmware TX line to decode the frames and measure the bit rate.
 """

@@ -1,6 +1,6 @@
 """Quadrature encoder (`hal::tiva::QuadratureEncoder`) driven by the AD3 pattern generator.
 
-Wiring set `harness`: A, B and index of each `tests.qei.instances` entry on DIOs. The pattern generator produces
+Wiring set `bundle1`: A, B and index of each `tests.qei.instances` entry on DIOs. The pattern generator produces
 an exact number of 4-state cycles (A leads B for `fwd`).
 """
 

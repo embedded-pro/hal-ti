@@ -1,7 +1,7 @@
 """Watchdog (`hal::tiva::WatchDog`): early warnings, feeding, resets and the early-warning period.
 
 A started watchdog cannot be stopped, so every test resets the board afterwards. `tests.watchdog.pin` is a
-harness pin: the `pin=` toggle output is on its DIO, so the logic analyzer measures the warning period.
+bundle1 pin: the `pin=` toggle output is on its DIO, so the logic analyzer measures the warning period.
 """
 
 from __future__ import annotations

@@ -1,7 +1,8 @@
 """Analog comparator (`hal::tiva::AnalogComparator` / `SynchronousAnalogComparator`).
 
-Wiring sets `harness,comparator`: W1 on the positive input, W2 on the negative input, the output pin on a harness
-DIO when the instance has one; `harness,comparator_c0` for the comparators whose positive input is C0+ (`src=c0`).
+Wiring set `bundle2`: W1 on the positive input, W2 on the negative input (a jumper ties the second comparator's
+input to the same channel), the output pin on a DIO when the instance has one; this covers the comparators whose
+positive input is C0+ (`src=c0`) too.
 The output is high while VIN- < VIN+ (inverted with `invert=1`).
 """
 

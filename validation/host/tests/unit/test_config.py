@@ -35,49 +35,50 @@ def test_alias_table_matches_protocol(name):
 
 
 @pytest.mark.parametrize("name", BOARDS)
-def test_harness_wires_every_dio_once(name):
-    """The fixed harness uses all 16 DIOs, each on its own pin; the AD3 is not on the CAN bus."""
+def test_bundles_wire_each_dio_once(name):
+    """Each bundle uses an AD3 channel at most once, each DIO on its own pin; bundle1 uses all 16 DIOs."""
     board = load_board(name)
-    harness = board.wiring(["harness"])
-    dios = [connection for connection in harness.connections if connection.kind == "dio"]
-    assert sorted(connection.channel for connection in dios) == list(range(16))
-    assert len({connection.pin for connection in dios}) == 16
+    assert {"bundle1", "bundle2"} <= set(board.wiring_sets)
+    for bundle in ("bundle1", "bundle2"):
+        dios = [connection for connection in board.wiring([bundle]).connections if connection.kind == "dio"]
+        assert len({connection.channel for connection in dios}) == len(dios)
+        assert len({connection.pin for connection in dios}) == len(dios)
+    assert len([c for c in board.wiring(["bundle1"]).connections if c.kind == "dio"]) == 16
     assert not board.wiring(["can"]).connections
 
 
 @pytest.mark.parametrize("name", BOARDS)
 def test_parameters_reference_wired_pins(name):
-    """Pins listed in the test parameters are on the harness, or in the analog/extra set their tests name."""
+    """Pins in the test parameters are wired in bundle1, or in bundle2 for the comparators (and, where bundle1
+    has no room, UART flow control and the locked pin)."""
     board = load_board(name)
 
-    def wired(sets, pin, kind="dio"):
-        return board.wiring(sets).channel(kind, board.resolve_pin(pin)) is not None
+    def wired(bundle, pin, kind="dio"):
+        return board.wiring([bundle]).channel(kind, board.resolve_pin(pin)) is not None
 
-    harness = ["harness"]
     for pin in board.param("gpio.loop_pins") + board.param("gpio.output_pins", []):
-        assert wired(harness, pin), pin
+        assert wired("bundle1", pin), pin
     for pin in board.param("gpio.locked_pins"):
-        assert wired(harness, pin) or wired(["locked"], pin), pin
+        assert wired("bundle1", pin) or wired("bundle2", pin), pin
     for generator in board.param("pwm.generators"):
-        assert wired(harness, generator["a"]) and wired(harness, generator["b"]), generator
-    assert wired(harness, board.param("pwm.fault.pin"))
-    assert wired(["harness", "adc"], board.param("pwm.fault.dcmp.pin"), "wavegen")
+        assert wired("bundle1", generator["a"]) and wired("bundle1", generator["b"]), generator
+    assert wired("bundle1", board.param("pwm.fault.pin"))
+    assert wired("bundle1", board.param("pwm.fault.dcmp.pin"), "wavegen")
     for instance in board.param("uart.instances"):
-        assert wired(harness, instance["tx"]) and wired(harness, instance["rx"])
+        assert wired("bundle1", instance["tx"]) and wired("bundle1", instance["rx"])
     flow = board.param("uart.flow_instance")
-    flow_sets = harness if all(wired(harness, flow[key]) for key in ("rts", "cts")) else ["flow"]
-    assert all(wired(flow_sets, flow[key]) for key in ("tx", "rx", "rts", "cts"))
+    assert any(all(wired(bundle, flow[key]) for key in ("tx", "rx", "rts", "cts")) for bundle in ("bundle1", "bundle2"))
     for instance in board.param("spi.instances"):
-        assert all(wired(harness, instance[key]) for key in ("clk", "cs", "mosi", "miso"))
+        assert all(wired("bundle1", instance[key]) for key in ("clk", "cs", "mosi", "miso"))
     for instance in board.param("qei.instances"):
-        assert all(wired(harness, instance[key]) for key in ("a", "b", "idx")), instance
-    assert wired(harness, board.param("watchdog.pin"))
-    for set_name, key, instances in (("comparator", "pos", "comparator.instances"), ("comparator_c0", "c0", "comparator.c0_instances")):
+        assert all(wired("bundle1", instance[key]) for key in ("a", "b", "idx")), instance
+    assert wired("bundle1", board.param("watchdog.pin"))
+    for key, instances in (("pos", "comparator.instances"), ("c0", "comparator.c0_instances")):
         for instance in board.param(instances):
-            assert wired([set_name], instance[key], "wavegen") and wired([set_name], instance["neg"], "wavegen")
-            assert instance["out"] is None or wired(["harness", set_name], instance["out"]), instance
+            assert wired("bundle2", instance[key], "wavegen") and wired("bundle2", instance["neg"], "wavegen"), instance
+            assert instance["out"] is None or wired("bundle2", instance["out"]), instance
     for pin in board.param("adc.inputs"):
-        assert wired(["harness", "adc"], pin, "wavegen")
+        assert wired("bundle1", pin, "wavegen")
 
 
 @pytest.mark.parametrize("name", BOARDS)
@@ -98,25 +99,26 @@ def test_matrices_load(name):
         board.matrix("pwm.module")
 
 
-def test_wiring_merge_and_conflicts():
+def test_wiring_lookup_and_conflicts():
     board = load_board("ek_tm4c123gxl")
-    wiring = board.wiring(["harness", "adc"])
+    wiring = board.wiring(["bundle1"], ["loopback"])
     assert wiring.dio(board.resolve_pin("m0pwm0")) == 0
     assert wiring.wavegen(board.resolve_pin("ain0")) == 1
     assert wiring.scope(board.resolve_pin("ain3")) == 2
+    assert wiring.has("loopback")
     assert "DIO15" in wiring.describe()
-    assert board.wiring(["harness", "comparator_c0"]).dio(board.resolve_pin("led0")) == 15
-    assert board.wiring(["harness"], ["loopback"]).has("loopback")
+    bundle2 = board.wiring(["bundle2"])
+    assert bundle2.wavegen("PC7") == bundle2.wavegen("PC4") == 2
+    assert "W2 PC7+PC4" in bundle2.describe()
     with pytest.raises(ConfigError):
-        board.wiring(["comparator", "comparator_c0"])
+        board.wiring(["bundle1", "bundle2"])
     with pytest.raises(ConfigError):
         board.wiring(["nosuchset"])
     other = load_board("ek_tm4c1294xl")
-    assert other.wiring(["harness", "comparator"]).dio("PD1") == 15
+    assert other.wiring(["bundle2"]).wavegen("PC6") == 1
+    assert other.wiring(["bundle2"]).dio("PD1") == 15
     with pytest.raises(ConfigError):
-        other.wiring(["harness", "flow"])
-    with pytest.raises(ConfigError):
-        other.wiring(["harness", "locked"])
+        other.wiring(["bundle1", "bundle2"])
 
 
 def test_optional_connections_and_roles():
@@ -129,6 +131,11 @@ def test_optional_connections_and_roles():
     board = parse_board(raw)
     assert board.wiring(["s"]).dio(role="probe") is None
     assert board.wiring(["s"], ["extra"]).dio(role="probe") == 1
+    raw["wiring_sets"]["j"] = {"wavegen": {1: {"pin": "PE3", "jumpered": ["PE2"]}}}
+    assert parse_board(raw).wiring(["j"]).wavegen("PE2") == 1
+    raw["wiring_sets"]["j"] = {"wavegen": {1: {"pin": "PE3", "jumpered": "PE2"}}}
+    with pytest.raises(ConfigError):
+        parse_board(raw)
 
 
 def test_params_and_overrides():

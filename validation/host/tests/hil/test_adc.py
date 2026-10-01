@@ -1,6 +1,6 @@
 """ADC (`hal::tiva::Adc` / `SynchronousAdc`): wavegen DC levels against raw 12-bit codes.
 
-Wiring set `adc`: W1/W2 on the two inputs of `tests.adc.inputs`; the scope on the same pins (optional) measures
+Wiring set `bundle1`: W1/W2 on the two inputs of `tests.adc.inputs`; the scope on the same pins (optional) measures
 the actual level, which then replaces the programmed one as reference. Asynchronous sequencers convert on a PWM
 generator trigger (the driver has no processor trigger), which each test opens itself.
 """

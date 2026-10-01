@@ -1,8 +1,8 @@
 """PWM (`hal::tiva::Pwm` / `SynchronousPwm`): waveforms, outputs, dead band, update modes, interrupts, ADC
 triggers and the fault path.
 
-Wiring set `harness`: the A/B outputs of `tests.pwm.generators` and the fault pin on DIOs; the digital comparator
-fault path also needs set `adc` (W1/W2 on its ADC input). Interrupt and ADC-trigger tests need no wiring.
+Wiring set `bundle1`: the A/B outputs of `tests.pwm.generators` and the fault pin on DIOs, W1 on the ADC input of
+the digital comparator fault path. Interrupt and ADC-trigger tests need no wiring.
 """
 
 from __future__ import annotations

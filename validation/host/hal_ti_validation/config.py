@@ -32,10 +32,16 @@ class Connection:
     role: str | None = None
     note: str = ""
     requires: str | None = None
+    # Pins tied to `pin` by a jumper: the channel reaches them as well.
+    jumpered: tuple[str, ...] = ()
+
+    @property
+    def pins(self) -> tuple[str, ...]:
+        return ((self.pin,) if self.pin else ()) + self.jumpered
 
     def describe(self) -> str:
         name = {"dio": "DIO", "wavegen": "W", "scope": "Scope "}[self.kind]
-        parts = [f"{name}{self.channel}", self.pin or "-"]
+        parts = [f"{name}{self.channel}", "+".join(self.pins) or "-"]
         if self.role:
             parts.append(f"({self.role})")
         if self.requires:
@@ -69,7 +75,7 @@ class Wiring:
                 continue
             if role is not None and connection.role != role:
                 continue
-            if pin is not None and connection.pin != pin:
+            if pin is not None and pin not in connection.pins:
                 continue
             return connection.channel
         return None
@@ -197,7 +203,7 @@ class BoardConfig:
                 key = (connection.kind, connection.channel)
                 if key in used and used[key] != name:
                     position, other = next((i, c) for i, c in enumerate(selected) if (c.kind, c.channel) == key)
-                    if other.pin != connection.pin:
+                    if other.pins != connection.pins:
                         raise ConfigError(f"{connection.kind}{connection.channel} is wired differently in sets {used[key]!r} and {name!r}")
                     if other.role is None and connection.role is not None:
                         selected[position] = replace(other, role=connection.role, note=other.note or connection.note)
@@ -213,6 +219,9 @@ def _connection(kind: ChannelKind, channel: Any, spec: Any, pins: Mapping[str, s
     if not isinstance(spec, Mapping):
         raise ConfigError(f"bad {kind}{channel} entry: {spec!r}")
     pin = spec.get("pin")
+    jumpered = spec.get("jumpered") or ()
+    if isinstance(jumpered, str) or not isinstance(jumpered, (list, tuple)):
+        raise ConfigError(f"{kind}{channel}: jumpered must be a list of pins")
     return Connection(
         kind=kind,
         channel=int(channel),
@@ -220,6 +229,7 @@ def _connection(kind: ChannelKind, channel: Any, spec: Any, pins: Mapping[str, s
         role=spec.get("role"),
         note=str(spec.get("note", "")),
         requires=spec.get("requires"),
+        jumpered=tuple(normalize_pin(str(other), pins, strict=True) for other in jumpered),
     )
 
 

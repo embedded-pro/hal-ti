@@ -48,16 +48,18 @@ ad3:
   # Wavegen levels are refused outside this range (TM4C pins are 3.3 V).
   analog_limits: [0.0, 3.3]
 
-# `harness` wires every DIO once; each pin serves several tests (notes list
-# the functions). The analog sets only add W1/W2 and the scope inputs, so
-# they combine with the harness: --wiring-set harness,adc.
-# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin.
+# Two fixed bundles: wire one, run its tests, then switch. Every AD3
+# channel is wired once per bundle and each pin serves several tests (the
+# notes list the functions and the J1-J4 header pin). bundle2 keeps the DIOs
+# of bundle1 and moves W1/W2/scope to the comparator inputs plus a jumper.
+# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin;
+# `jumpered` pins are tied to `pin` with a wire.
 # Always connect AD3 GND to LaunchPad GND.
 wiring_sets:
-  harness:
+  bundle1:
     description: >-
-      the fixed AD3 harness: PWM, SPI, QEI, UART, PWM fault, comparator
-      output, GPIO and watchdog tests share these 16 DIOs
+      PWM, SPI, QEI, UART (with flow control), PWM fault, comparator 1
+      output, GPIO, locked pin, watchdog and ADC; W1/W2 on the ADC inputs
     options:
       loopback: >-
         jumper PB7 (SSI2 MOSI) to PB6 (SSI2 MISO); DIO0 then only listens
@@ -86,13 +88,13 @@ wiring_sets:
         note: M0PWM5, GPIO (J1.6)
       6:
         pin: PC4
-        note: M0PWM6, QEI1 index, UART1 RTS, GPIO (J4.4)
+        note: M0PWM6, QEI1 index, UART1 RTS, GPIO; C1- in bundle2 (J4.4)
       7:
         pin: PC5
         note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO (J4.5)
       8:
         pin: PC6
-        note: QEI1 phase B, GPIO; also C0+ in the comparator sets (J4.6)
+        note: QEI1 phase B, GPIO; C0+ (W1) in bundle2 (J4.6)
       9:
         pin: qei0a
         note: QEI0 phase A, M0FAULT0, GPIO (J4.8)
@@ -114,8 +116,6 @@ wiring_sets:
       15:
         pin: led0
         note: C1o output, red LED, GPIO (J3.10)
-  adc:
-    description: wavegen levels on two analog inputs (also the PWM fault dcmp)
     wavegen:
       1:
         pin: ain0
@@ -126,38 +126,72 @@ wiring_sets:
     scope:
       1: ain0
       2: ain3
-  comparator:
+  bundle2:
     description: >-
-      analog comparator 0 (C0+ PC6, C0- PC7); its C0o pin PF0 is the CAN
-      receive line, so the output is read through the firmware only
+      bundle1's DIOs with W1/W2 on the analog comparator inputs and PC7
+      jumpered to PC4, so C0- and C1- both follow W2; DIO6 (PC4) and DIO8
+      (PC6) stay plugged but unused, because PC4/PC6 are comparator inputs
+    options:
+      loopback: >-
+        jumper PB7 (SSI2 MOSI) to PB6 (SSI2 MISO); DIO0 then only listens
+    jumpers:
+      - >-
+        stock boards short PB6-PD0 and PB7-PD1 through R9/R10; remove
+        them or leave PD0/PD1 unconfigured
+    dio:
+      0:
+        pin: m0pwm0
+        note: M0PWM0, SSI2 MISO, GPIO (J2.7)
+      1:
+        pin: m0pwm1
+        note: M0PWM1, SSI2 MOSI, GPIO (J2.6)
+      2:
+        pin: m0pwm2
+        note: M0PWM2, SSI2 CLK, GPIO (J1.7)
+      3:
+        pin: m0pwm3
+        note: M0PWM3, SSI2 FSS, GPIO (J1.2)
+      4:
+        pin: m0pwm4
+        note: M0PWM4, GPIO (J1.5)
+      5:
+        pin: m0pwm5
+        note: M0PWM5, GPIO (J1.6)
+      7:
+        pin: PC5
+        note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO (J4.5)
+      9:
+        pin: qei0a
+        note: QEI0 phase A, M0FAULT0, GPIO (J4.8)
+      10:
+        pin: qei0b
+        note: QEI0 phase B, locked pin (NMI) (J4.9)
+      11:
+        pin: qei0idx
+        note: QEI0 index, GPIO (J3.6)
+      12:
+        pin: PB1
+        note: UART1 TX (J1.4)
+      13:
+        pin: PB0
+        note: UART1 RX, GPIO (J1.3)
+      14:
+        pin: gpio0
+        note: GPIO, watchdog early-warning toggle (J2.10)
+      15:
+        pin: led0
+        note: C1o output, red LED, GPIO (J3.10)
     wavegen:
       1:
         pin: PC6
         note: C0+ input (J4.6)
       2:
         pin: PC7
-        note: C0- input (J4.7)
+        jumpered: [PC4]
+        note: C0- input (J4.7), jumper to C1- PC4 (J4.4)
     scope:
       1: PC6
       2: PC7
-  comparator_c0:
-    description: >-
-      analog comparator 1 with its positive input taken from C0+ (C0+ PC6,
-      C1- PC4, C1o PF1 on the harness DIO15)
-    wavegen:
-      1:
-        pin: PC6
-        note: C0+ input (J4.6)
-      2:
-        pin: PC4
-        note: C1- input (J4.4)
-    scope:
-      1: PC6
-      2: PC4
-    dio:
-      15:
-        pin: led0
-        note: C1o output
   can:
     description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
     jumpers:
