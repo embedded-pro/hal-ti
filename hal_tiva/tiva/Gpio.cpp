@@ -148,10 +148,17 @@ namespace hal::tiva
     void GpioPin::Set(bool value)
     {
         reinterpret_cast<volatile uint32_t*>(GpioTiva(port))[1u << index] = value ? (1u << index) : 0u;
+
+        // Reading GPIODATA returns the output latch for an output pin, so a released open-drain pin becomes an input to read the line
+        if (drive == Drive::OpenDrain)
+            infra::ReplaceBit(GpioTiva(port)->DIR, !value, index);
     }
 
     bool GpioPin::GetOutputLatch() const
     {
+        if (drive == Drive::OpenDrain && !infra::IsBitSet(GpioTiva(port)->DIR, index))
+            return true;
+
         return infra::IsBitSet(GpioTiva(port)->DATA, index);
     }
 
