@@ -124,7 +124,11 @@ namespace hal::tiva
         uint8_t ChannelNumber() const;
 
     private:
+        void RestoreBurst() const;
+
+    private:
         Channel channel;
+        bool useBurst;
     };
 }
 

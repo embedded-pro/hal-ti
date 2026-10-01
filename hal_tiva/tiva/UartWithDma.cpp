@@ -193,18 +193,25 @@ namespace hal::tiva
                 ProcessDmaTx();
         }
 
+        bool flushRx = false;
+
         if (family::DmaRxComplete(dmaRx, rawStatus))
         {
             family::ClearDmaRx(dmaRx);
             if constexpr (family::DmaRxClearMask != 0)
                 InterruptClear(family::DmaRxClearMask);
             ProcessDmaRx();
+            // Single requests may have emptied the FIFO before USEBURST was restored, so no time-out would follow
+            flushRx = (uartArray[uartIndex]->FR & UART_FR_RXFE) != 0;
         }
 
         if (maskedStatus & UART_RIS_RTRIS)
         {
             InterruptClear(UART_ICR_RTIC);
-            ProcessRxTimeout();
+            flushRx = true;
         }
+
+        if (flushRx)
+            ProcessRxTimeout();
     }
 }

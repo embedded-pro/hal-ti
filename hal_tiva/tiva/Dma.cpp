@@ -272,6 +272,7 @@ namespace hal::tiva
 
     DmaChannel::DmaChannel(Dma& dma, const Channel& channel, const Configuration& configuration)
         : channel(channel)
+        , useBurst(configuration.attributes.useBurst)
     {
         really_assert(dma.IsEnabled());
 
@@ -293,6 +294,7 @@ namespace hal::tiva
     {
         really_assert(transfer != Transfer::pingPong);
         ChannelSetTransfer(channel.number, ChannelType::primary, transfer, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
+        RestoreBurst();
         ChannelEnable(channel.number);
     }
 
@@ -300,6 +302,7 @@ namespace hal::tiva
     {
         ChannelSetTransfer(channel.number, ChannelType::primary, Transfer::pingPong, primaryBuffer.sourceAddress, primaryBuffer.destinationAddress, primaryBuffer.size);
         ChannelSetTransfer(channel.number, ChannelType::alternate, Transfer::pingPong, alternateBuffer.sourceAddress, alternateBuffer.destinationAddress, alternateBuffer.size);
+        RestoreBurst();
         ChannelEnable(channel.number);
     }
 
@@ -307,6 +310,7 @@ namespace hal::tiva
     {
         auto channelType = alternate ? ChannelType::alternate : ChannelType::primary;
         ChannelSetTransfer(channel.number, channelType, Transfer::pingPong, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
+        RestoreBurst();
     }
 
     bool DmaChannel::IsPrimaryTransferCompleted() const
@@ -337,6 +341,13 @@ namespace hal::tiva
         if ((ctrl & UDMA_CHCTL_XFERMODE_M) == static_cast<uint32_t>(Transfer::stop))
             return 0;
         return ((ctrl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
+    }
+
+    // The controller clears USEBURST at the end of a cycle that ends with a single request
+    void DmaChannel::RestoreBurst() const
+    {
+        if (useBurst)
+            UDMA->USEBURSTSET = 1u << channel.number;
     }
 
     uint8_t DmaChannel::ChannelNumber() const
