@@ -198,7 +198,7 @@ namespace hal::tiva
         ssiArray[ssiIndex]->ICR = SSI_ICR_RORIC | SSI_ICR_RTIC;
 
         StartBatch();
-        // The TM4C123 does not reliably raise TXRIS at end of transmission, so the receive interrupts also complete a batch
+        // The TM4C123 does not latch TXRIS at end of transmission (erratum SSI#07), so the receive interrupts also complete a batch
         if (batchSize != 0)
             ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RXIM | SSI_IM_RTIM | SSI_IM_RORIM;
         else
