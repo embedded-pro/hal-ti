@@ -51,10 +51,12 @@ The target is `hal_ti.validation_firmware`, built with the regular presets (`HAL
 
 ```bash
 cmake --preset tm4c123gh6pm
-cmake --build --preset tm4c123gh6pm-Debug --target hal_ti.validation_firmware
+cmake --build --preset tm4c123gh6pm-RelWithDebInfo --target hal_ti.validation_firmware
 cmake --preset tm4c1294ncpdt
-cmake --build --preset tm4c1294ncpdt-Debug --target hal_ti.validation_firmware
+cmake --build --preset tm4c1294ncpdt-RelWithDebInfo --target hal_ti.validation_firmware
 ```
+
+Build it optimized. At -O0 the TM4C123 can't keep up with interrupt-driven UART at 921600 Bd, and ADC sequencer timing shifts. The Tiva presets configure `RelWithDebInfo` (from #119); on an older checkout, add `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to the configure step.
 
 The artifacts are `build/<preset>/validation/firmware/hal_ti.validation_firmware.{elf,bin,hex}`. Flash through the on-board ICDI with [lm4flash](https://github.com/utzig/lm4tools) or TI UniFlash:
 
@@ -232,7 +234,7 @@ Build, flash through the OpenOCD of the host, then run the tests against the hos
 
 ```bash
 cmake --preset tm4c1294ncpdt
-cmake --build --preset tm4c1294ncpdt-Debug --target hal_ti.validation_firmware
+cmake --build --preset tm4c1294ncpdt-RelWithDebInfo --target hal_ti.validation_firmware
 
 gdb-multiarch build/tm4c1294ncpdt/validation/firmware/hal_ti.validation_firmware.elf -batch \
     -ex "target extended-remote host.docker.internal:3333" \
