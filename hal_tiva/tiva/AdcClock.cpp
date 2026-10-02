@@ -8,6 +8,13 @@ namespace hal::tiva
     namespace
     {
         std::array<uint8_t, 2> adcClockUsers{};
+
+        void WaitForAdcReady(uint8_t adcIndex)
+        {
+            while ((SYSCTL->PRADC & (1 << adcIndex)) == 0)
+            {
+            }
+        }
     }
 
     void AcquireAdcClock(uint8_t adcIndex)
@@ -18,10 +25,13 @@ namespace hal::tiva
             return;
 
         SYSCTL->RCGCADC |= 1 << adcIndex;
+        WaitForAdcReady(adcIndex);
 
-        while ((SYSCTL->PRADC & (1 << adcIndex)) == 0)
-        {
-        }
+        // The first two conversions after the clock is enabled may be wrong (TM4C123 erratum ADC#14); the reset also
+        // clears whatever an earlier user left in the registers
+        SYSCTL->SRADC |= 1 << adcIndex;
+        SYSCTL->SRADC &= ~(1 << adcIndex);
+        WaitForAdcReady(adcIndex);
     }
 
     void ReleaseAdcClock(uint8_t adcIndex)
