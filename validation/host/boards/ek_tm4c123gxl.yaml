@@ -448,13 +448,16 @@ tests:
     # VIREF per protocol range name; low/high map to hal-ti ReferenceRange,
     # whose value is written to ACREFCTL.RNG (RNG=0 is the datasheet
     # "high range" 0.731..2.184 V, RNG=1 the "low range" 0..2.063 V).
+    # Least-squares fit of the 16 steps measured on the EK-TM4C123GXL at
+    # VDDA 3.30 V (residuals <= 6 mV low, <= 16 mV high with its offset rounded to 0);
+    # the ladder is ratiometric to VDDA, so the datasheet values come out low.
     reference:
       low:
-        offset_v: 0.731
-        step_v: 0.0968
+        offset_v: 0.773
+        step_v: 0.1133
       high:
         offset_v: 0.0
-        step_v: 0.1375
+        step_v: 0.1481
     ref_tolerance_v: 0.06
     ref_search_step_v: 0.01
     irq:
