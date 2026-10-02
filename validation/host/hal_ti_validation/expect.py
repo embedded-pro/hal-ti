@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -36,6 +37,14 @@ def pwm_duty_step(pwmclk: float, frequency: float, mode: PwmMode) -> float:
     """Duty resolution in percent: one comparator count of the period."""
     load = pwm_load(pwmclk, frequency, mode)
     return 100 / (load if mode == "center" else load + 1)
+
+
+def pwm_duty_resolvable(pwmclk: float, frequency: float, mode: PwmMode, duty: float) -> bool:
+    """Whether a duty between 0 and 100 % keeps both edges: the driver rounds it to whole counts
+    (`DutyCycle::ToCounts`) and drives a static level when that reaches 0 or LOAD."""
+    load = pwm_load(pwmclk, frequency, mode)
+    counts = math.floor((load if mode == "center" else load + 1) * duty / 100 + 0.5)
+    return 0 < counts < load
 
 
 PWM_DIVISORS = (1, 2, 4, 8, 16, 32, 64)

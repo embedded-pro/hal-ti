@@ -16,6 +16,16 @@ def test_pwm_quantisation():
     assert expect.pwm_duty_step(40e6, 20000, "edge") == pytest.approx(0.05)
 
 
+@pytest.mark.parametrize(
+    "mode,duty,resolvable",
+    [("edge", 90, False), ("edge", 50, True), ("edge", 12.5, True), ("center", 90, False), ("center", 50, True), ("center", 12.5, True)],
+)
+def test_pwm_duty_resolvable(mode, duty, resolvable):
+    """120 MHz / 64 at 200 kHz: 9 counts per period, LOAD 8 edge-aligned and 4 center-aligned."""
+    assert expect.pwm_duty_resolvable(120e6 / 64, 200000, mode, duty) is resolvable
+    assert expect.pwm_duty_resolvable(120e6, 10000, mode, duty)
+
+
 def test_pwm_divisor_and_dead_time():
     assert expect.pwm_divisor_for(80e6, 1000, "edge") == 2
     assert expect.pwm_divisor_for(80e6, 1000, "center") == 1

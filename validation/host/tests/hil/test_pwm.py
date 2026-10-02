@@ -100,6 +100,8 @@ def test_waveform(fw, ad3, need, pwm, sysclk, mode, div, freq, duty, sync):
     a, b = need.dio(generator["a"]), need.dio(generator["b"])
     pwmclk = sysclk // div
     fits = expect.pwm_fits(pwmclk, freq, mode)
+    if fits and duty not in (0, 100) and not expect.pwm_duty_resolvable(pwmclk, freq, mode, duty):
+        pytest.skip(f"{duty} % rounds to a static level at {freq} Hz with pwmclk {pwmclk} Hz ({mode})")
     reported = open_or_range(fits, lambda: open_generators(fw, pwm, [generator], freq=freq, mode=mode, div=div, dead="off", sync=sync))
     if reported is False:
         return
