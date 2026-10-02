@@ -75,7 +75,7 @@ python3 -m venv .venv
 pip install -e "validation/host[ad3]"
 ```
 
-This also installs `ad3-waveforms-bench` from `git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0` (see `host/pyproject.toml`), the first release that can use an AD3 on another machine.
+This also installs `ad3-waveforms-bench` from `git+https://github.com/embedded-pro/ad3-waveforms-bench@dcb3754` (see `host/pyproject.toml`): v0.2.0, the first release that can use an AD3 on another machine, plus the UART parity and logic-analyzer reset fixes.
 This is the setup for one machine that has the AD3, the LaunchPad and Python together. When the AD3 and the LaunchPad are on a Windows PC and the build and the tests run in Docker, follow [Windows host and Docker (bridge mode)](#windows-host-and-docker-bridge-mode) instead.
 To work on both at the same time, install a local checkout first and then this package without dependencies:
 
@@ -195,7 +195,7 @@ The container needs no USB access, no WaveForms runtime and no OpenOCD: the devc
    ```powershell
    py -m venv $env:USERPROFILE\hil-bridge
    & $env:USERPROFILE\hil-bridge\Scripts\Activate.ps1
-   pip install "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0"
+   pip install "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@dcb3754fd4a4997e4e78cd824f48bc13b0c2435a"
    pip install "port-bridge @ git+https://github.com/gabrielfrasantos/port-bridge@v0.1.5"
    ```
 

@@ -8,9 +8,10 @@ version = "0.1.0"
 description = "Hardware-in-the-loop validation of hal-ti drivers with a Digilent Analog Discovery 3"
 requires-python = ">=3.10"
 # ad3-waveforms-bench brings the AD3 wrapper, the terminal client and the pytest plugin (--ad3-serial,
-# --no-ad3, --fake, the ad3 fixture). Pin it to a tag instead of main once the repository has releases.
+# --no-ad3, --fake, the ad3 fixture). Pinned past v0.2.0 for the UART parity and logic-analyzer reset fixes;
+# move back to a tag with the next release.
 dependencies = [
-    "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@v0.2.0",
+    "ad3-waveforms-bench @ git+https://github.com/embedded-pro/ad3-waveforms-bench@dcb3754fd4a4997e4e78cd824f48bc13b0c2435a",
     "pyserial>=3.5",
     # CAN bus peer (CANable): slcan works with this alone; gs_usb and candle need python-can's extras of the same name.
     "python-can>=4.4",
