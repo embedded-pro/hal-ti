@@ -43,6 +43,8 @@ namespace hal::tiva
         uint8_t watchDogIndex;
         infra::Duration timeout;
         uint32_t reloadValue{ 0 };
+        bool resetOnMissedInterrupt;
+        bool warned{ false };
         infra::Function<void()> onEarlyWarning;
     };
 }

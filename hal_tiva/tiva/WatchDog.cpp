@@ -2,6 +2,7 @@
 #include "infra/util/ReallyAssert.hpp"
 #include <array>
 #include <limits>
+#include <utility>
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -125,6 +126,7 @@ namespace hal::tiva
         : watchDogIndex(watchDogIndex)
         , timeout(config.timeout)
         , reloadValue(ToTicks(ClockFrequency(), config.timeout))
+        , resetOnMissedInterrupt(config.resetOnMissedInterrupt)
     {
         really_assert(watchDogIndex < numberOfWatchDogs);
 
@@ -171,6 +173,7 @@ namespace hal::tiva
 
     void WatchDog::Refresh()
     {
+        warned = false;
         Peripheral().ICR = 0;
         WaitForWriteComplete();
         if (onEarlyWarning && !watchDogSharedHandler.Registered())
@@ -225,6 +228,17 @@ namespace hal::tiva
         // Watchdog 0 and 1 share one vector, so an interrupt raised by the other unit is not ours to count or clear
         if ((Peripheral().MIS & misTimeout) == 0)
             return;
+
+        if (!resetOnMissedInterrupt)
+        {
+            // Watchdog 1 resets the device on a second time-out even with RESEN clear (TM4C123 erratum WDT#03), so
+            // without reset the interrupt is cleared here and the warning is reported once until the next Refresh
+            Peripheral().ICR = 0;
+            WaitForWriteComplete();
+            if (!std::exchange(warned, true))
+                onEarlyWarning();
+            return;
+        }
 
         watchDogSharedHandler.Unregister();
         onEarlyWarning();
