@@ -28,7 +28,7 @@ if (HAL_TI_STANDALONE)
     FetchContent_Declare(
         emil
         GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
-        GIT_TAG        501b20e42efc14d6338239ddbf48d6a3ced0d34e # Unreleased
+        GIT_TAG        00596464de0aa4d4ceb0726f2e117e5a85dabf7f # Unreleased
     )
 
     add_definitions(-DEMIL_ENABLE_TRACING=1)
