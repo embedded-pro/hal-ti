@@ -493,7 +493,8 @@ tests:
     rollover:
       res: [100, 4096]
       offset: [0, 50]
-    clkdir_counts_per_pulse: 1
+    # Clock/direction mode counts both edges of PhA, whatever the capture mode (measured on the bench).
+    clkdir_counts_per_pulse: 2
     index_tolerance: 4
   can:
     index: 0
