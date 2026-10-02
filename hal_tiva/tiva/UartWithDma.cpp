@@ -37,7 +37,9 @@ namespace hal::tiva
             { { 21, 2 }, { 20, 2 } },
         } };
 
-        constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
+        // Burst-only: a single request could move a whole arbitration unit into a TX FIFO with fewer free entries, and the
+        // UART drops what does not fit (bytes went missing at 115200 on the TM4C123). Bursts only start at half empty.
+        constexpr DmaChannel::Attributes txAttributes{ true, false, true, false };
         // Burst-only, with bursts smaller than the RX FIFO trigger level: a character always stays in the FIFO so the
         // receive time-out fires; otherwise a short message waits in the DMA buffer until the half-buffer fills.
         constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
