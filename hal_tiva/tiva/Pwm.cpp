@@ -216,8 +216,6 @@ namespace hal::tiva
 
     Pwm::~Pwm()
     {
-        Stop();
-
         for (auto& gen : generators)
             gen.address->INTEN &= ~PWM_CHANNEL_ISC_NORMAL_MASK;
 
@@ -226,6 +224,9 @@ namespace hal::tiva
         for (auto& h : generatorHandlers)
             h.reset();
         faultHandler.reset();
+
+        DisableGenerators();
+        peripheralPwm[pwmIndex]->FAULT &= ~faultOutputs;
 
         uint32_t invertMask = 0;
         for (const auto& gen : generators)
@@ -301,19 +302,20 @@ namespace hal::tiva
             channel->CTL |= ctlFaultBits;
 
             configuredFaultInterrupts |= faultIntEnBit[genIdx];
+            for (const auto& gen : generators)
+                if (gen.generatorId == generatorIntEnBit[genIdx])
+                    faultOutputs |= gen.enable;
             hasFault = true;
         }
 
         if (hasFault)
         {
+            peripheralPwm[pwmIndex]->FAULTVAL &= ~faultOutputs;
+            peripheralPwm[pwmIndex]->FAULT |= faultOutputs;
             peripheralPwm[pwmIndex]->ISC = PWM_ISC_INTFAULT3 | PWM_ISC_INTFAULT2 | PWM_ISC_INTFAULT1 | PWM_ISC_INTFAULT0;
             peripheralPwm[pwmIndex]->INTEN |= configuredFaultInterrupts;
             NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq));
             faultHandler.emplace(*this, peripheralPwmIrqs[pwmIndex].faultIrq, interruptConfig.priority);
-            faultRearmTimer.Start(std::chrono::milliseconds(1), [this]()
-                {
-                    RearmFaultInterrupts();
-                });
         }
     }
 
@@ -388,6 +390,12 @@ namespace hal::tiva
 
     void Pwm::Stop()
     {
+        DisableGenerators();
+        RearmFault();
+    }
+
+    void Pwm::DisableGenerators()
+    {
         for (auto& gen : generators)
         {
             DisableGenerator(gen);
@@ -395,6 +403,27 @@ namespace hal::tiva
         }
 
         Sync();
+    }
+
+    void Pwm::RearmFault() const
+    {
+        if (configuredFaultInterrupts == 0)
+            return;
+
+        auto* pwm = peripheralPwm[pwmIndex];
+        for (uint8_t gen = 0; gen < static_cast<uint8_t>(faultIntEnBit.size()); ++gen)
+        {
+            if ((configuredFaultInterrupts & faultIntEnBit[gen]) == 0)
+                continue;
+
+            // FLTSTAT is write-one-to-clear in latch mode; CMSIS declares it read-only
+            *const_cast<volatile uint32_t*>(&pwm->_0_FLTSTAT0 + gen * fltstatStride) = 0x0F;
+            *const_cast<volatile uint32_t*>(&pwm->_0_FLTSTAT1 + gen * fltstatStride) = 0xFF;
+        }
+
+        pwm->ISC = configuredFaultInterrupts;
+        NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq));
+        pwm->INTEN |= configuredFaultInterrupts;
     }
 
     void Pwm::GeneratorConfiguration(Generator& generator) const
@@ -574,15 +603,13 @@ namespace hal::tiva
         
     }
 
-    // A fault pulse pends the NVIC line but the PWM raw status follows the live fault, so the ISR cannot tell which source fired
-    // once a short pulse (such as a digital comparator step) is over. The line is disabled for the whole fault episode instead:
-    // RearmFaultInterrupts keeps it disabled while new pulses still pend it and enables it again after a quiet period.
+    // One event per fault: the fault interrupt stays masked until Stop(), so a fault that persists or repeats cannot flood the
+    // event loop while the hardware holds the outputs at their inactive level
     void Pwm::HandleFaultIrq()
     {
         auto* pwm = peripheralPwm[pwmIndex];
-        const auto irq = static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq);
 
-        NVIC_DisableIRQ(irq);
+        pwm->INTEN &= ~configuredFaultInterrupts;
         pwm->ISC = configuredFaultInterrupts;
 
         const uint32_t configuredGenerators = configuredFaultInterrupts >> 16;
@@ -613,24 +640,6 @@ namespace hal::tiva
         }
 
         onFault(ev);
-    }
-
-    void Pwm::RearmFaultInterrupts()
-    {
-        auto* pwm = peripheralPwm[pwmIndex];
-        const auto irq = static_cast<IRQn_Type>(peripheralPwmIrqs[pwmIndex].faultIrq);
-
-        if (NVIC_GetEnableIRQ(irq) != 0)
-            return;
-
-        if (NVIC_GetPendingIRQ(irq) != 0 || (pwm->STATUS & (configuredFaultInterrupts >> 16)) != 0)
-        {
-            pwm->ISC = configuredFaultInterrupts;
-            NVIC_ClearPendingIRQ(irq);
-            return;
-        }
-
-        NVIC_EnableIRQ(irq);
     }
 
     uint16_t Pwm::CalculateDeadTimeCycles(std::chrono::nanoseconds deadTime, Config::ClockDivisor divisor)
