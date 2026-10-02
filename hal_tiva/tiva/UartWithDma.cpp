@@ -42,9 +42,11 @@ namespace hal::tiva
         constexpr DmaChannel::Attributes txAttributes{ true, false, true, false };
         // Burst-only, with bursts smaller than the RX FIFO trigger level: a character always stays in the FIFO so the
         // receive time-out fires; otherwise a short message waits in the DMA buffer until the half-buffer fills.
+        // One item per request: at a ping-pong half switch the uDMA can serve a burst request the UART has not yet
+        // withdrawn, and a 4-item burst then reads the empty FIFO and stores a stale entry 16 characters old.
         constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
-        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_1_item };
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
