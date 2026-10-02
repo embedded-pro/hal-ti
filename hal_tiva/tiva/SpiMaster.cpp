@@ -193,8 +193,16 @@ namespace hal::tiva
         else
             dummyToReceive = 0;
 
+        while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE) != 0)
+            static_cast<void>(ssiArray[ssiIndex]->DR);
+        ssiArray[ssiIndex]->ICR = SSI_ICR_RORIC | SSI_ICR_RTIC;
+
         StartBatch();
-        ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RORIM;
+        // The TM4C123 does not reliably raise TXRIS at end of transmission, so the receive interrupts also complete a batch
+        if (batchSize != 0)
+            ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RXIM | SSI_IM_RTIM | SSI_IM_RORIM;
+        else
+            Finish();
     }
 
     void SpiMaster::SetChipSelectConfigurator(ChipSelectConfigurator& configurator)
@@ -220,6 +228,7 @@ namespace hal::tiva
     {
         const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
         batchSize = remaining < 8 ? remaining : 8;
+        batchReceived = 0;
 
         for (uint32_t i = 0; i < batchSize; ++i)
         {
@@ -246,19 +255,12 @@ namespace hal::tiva
             really_assert(false);
         }
 
-        if ((mis & SSI_MIS_TXMIS) == 0)
-        {
-            spiInterruptRegistration->ClearPending();
-            return;
-        }
+        ssiArray[ssiIndex]->ICR = SSI_ICR_RTIC;
 
-        for (uint32_t i = 0; i < batchSize; ++i)
+        while (batchReceived != batchSize && (ssiArray[ssiIndex]->SR & SSI_SR_RNE) != 0)
         {
-            while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE) == 0)
-            {
-            }
-
             const uint32_t data = ssiArray[ssiIndex]->DR;
+            ++batchReceived;
             if (!receiveData.empty())
             {
                 receiveData.front() = static_cast<uint8_t>(data);
@@ -270,21 +272,27 @@ namespace hal::tiva
             }
         }
 
+        spiInterruptRegistration->ClearPending();
+
+        if (batchReceived != batchSize || ssiArray[ssiIndex]->IM == 0)
+            return;
+
         const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
         if (remaining > 0)
-        {
             StartBatch();
-            spiInterruptRegistration->ClearPending();
-        }
         else
         {
             ssiArray[ssiIndex]->IM = 0;
-            spiInterruptRegistration->ClearPending();
-            if (chipSelectConfigurator && !continuedSession)
-                chipSelectConfigurator->EndSession();
-            infra::EventDispatcher::Instance().Schedule(onDone.Clone());
-            onDone = nullptr;
+            Finish();
         }
+    }
+
+    void SpiMaster::Finish()
+    {
+        if (chipSelectConfigurator && !continuedSession)
+            chipSelectConfigurator->EndSession();
+        infra::EventDispatcher::Instance().Schedule(onDone.Clone());
+        onDone = nullptr;
     }
 
     void SpiMaster::EnableClock()
