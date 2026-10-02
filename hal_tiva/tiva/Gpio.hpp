@@ -6,6 +6,7 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/interfaces/Gpio.hpp"
 #include "infra/util/MemoryRange.hpp"
+#include <atomic>
 #include <cstdint>
 #include <optional>
 
@@ -237,12 +238,14 @@ namespace hal::tiva
         void ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to);
         void ExtiInterruptPort(std::size_t portIndex);
         void ExtiInterruptSinglePin(std::size_t handlerIndex);
+        void DispatchPending(std::size_t handlerIndex);
 
         infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable;
         infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable;
 
         std::array<infra::Function<void()>, 8 * 15> handlers;
         std::array<InterruptType, 8 * 15> interruptTypes;
+        std::array<std::atomic<uint16_t>, 8 * 15> pendingEdges{};
         std::array<uint32_t, 15> assignedPins;
 
         std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 15> portHandlers;

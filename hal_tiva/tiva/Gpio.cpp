@@ -526,6 +526,7 @@ namespace hal::tiva
         const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
         really_assert(handlerIndex < handlers.size());
         handlers[handlerIndex] = nullptr;
+        pendingEdges[handlerIndex] = 0;
     }
 
     void Gpio::ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to)
@@ -541,11 +542,21 @@ namespace hal::tiva
                 {
                     if (interruptTypes[h] == InterruptType::immediate)
                         handlers[h]();
-                    else
-                        infra::EventDispatcher::Instance().Schedule(handlers[h]);
+                    else if (pendingEdges[h].fetch_add(1, std::memory_order_relaxed) == 0)
+                        infra::EventDispatcher::Instance().Schedule([this, h]()
+                            {
+                                DispatchPending(h);
+                            });
                 }
             }
         }
+    }
+
+    // One queued event per pin no matter how fast edges arrive; it runs the handler once per edge seen so far
+    void Gpio::DispatchPending(std::size_t handlerIndex)
+    {
+        for (auto edges = pendingEdges[handlerIndex].exchange(0, std::memory_order_relaxed); edges != 0 && handlers[handlerIndex]; --edges)
+            handlers[handlerIndex]();
     }
 
     void Gpio::ExtiInterruptPort(std::size_t portIndex)
