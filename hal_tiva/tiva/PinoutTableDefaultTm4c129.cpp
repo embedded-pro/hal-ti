@@ -441,9 +441,9 @@ namespace hal::tiva
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableEthernet = pinoutTableEthernetArray;
 
     constexpr std::array<const Gpio::PinPosition, 3> pinoutTableComparatorOutputPins = { {
-        { 0, Port::D, 0, 0x08 },
-        { 1, Port::D, 1, 0x08 },
-        { 2, Port::D, 2, 0x08 },
+        { 0, Port::D, 0, 0x05 },
+        { 1, Port::D, 1, 0x05 },
+        { 2, Port::D, 2, 0x05 },
     } };
 
     constexpr std::array<const Gpio::PinoutTable, 1> pinoutTableComparatorArray = { {
