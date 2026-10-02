@@ -119,6 +119,7 @@ namespace hal::tiva
         infra::BoundedVector<uint16_t>::WithMaxSize<maxSamples> buffer;
         std::size_t numberOfChannels;
         bool monitorsWithComparators = false;
+        bool discardLastSample = false;
         std::optional<hal::cortex::ImmediateInterruptHandler> irqHandler;
     };
 }

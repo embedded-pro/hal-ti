@@ -319,22 +319,6 @@ namespace
         }
     }
 
-    // On the TM4C123 the interrupt of a step routed to a digital comparator fires before the previous step's sample has
-    // reached the FIFO, so the sequence interrupt moves to the last step that fills the FIFO
-    void InterruptOnLastFifoStep(ADC0_Type& adc, uint8_t sequencer, infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators)
-    {
-        constexpr uint32_t stepInterruptEnable = ADC_CTL_IE >> 4;
-        volatile uint32_t* ssctl = &adc.SSCTL0 + (sequencer * sequencerOffset);
-
-        for (auto step = digitalComparators.size(); step-- != 0;)
-            if (digitalComparators[step].comparatorIndex == hal::tiva::Adc::DigitalComparatorConfig::noComparator)
-            {
-                const auto last = digitalComparators.size() - 1;
-                *ssctl = (*ssctl & ~(stepInterruptEnable << (last * 4))) | (stepInterruptEnable << (step * 4));
-                return;
-            }
-    }
-
     void ConfigureDigitalComparators(ADC0_Type& adc, uint8_t sequencer, infra::MemoryRange<const hal::tiva::Adc::DigitalComparatorConfig> digitalComparators)
     {
         volatile uint32_t* ssdc = &adc.SSDC0 + (sequencer * sequencerOffset);
@@ -392,8 +376,20 @@ namespace hal::tiva
         {
             ValidateDigitalComparators(config.digitalComparators, inputs.size());
             numberOfChannels = CountFifoSteps(config.digitalComparators);
+
+            // When the END step goes to a digital comparator, the TM4C123 delivers one FIFO sample per run too few (erratum
+            // ADC#03), so a dummy FIFO step ends the sequence instead and its sample is discarded
+            const bool endsOnComparator = config.digitalComparators[lastChannel].comparatorIndex != DigitalComparatorConfig::noComparator;
+            if (endsOnComparator && numberOfChannels != 0 && inputs.size() < sequencerDepths[adcSequencer])
+            {
+                auto ch = inputs[lastChannel].AdcChannel();
+                SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, lastChannel, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh);
+                SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, inputs.size(), (ch & 0xFu) | ((ch >> 4u) << 8u) | sh | ADC_CTL_IE | ADC_CTL_END);
+                ++numberOfChannels;
+                discardLastSample = true;
+            }
+
             ConfigureDigitalComparators(*peripheralAdc[this->adcIndex], this->adcSequencer, config.digitalComparators);
-            InterruptOnLastFifoStep(*peripheralAdc[this->adcIndex], this->adcSequencer, config.digitalComparators);
             monitorsWithComparators = true;
         }
 
@@ -406,6 +402,8 @@ namespace hal::tiva
                 {
                     InterruptClear(adc, this->adcSequencer);
                     DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
+                    if (discardLastSample && buffer.size() == numberOfChannels)
+                        buffer.pop_back();
                     if (callback)
                         callback(infra::MakeRange(buffer));
                 }
