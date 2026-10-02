@@ -16,8 +16,6 @@ from ad3_waveforms_bench.terminal import FirmwareError
 
 from hal_ti_validation import expect
 
-PWMFAULTVAL_GAP = "driver does not program PWMFAULTVAL"
-
 
 @pytest.fixture
 def pwm(board_cfg):
@@ -369,7 +367,6 @@ def test_fault_input_pin(fw, ad3, need, pwm, latch, minperiod, gens):
 
 
 @pytest.mark.ad3
-@pytest.mark.xfail(strict=False, reason=PWMFAULTVAL_GAP)
 def test_fault_forces_outputs(fw, ad3, need, pwm):
     fault = pwm["fault"]
     generator = configured(pwm, 1)[0]
@@ -386,6 +383,31 @@ def test_fault_forces_outputs(fw, ad3, need, pwm):
     stopped = record(ad3, pwm, 10000)
     ad3.dio.drive(dio, 0)
     assert stopped.edge_count(a) == 0 and stopped.edge_count(b) == 0, "outputs keep switching during a fault"
+
+
+@pytest.mark.ad3
+def test_fault_reported_once_until_stop(fw, ad3, need, pwm):
+    """Repeated fault pulses raise a single `EVT pwm`; `pwm.stop` re-arms the report for the next fault."""
+    fault = pwm["fault"]
+    module = pwm["module"]
+    dio = need.dio(fault["pin"])
+    ad3.dio.drive(dio, 0)
+    open_generators(fw, pwm, configured(pwm, 1), freq=10000)
+    fw.pwm.fault(module, inputs=fault["inputs"], pin=fault["pin"])
+    fw.pwm.duty(module, 50)
+    for _ in range(5):
+        ad3.dio.drive(dio, 1)
+        time.sleep(0.005)
+        ad3.dio.drive(dio, 0)
+        time.sleep(0.005)
+    fw.pwm.wait_fault(module, timeout=fault["timeout_s"])
+    fw.system.delay(50)
+    assert not fw.pwm.faults(module), "more than one fault event before pwm.stop"
+    fw.pwm.stop(module)
+    fw.pwm.duty(module, 50)
+    ad3.dio.drive(dio, 1)
+    fw.pwm.wait_fault(module, timeout=fault["timeout_s"])
+    ad3.dio.drive(dio, 0)
 
 
 @pytest.mark.ad3

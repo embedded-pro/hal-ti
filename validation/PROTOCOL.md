@@ -80,8 +80,9 @@ The generic framing (`OK`/`ERR`/`EVT` lines, reasons, the deferred `\r\n` prefix
   - `pin` muxes a fault pin of the module (`ERR pin` for another pin): TM4C123 PD2, PD6, PF2 (M0FAULT0) and PF4 (M1FAULT0); TM4C129 PF4 (M0FAULT0), PK6 (M0FAULT1), PK7 (M0FAULT2), PL0 (M0FAULT3); a high level is a fault
   - the pin is released by `pwm.fault <module> off`, the next accepted `pwm.fault` or `pwm.close`
   - the pin is claimed before the module is rebuilt: a `pin=` that answers `ERR pin` or `ERR busy` leaves the previous fault configuration, its pin and the running outputs untouched; repeating the same `pin=` keeps it
-  - the driver takes the fault configuration only at construction, so the module is rebuilt and its outputs stay stopped until the next `pwm.duty`; the driver does not force the outputs on a fault, it only reports it
-  - faults report `EVT pwm module=<m> gens=<mask> comparators=<mask> inputs=<mask>` (generator fault status, digital comparator and pin fault inputs of all generators OR-ed)
+  - the driver takes the fault configuration only at construction, so the module is rebuilt and its outputs stay stopped until the next `pwm.duty`
+  - during a fault the outputs of the faulted generators are driven to their inactive level (low before `inva`/`invb`); with `latch=1` they stay there until `pwm.stop`
+  - a fault reports one `EVT pwm module=<m> gens=<mask> comparators=<mask> inputs=<mask>` (generator fault status, digital comparator and pin fault inputs of all generators OR-ed); further faults stay silent until `pwm.stop` re-arms the report
   - with `sync=1` returns `ERR unsupported`
 - `pwm.fault <module> off` → `OK`; removes the fault configuration (rebuilds the module)
 - `pwm.duty <module> <duty1%> [duty2%] [duty3%] [duty4%]` → `OK`; one duty per opened generator in open order, or a single duty for all of them, starts the outputs; duty accepts decimals (`12.5`, up to 4 digits), `0` and `100`

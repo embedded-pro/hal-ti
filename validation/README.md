@@ -384,7 +384,7 @@ The tables are generated from the board files; the notes list every function a p
   - Asynchronous only: every interrupt source counted with `pwm.count` (up-count comparator events never occur in edge mode), and one source per generator.
   - Every ADC trigger source of every generator, checked through an asynchronous ADC sequencer triggered by it, and one trigger per generator.
   - The fault path with the AD3 driving a fault pin (latch, minimum period, generator subsets) and with a wavegen driving an ADC digital comparator input, both expecting `EVT pwm`.
-  - Argument errors of `pwm.open` and `pwm.fault`. Forced outputs during a fault are `xfail` (driver does not program PWMFAULTVAL).
+  - Argument errors of `pwm.open` and `pwm.fault`. A fault forces the outputs inactive and reports once until `pwm.stop`.
 - `test_uart.py` - every baud rate x parity x stop bits x driver variant (interrupt, DMA, synchronous; synchronous is 8N1 only), both directions against the AD3 UART, frames decoded from the firmware TX line and the bit rate measured on it, large payloads, full-duplex streaming, RTS/CTS/RTS+CTS flow control for every variant, argument errors.
 - `test_spi.py` - SPI modes 0-3 x baud rates up to sysclk/2 x asynchronous/synchronous driver x FSS or no chip select, decoded from the logic analyzer (MOSI data, MISO data, clock polarity, clock rate, FSS release) where the sample rate allows, received data with a static MISO level or the MOSI-MISO jumper, receive-only and largest transfers, continued sessions, argument errors.
 - `test_adc.py` - for `Adc` and `SynchronousAdc`:
