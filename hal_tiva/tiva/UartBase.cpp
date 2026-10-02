@@ -66,7 +66,7 @@ namespace hal::tiva
         constexpr uint32_t UART_CTL_EOT = 0x00000010;
         constexpr uint32_t UART_CTL_UARTEN = 0x00000001;
 
-        constexpr uint32_t UART_IFLS_RX7_8 = 0x00000020;
+        constexpr uint32_t UART_IFLS_RX4_8 = 0x00000010;
         constexpr uint32_t UART_IFLS_TX7_8 = 0x00000004;
 
         constexpr uint32_t UART_IM_DMATXIM = 0x00020000;
@@ -200,7 +200,8 @@ namespace hal::tiva
         uartArray[uartIndex]->FBRD = div % 64;
         uartArray[uartIndex]->LCRH = lcrh;
         uartArray[uartIndex]->RSR = 0;
-        uartArray[uartIndex]->IFLS = UART_IFLS_RX7_8 | UART_IFLS_TX7_8;
+        // Half full leaves 8 characters of interrupt latency before an overrun: 87 us at 921600 Bd, where 7/8 left only 22 us
+        uartArray[uartIndex]->IFLS = UART_IFLS_RX4_8 | UART_IFLS_TX7_8;
         uartArray[uartIndex]->IM |= UART_IM_OEIM;
         EnableUart();
 
