@@ -29,13 +29,15 @@ def apply_level(ad3, need, pin, volts):
     """Drive `pin` to `volts`; returns the measured level (scope) or the programmed one.
 
     The scope reads on a 5 V range centred on mid-supply: the default 10 V range is some 25 mV off, most of the ADC tolerance.
+    It averages 100 ms, whole periods of both 50 and 60 Hz: a 10 ms window put mains hum into the mean, ±25 mV between
+    acquisitions on the bench.
     """
     ad3.wavegen.dc(need.wavegen(pin), volts)
     time.sleep(0.02)
     scope = need.optional_scope(pin)
     if scope is None:
         return volts
-    return statistics.fmean(ad3.scope.acquire([scope], rate=1e5, samples=1000, range_v=5.0, offset_v=1.65)[scope])
+    return statistics.fmean(ad3.scope.acquire([scope], rate=5e4, samples=5000, range_v=5.0, offset_v=1.65)[scope])
 
 
 def start_trigger(fw, adc_cfg, sync):
