@@ -1,4 +1,5 @@
 #include "hal_tiva/synchronous_tiva/SynchronousAnalogComparator.hpp"
+#include "AnalogComparatorFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include DEVICE_HEADER
 
@@ -10,7 +11,7 @@ namespace
     constexpr uint32_t AcctlTsenShift   = 5;
     constexpr uint32_t AcctlTsenMask    = 0x3u << AcctlTsenShift;
     constexpr uint32_t AcctlCinv        = 1u << 1;
-    constexpr uint32_t AcctlToen        = 1u << 0;
+    constexpr uint32_t AcctlToen        = 1u << 11;
 
     constexpr uint32_t AcstatOval       = 1u << 1;
 
@@ -26,8 +27,6 @@ namespace hal::tiva
         : index(aIndex)
         , config(aConfig)
     {
-        really_assert(config.routeToPwmFault.has_value() ? config.triggerEnabled : true);
-
         if (&vinPositive != &dummyPin)
             vinPositivePin.emplace(vinPositive);
         if (&vinNegative != &dummyPin)
@@ -87,49 +86,22 @@ namespace hal::tiva
             val |= (static_cast<uint32_t>(config.triggerSense) << AcctlTsenShift) & AcctlTsenMask;
             if (config.triggerLevelHigh)
                 val |= AcctlTslval;
+            val |= AcctlToen;
         }
 
         if (config.invertOutput)
             val |= AcctlCinv;
-        if (config.outputToPin)
-            val |= AcctlToen;
 
         return val;
     }
 
     volatile uint32_t& SynchronousAnalogComparator::Acctl() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACCTL0;
-            case 1:
-                return COMP->ACCTL1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACCTL2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACCTL0;
-        }
+        return hal::tiva::family::GetAcctl(index);
     }
 
     volatile uint32_t& SynchronousAnalogComparator::Acstat() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACSTAT0;
-            case 1:
-                return COMP->ACSTAT1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACSTAT2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACSTAT0;
-        }
+        return hal::tiva::family::GetAcstat(index);
     }
 }

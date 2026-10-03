@@ -6,7 +6,7 @@ Following these guidelines helps to communicate that you respect the time of the
 
 ## Contributing to development
 
-hal-st is a young open source project and we love to receive contributions from our community — you! There are many ways to contribute, from writing examples, improving the documentation, submitting bug reports and feature requests or writing code which can be incorporated into EmbeddedInfraLib itself.
+hal-ti is a young open source project and we love to receive contributions from our community — you! There are many ways to contribute, from writing examples, improving the documentation, submitting bug reports and feature requests or writing code which can be incorporated into hal-ti itself.
 
 ## Ground Rules
 
@@ -35,13 +35,13 @@ Submitting your first contribution (or Pull Request) can be scary, but we promis
 
 ## How to report a bug
 
-If you find a security vulnerability, do NOT open an issue. Email one of the [maintainers](.github/CODEOWNERS) instead.
+If you find a security vulnerability, do NOT open an issue. Report it privately to the repository maintainers instead (for example through a GitHub private security advisory).
 
 In order to determine whether you are dealing with a security issue, ask yourself these two questions:
 * Can I access something that's not mine, or something I shouldn't have access to?
 * Can I disable something for other people?
 
-If the answer to either of those two questions are "yes", then you're probably dealing with a security issue. Note that even if you answer "no" to both questions, you may still be dealing with a security issue, so if you're unsure, just email us.
+If the answer to either of those two questions are "yes", then you're probably dealing with a security issue. Note that even if you answer "no" to both questions, you may still be dealing with a security issue, so if you're unsure, just report it privately.
 
 When filing an issue, make sure to answer these five questions:
 

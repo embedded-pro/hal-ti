@@ -139,7 +139,7 @@ namespace hal::tiva
         hal::MacAddress macAddress;
         uint8_t phyId = 0;
         volatile bool EEELinkActive = false;
-        hal::cortex::DispatchedInterruptHandler interrupt;
+        std::optional<hal::cortex::DispatchedInterruptHandler> interrupt;
         std::optional<ReceiveDescriptors> receiveDescriptors;
         std::optional<SendDescriptors> sendDescriptors;
     };

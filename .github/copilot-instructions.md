@@ -6,7 +6,7 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 
 ## Repository Structure
 
-- **hal::cortex::***: Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL's `hal/cortex_m/`, not this repo
+- **hal::cortex::***: Reset, SystemTick, SystemTickTimerService, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL's `hal/cortex_m/`, not this repo
 - **hal_tiva/tiva/**: TM4C-specific peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
 - **hal_tiva/synchronous_tiva/**: Blocking/polling driver variants (SynchronousAdc, SynchronousUart)
 - **hal_tiva/instantiations/**: Board Support Packages and infrastructure (LaunchPadBsp, EventInfrastructure)
@@ -50,18 +50,16 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 Every peripheral driver follows this initialization order:
 
 **Constructor:**
-1. Save parameters (index, config) and register base class (`ImmediateInterruptHandler`) — all in the initializer list
+1. Save parameters (index, config) in the initializer list
 2. `PeripheralPin` members constructed in the **initializer list** — RAII GPIO multiplexing completes before the constructor body runs
 3. `EnableClock()` — **first call in the constructor body**: set `SYSCTL->RCGCxxx` bit, then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set (e.g., `while ((SYSCTL->PRCAN & (1 << index)) == 0) {}`)
-4. Configure hardware registers (baud rate, mode, control bits)
-5. NVIC: `NVIC_ClearPendingIRQ` then `NVIC_EnableIRQ` (if not handled by the `ImmediateInterruptHandler` base)
-6. Enable peripheral in control register
+4. Configure hardware registers (baud rate, mode, control bits) and enable the peripheral
+5. `NVIC_ClearPendingIRQ(irq)`, then register the EMIL handler **last** (e.g., `handler.emplace(irq, priority, [this]() { HandleInterrupt(); })` on a `std::optional<hal::cortex::ImmediateInterruptHandler>` member, or `Register(irq, priority)` when deriving from `hal::cortex::InterruptHandler`). Registration sets the priority and enables the IRQ — never call `NVIC_EnableIRQ` directly
 
 **Destructor (reverse order):**
-1. Disable NVIC interrupt (`NVIC_DisableIRQ`) **before** disabling the peripheral clock. Disabling the clock first leaves the NVIC enabled for a peripheral whose registers are unpowered — any pending interrupt would fault.
-2. `DisableClock()` — clear SYSCTL `RCGCxxx` bit
+1. Release the EMIL handler **first** (`handler.reset()` / `Unregister()`), which disables the IRQ in the NVIC and removes it from the `InterruptTable`. Disabling the clock first would leave the IRQ enabled for a peripheral whose registers are unpowered — any pending interrupt would fault.
+2. Disable the peripheral, then `DisableClock()` — clear SYSCTL `RCGCxxx` bit
 3. `~PeripheralPin` objects auto-restore GPIO configuration
-4. `~ImmediateInterruptHandler` auto-unregisters from InterruptTable
 
 ### Clock Gating
 
@@ -86,23 +84,19 @@ Always poll the peripheral-ready bit after enabling the clock gate. Use the corr
 ### Interrupt Handling
 
 **Architecture:**
-1. A top-level `extern "C"` handler is defined per IRQ (e.g., `Can0_Handler`, `Adc0Sequence0_Handler`)
-2. The handler calls `hal::InterruptTable::Instance().Invoke(IRQn)` to dispatch
-3. `InterruptTable` routes to the registered `InterruptHandler` or `ImmediateInterruptHandler`
-4. Peripheral driver inherits `ImmediateInterruptHandler` privately and processes in ISR context
+1. Every vector not bound to a named handler in the startup files points to `Default_Handler`, which calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`)
+2. `Default_Handler_Forwarded()` calls `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`; the few named `extern "C"` handlers (e.g., `Can0_Handler`, `Adc0Sequence0_Handler`) call `hal::cortex::InterruptTable::Instance().Invoke(IRQn)` directly
+3. `InterruptTable` routes to the registered `hal::cortex::InterruptHandler` (`ImmediateInterruptHandler` runs the callback in ISR context, `DispatchedInterruptHandler` defers it to the event dispatcher)
+4. Peripheral drivers hold a `std::optional<hal::cortex::ImmediateInterruptHandler>` (or `DispatchedInterruptHandler`) member, or derive from `hal::cortex::InterruptHandler` and call `Register()`
 
 **Adding a new interrupt handler:**
-1. Define `extern "C" void NewPeripheral_Handler()` in the `.cpp` file inside an anonymous namespace
-2. Add a weak alias declaration in **both** startup files (`startup_TM4C123.c` and `startup_TM4C129.c`):
-   ```c
-   void NewPeripheral_Handler() __attribute__((weak, alias("Default_Handler")));
-   ```
-3. Replace the corresponding `Default_Handler` entry in the vector table with `NewPeripheral_Handler`
-4. If the weak alias or vector table entry is missing, the handler will **never execute** on hardware — interrupts silently go to `Default_Handler` (infinite loop)
+1. No vector-table entry or weak alias is required — `Default_Handler` already forwards every IRQ to the `InterruptTable`
+2. Register an EMIL handler for the `IRQn` from the CMSIS device header (see lifecycle above)
+3. The table built in `HardwareInitialization()` is `hal::cortex::InterruptTable::WithStorage<155>` (indexed by IRQn + 16); an IRQ outside it, or an IRQ that fires with no registered handler, hits `really_assert`
 
 **NVIC management:**
-- Always call `NVIC_ClearPendingIRQ(irq)` before `NVIC_EnableIRQ(irq)` to prevent stale interrupts from firing immediately upon enable
-- Set priority via `NVIC_SetPriority(irq, priority)` before enabling
+- Always call `NVIC_ClearPendingIRQ(irq)` before registering the handler to prevent stale interrupts from firing immediately upon enable
+- Pass the priority to the handler constructor / `Register(irq, priority)` — registration sets it before enabling the IRQ
 
 ### GPIO and Pin Configuration
 
@@ -126,7 +120,7 @@ The `+1` is required by `QueueForOneReaderOneIrqWriter` which uses one slot as a
 
 - **Bit timing**: When computing prescaler and time quanta, verify **exact division** (`bitClocks % prescaler == 0`) — inexact division silently produces the wrong baud rate
 - **Manual `BitTiming`**: Validate all fields with `really_assert` — zero values in `phaseSegment1`, `phaseSegment2`, `synchronizationJumpWidth`, or `baudratePrescaler` cause division-by-zero or silent malfunction
-- **Status register (`CAN_STS`)**: After reading, write back with `TXOK`, `RXOK`, and `LEC` bits cleared to acknowledge them. Failure to clear causes repeated spurious interrupts
+- **Status register (`CAN_STS`)**: After reading, write back with `TXOK` and `RXOK` cleared to 0 and `LEC` set to 7 (the "no change" value, so the next error is detected). Failure to acknowledge them causes repeated spurious interrupts
 - **Message objects**: TM4C CAN uses message objects 1–32. Assign fixed objects per direction (e.g., TX=1, RX=2) to avoid conflicts
 - **RX data path**: Read arbitration/data registers in ISR into a trivial POD struct, enqueue via `QueueForOneReaderOneIrqWriter`, reconstruct high-level types (`Id`, `Message`) in the main-thread callback
 
@@ -140,8 +134,8 @@ The `+1` is required by `QueueForOneReaderOneIrqWriter` which uses one slot as a
 ## Namespace Conventions
 
 - `hal::tiva` — All TM4C-specific drivers and types
-- `hal` — Cross-platform abstractions (InterruptHandler, InterruptTable, SystemTick, interfaces)
-- `hal::cortex` — Cortex-M core services (EventDispatcher, Reset)
+- `hal` — Cross-platform EMIL interfaces (e.g., `SerialCommunication`, `SpiMaster`, `TimeKeeper`)
+- `hal::cortex` — Cortex-M core services from EMIL (InterruptTable, InterruptHandler, SystemTick, EventDispatcher, Reset)
 - `instantiations` — Board support packages and ready-to-use application stacks
 
 ## Build System
@@ -163,6 +157,8 @@ $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:ClockTm4c123.cpp>
 $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:ClockTm4c129.cpp>
 ```
 
+Family-specific constants, types and small register-access helpers live in `hal_tiva/tiva/family/<family>/<Driver>Family.hpp` (BSP: `hal_tiva/instantiations/family/<family>/LaunchPadFamily.hpp`) — one file per family with the same API, included as `#include "<Driver>Family.hpp"`. CMake puts only `family/<family>` (`tm4c123` or `tm4c129`) on the include path, so drivers contain no family `#ifdef`s.
+
 Compile definitions: `TM4C123` or `TM4C129`, plus device variant (e.g., `TM4C123GH6PM`).
 
 ### Build Commands
@@ -171,7 +167,7 @@ hal-ti cannot be built standalone; it must be part of a larger project (e.g., e-
 ```bash
 cmake --preset host
 cmake --build --preset host-Debug
-ctest --preset host-Debug
+ctest --preset host
 ```
 
 ## Testing
@@ -184,20 +180,16 @@ ctest --preset host-Debug
 
 ## Startup Vector Tables
 
-Both `startup_TM4C123.c` and `startup_TM4C129.c` define the Cortex-M vector table using the weak alias pattern:
+Both `startup_TM4C123.c` and `startup_TM4C129.c` define the Cortex-M vector table. Most slots point to `Default_Handler`; a few point to weak aliases of `Default_Handler` (e.g., `Can0_Handler`, `Uart0_Handler`) that a driver may override with a strong `extern "C"` symbol.
 
-1. Forward-declare each handler with `__attribute__((weak, alias("Default_Handler")))`
-2. Place the handler name in the vector table array
-3. When a driver defines the strong symbol (`extern "C" void Handler_Name()`), the linker overrides the weak default
-
-**Critical**: If a handler is declared in the driver `.cpp` but not added to the startup vector table, it will **never** be called. The NVIC dispatches to whatever address is in the vector table — if that's `Default_Handler`, the interrupt enters an infinite loop. Always update **both** family startup files when adding a new peripheral interrupt.
+`Default_Handler` is not an infinite loop: it calls the weak `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`), which invokes `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`. A new driver needs no startup-file change — registering an EMIL interrupt handler is sufficient. If you add a named handler, keep **both** family startup files in sync.
 
 ## Common Pitfalls
 
-1. **Missing vector table entry** — Handler defined in code but never called because startup file still has `Default_Handler`
-2. **Clock disabled before NVIC** — Destructor must disable NVIC interrupt before clearing the clock gate, or a pending interrupt faults on unpowered registers
+1. **Unregistered or out-of-range IRQ** — An IRQ that fires with no registered EMIL handler, or whose IRQn + 16 is not below the `InterruptTable` size (155 in `Bringup.cpp`), hits `really_assert`
+2. **Clock disabled before the handler is released** — Destructor must release the EMIL handler (which disables the IRQ) before clearing the clock gate, or a pending interrupt faults on unpowered registers
 3. **Non-trivial types in ISR queue** — `QueueForOneReaderOneIrqWriter` requires `std::is_trivial<T>`; use POD structs with fixed-size arrays, not `BoundedVector` members
 4. **Inexact bit timing division** — CAN prescaler must divide bitClocks exactly; remainder produces wrong baud rate silently
-5. **Stale pending interrupts** — Always `NVIC_ClearPendingIRQ` before `NVIC_EnableIRQ`
+5. **Stale pending interrupts** — Always `NVIC_ClearPendingIRQ` before registering the EMIL handler (registration enables the IRQ)
 6. **infra::Function capture size** — Default capacity is `2 * sizeof(void*)` (8 bytes on ARM). Capturing `[this]` (1 pointer) fits; capturing more may exceed capacity silently
 7. **Missing peripheral-ready poll after clock enable** — After `SYSCTL->RCGCxxx |= bit`, poll `SYSCTL->PRxxx` until the ready bit for that peripheral index is set before accessing any peripheral registers; the hardware does not guarantee immediate availability

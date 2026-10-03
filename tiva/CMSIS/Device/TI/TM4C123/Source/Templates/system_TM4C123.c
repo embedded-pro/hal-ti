@@ -399,7 +399,7 @@
 /*----------------------------------------------------------------------------
   Clock Variable definitions
  *----------------------------------------------------------------------------*/
-uint32_t SystemCoreClock = __CORE_CLK; /*!< System Clock Frequency (Core Clock)*/
+uint32_t SystemCoreClock = 16000000UL; /*!< Out of reset the core runs from PIOSC; SystemInit is not called by the startup code */
 
 /*----------------------------------------------------------------------------
   Clock functions

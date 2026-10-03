@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Use when a detailed implementation plan is needed before writing code in hal-ti. Produces structured, actionable plans covering register sequences, ISR data paths, vector table hygiene (both startup files), peripheral lifecycle order, WithStorage patterns, and documentation requirements. Does NOT write or edit any code.
+description: Use when a detailed implementation plan is needed before writing code in hal-ti. Produces structured, actionable plans covering register sequences, ISR data paths, EMIL interrupt-handler registration, peripheral lifecycle order, WithStorage patterns, and documentation requirements. Does NOT write or edit any code.
 model: claude-opus-4-8
 tools: [Read, Bash, WebSearch, WebFetch]
 ---
@@ -24,12 +24,12 @@ Before planning, thoroughly investigate:
   1. Enable clock gate (`SYSCTL->RCGCxxx |= bit`), then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set — no `__asm("nop")` pattern
   2. `PeripheralPin` members handle GPIO alternate function via RAII in the C++ initializer list — constructed before `EnableClock()` runs in the constructor body
   3. Set peripheral control registers (baud rate, mode, FIFO, control bits)
-  4. `NVIC_ClearPendingIRQ` then `NVIC_EnableIRQ`
+  4. `NVIC_ClearPendingIRQ`, then register the EMIL interrupt handler last (`std::optional<hal::cortex::ImmediateInterruptHandler>`/`DispatchedInterruptHandler` member, or `InterruptHandler::Register`) — registration enables the IRQ; never `NVIC_EnableIRQ` directly
 - **Existing patterns**: Search `hal_tiva/tiva/` for a similar peripheral driver — follow it exactly
 - **MCU family split**: Determine if the driver is identical for TM4C123 and TM4C129, or needs CMake generator expressions for conditional compilation
-- **Synchronous vs asynchronous**: Event-driven driver (inherits `ImmediateInterruptHandler`) or blocking driver (`synchronous_tiva/`)?
+- **Synchronous vs asynchronous**: Event-driven driver (registers an EMIL `ImmediateInterruptHandler`) or blocking driver (`synchronous_tiva/`)?
 - **ISR data path**: `QueueForOneReaderOneIrqWriter<T>` — `T` must be `std::is_trivial` (plain POD struct, no `BoundedVector`, no user-declared constructors)
-- **Vector table**: Identify the IRQ name from the TM4C startup files and check whether a handler entry already exists
+- **IRQ number**: Identify the `IRQn` from the CMSIS device header; no startup-file change is needed because `Default_Handler` forwards every IRQ to `hal::cortex::InterruptTable` (sized 155 in `hal_tiva/bringup/Bringup.cpp`, indexed by IRQn + 16)
 - **Interfaces to implement**: Find the `embedded-infra-lib` abstract interface this driver must satisfy
 
 ### 2. Plan Structure
@@ -44,16 +44,14 @@ Every plan MUST include these sections:
 - Estimated files to create/modify
 
 #### Peripheral Register Sequence
-- Exact initialization order (clock gate → poll PRxxx → GPIO mux → peripheral config → NVIC)
+- Exact initialization order (GPIO mux via `PeripheralPin` members → clock gate → poll PRxxx → peripheral config → clear pending IRQ → register EMIL handler)
 - Register names from the TM4C datasheet (`UART0->CTL`, `SYSCTL->RCGCUART`, etc.)
 - Bit-timing calculation where applicable
-- Destructor teardown order: NVIC disable → clock gate disable → PeripheralPin teardown
+- Destructor teardown order: release EMIL handler (disables the IRQ) → peripheral disable → clock gate disable → PeripheralPin teardown
 
 #### Interrupt Handling Plan
-- ISR handler name (must match the vector table symbol exactly)
-- `extern "C"` ISR in anonymous namespace in the `.cpp` file
-- Weak alias declaration needed in `startup_TM4C123.c` AND `startup_TM4C129.c`
-- Vector table slot to replace in both files
+- `IRQn` and priority to register
+- Handler kind: `hal::cortex::ImmediateInterruptHandler` (ISR context) or `hal::cortex::DispatchedInterruptHandler` (deferred to main), held as a `std::optional` member emplaced last in the constructor and reset first in the destructor
 - Data flow from ISR to main thread: POD struct definition for `QueueForOneReaderOneIrqWriter<T>`
 - Flags that must be cleared in ISR to prevent re-entry
 
@@ -65,7 +63,7 @@ For each file to create or modify:
 - **Rationale**: Why this approach follows hal-ti conventions
 
 #### Interface Design
-- Class declaration inheriting from the correct base (`ImmediateInterruptHandler`, `hal::Uart`, etc.)
+- Class declaration inheriting from the correct interface (`hal::SerialCommunication`, `hal::SpiMaster`, etc.), with a `std::optional<hal::cortex::ImmediateInterruptHandler>` member
 - Constructor parameters: peripheral index, pin config, callbacks
 - `WithStorage` alias pattern if the driver owns a receive buffer (size `N + 1` for the sentinel slot)
 - `PeripheralPin` member declarations for RAII GPIO management
@@ -85,10 +83,10 @@ Before finalizing, verify the plan against these constraints:
 
 - **No heap allocation**: Every buffer is `std::array`, `infra::BoundedVector`, or a member variable
 - **ISR-safe queue**: Type passed to `QueueForOneReaderOneIrqWriter<T>` satisfies `std::is_trivial<T>`
-- **Both startup files updated**: Any new ISR handler has weak aliases and vector table entries in `startup_TM4C123.c` AND `startup_TM4C129.c`
-- **Destructor order correct**: NVIC disabled before clock gate disabled
+- **Interrupt registration**: Every new IRQ has an EMIL handler registered for it; no startup-file change unless a named handler is added (then both files)
+- **Destructor order correct**: EMIL handler released before clock gate disabled
 - **PRxxx readiness poll**: `EnableClock()` polls `SYSCTL->PRxxx` until ready after every `SYSCTL->RCGCxxx |=`
-- **`NVIC_ClearPendingIRQ` before `NVIC_EnableIRQ`**: Prevents stale-interrupt spurious fire
+- **`NVIC_ClearPendingIRQ` before handler registration**: Prevents stale-interrupt spurious fire
 
 ---
 
@@ -107,19 +105,18 @@ Before finalizing, verify the plan against these constraints:
 - [ ] `infra::BoundedDeque` NOT used across ISR/main boundary
 - [ ] Shared state flags accessed from both ISR and main are `volatile` (or use atomics)
 - [ ] ISR handler clears all interrupt flags before returning
-- [ ] `NVIC_ClearPendingIRQ` called before `NVIC_EnableIRQ`
+- [ ] `NVIC_ClearPendingIRQ` called before the EMIL handler is registered
 
-### Vector Table — BOTH STARTUP FILES
-- [ ] `extern "C" void Handler_Name()` defined in driver `.cpp`
-- [ ] Weak alias in `tiva/CMSIS/.../startup_TM4C123.c`
-- [ ] Weak alias in `tiva/CMSIS/.../startup_TM4C129.c`
-- [ ] Handler placed in correct vector table slot in both files
-- [ ] `extern "C"` handler placed in anonymous namespace in driver `.cpp`
+### Interrupt Registration — EMIL InterruptTable
+- [ ] EMIL `ImmediateInterruptHandler`/`DispatchedInterruptHandler` registered for the `IRQn` (or `InterruptHandler::Register`) — no direct `NVIC_EnableIRQ`
+- [ ] IRQn + 16 fits the `InterruptTable::WithStorage<155>` in `Bringup.cpp`
+- [ ] No startup-file change unless a named `extern "C"` handler is added — then both `startup_TM4C123.c` and `startup_TM4C129.c`
 
 ### Peripheral Lifecycle — DESTRUCTOR ORDER
 - [ ] `PeripheralPin` members are class member variables initialized in the C++ initializer list
 - [ ] `EnableClock()` is the first call in the constructor body; it polls `SYSCTL->PRxxx` — no fixed NOP delay
-- [ ] `NVIC_DisableIRQ` called **before** `DisableClock()`
+- [ ] EMIL handler registered **last** in the constructor body
+- [ ] EMIL handler released (`reset()` / `Unregister()`) **first** in the destructor, before `DisableClock()`
 - [ ] `DisableClock()` called **before** `PeripheralPin` destructors run (handled automatically by member destruction order)
 
 ### Design — SOLID + DRY

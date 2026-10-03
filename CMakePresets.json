@@ -59,6 +59,7 @@
         "CMAKE_TOOLCHAIN_FILE": ""
       },
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "EMIL_GENERATE_PACKAGE_CONFIG": false,
         "TARGET_MCU_VENDOR": "ti"
       }

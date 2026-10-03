@@ -231,6 +231,7 @@ namespace hal::tiva
             uint32_t enable = 0;
             uint32_t generatorId = 0;
             std::optional<PinChannel::Trigger> trigger;
+            std::optional<hal::DutyCycle> duty;
         };
 
         struct GeneratorInterruptSlot
@@ -251,12 +252,14 @@ namespace hal::tiva
         };
 
         uint8_t pwmIndex;
-        const Config& config;
+        Config config;
         infra::BoundedVector<Generator>::WithMaxSize<4> generators;
         infra::Function<void(NormalEvent)> onNormalInterrupt;
         infra::Function<void(FaultEvent)> onFault;
         std::optional<GeneratorInterruptSlot> generatorHandlers[4];
         std::optional<FaultInterruptSlot> faultHandler;
+        uint32_t configuredFaultInterrupts = 0;
+        uint32_t faultOutputs = 0;
 
         void Initialize();
         void ConfigureNormalInterrupts(const Config::InterruptConfig& interruptConfig);
@@ -272,7 +275,12 @@ namespace hal::tiva
         uint32_t GetLoad(const Generator& generator) const;
         void EnableClock() const;
         void DisableClock() const;
+        void ConfigureInvert() const;
         void HandleGeneratorIrq(GeneratorIndex gen);
         void HandleFaultIrq();
+        uint32_t RunningGenerators() const;
+        void SynchronizeCounters(uint32_t runningBefore) const;
+        void DisableGenerators();
+        void RearmFault() const;
     };
 }

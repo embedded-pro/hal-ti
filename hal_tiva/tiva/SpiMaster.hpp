@@ -34,6 +34,7 @@ namespace hal::tiva
     private:
         void HandleInterrupt();
         void StartBatch();
+        void Finish();
         void EnableClock();
         void DisableClock();
 
@@ -56,6 +57,7 @@ namespace hal::tiva
         uint32_t dummyToSend = 0;
         uint32_t dummyToReceive = 0;
         uint32_t batchSize = 0;
+        uint32_t batchReceived = 0;
         bool continuedSession = false;
     };
 }

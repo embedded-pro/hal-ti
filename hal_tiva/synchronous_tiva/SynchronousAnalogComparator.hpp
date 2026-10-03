@@ -18,7 +18,6 @@ namespace hal::tiva
         using InterruptSense = AnalogComparator::InterruptSense;
         using InternalReference = AnalogComparator::InternalReference;
         using ReferenceRange = AnalogComparator::ReferenceRange;
-        using PwmFaultRouting = AnalogComparator::PwmFaultRouting;
 
         SynchronousAnalogComparator(uint8_t index, GpioPin& vinPositive, GpioPin& vinNegative, GpioPin& outputPin, const Config& config);
         ~SynchronousAnalogComparator();

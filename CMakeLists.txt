@@ -9,6 +9,7 @@ option(HAL_TI_BUILD_TESTS "Enable building the tests" Off)
 option(HAL_TI_INCLUDE_BRINGUP "Include default bringup code; turn off when providing custom initialization" ON)
 option(HAL_TI_BUILD_EXAMPLES "Enable build of the examples" OFF)
 option(HAL_TI_BUILD_EXAMPLES_FREERTOS "Enable build of the FreeRTOS example" OFF)
+option(HAL_TI_INCLUDE_LWIP "Build the lwIP Ethernet instantiation (TM4C129 only)" OFF)
 
 if (HAL_TI_BUILD_TESTS)
     # CTest cannot be included before the first project() statement, but amp-embedded-infa-lib
@@ -28,7 +29,7 @@ if (HAL_TI_STANDALONE)
     FetchContent_Declare(
         emil
         GIT_REPOSITORY https://github.com/embedded-pro/embedded-infra-lib.git
-        GIT_TAG        501b20e42efc14d6338239ddbf48d6a3ced0d34e # Unreleased
+        GIT_TAG        00596464de0aa4d4ceb0726f2e117e5a85dabf7f # Unreleased
     )
 
     add_definitions(-DEMIL_ENABLE_TRACING=1)
@@ -36,7 +37,7 @@ if (HAL_TI_STANDALONE)
     set(EMIL_INCLUDE_MBEDTLS Off CACHE BOOL "" FORCE)
     set(EMIL_ENABLE_DOCKER_TOOLS Off CACHE BOOL "" FORCE)
     set(EMIL_INCLUDE_ECHO Off CACHE BOOL "" FORCE)
-    set(EMIL_INCLUDE_LWIP Off CACHE BOOL "" FORCE)
+    set(EMIL_INCLUDE_LWIP ${HAL_TI_INCLUDE_LWIP} CACHE BOOL "" FORCE)
 
     FetchContent_MakeAvailable(emil)
 endif()

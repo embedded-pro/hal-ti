@@ -272,6 +272,7 @@ namespace hal::tiva
 
     DmaChannel::DmaChannel(Dma& dma, const Channel& channel, const Configuration& configuration)
         : channel(channel)
+        , useBurst(configuration.attributes.useBurst)
     {
         really_assert(dma.IsEnabled());
 
@@ -293,6 +294,7 @@ namespace hal::tiva
     {
         really_assert(transfer != Transfer::pingPong);
         ChannelSetTransfer(channel.number, ChannelType::primary, transfer, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
+        RestoreBurst();
         ChannelEnable(channel.number);
     }
 
@@ -300,6 +302,7 @@ namespace hal::tiva
     {
         ChannelSetTransfer(channel.number, ChannelType::primary, Transfer::pingPong, primaryBuffer.sourceAddress, primaryBuffer.destinationAddress, primaryBuffer.size);
         ChannelSetTransfer(channel.number, ChannelType::alternate, Transfer::pingPong, alternateBuffer.sourceAddress, alternateBuffer.destinationAddress, alternateBuffer.size);
+        RestoreBurst();
         ChannelEnable(channel.number);
     }
 
@@ -307,6 +310,7 @@ namespace hal::tiva
     {
         auto channelType = alternate ? ChannelType::alternate : ChannelType::primary;
         ChannelSetTransfer(channel.number, channelType, Transfer::pingPong, buffer.sourceAddress, buffer.destinationAddress, buffer.size);
+        RestoreBurst();
     }
 
     bool DmaChannel::IsPrimaryTransferCompleted() const
@@ -317,6 +321,11 @@ namespace hal::tiva
     bool DmaChannel::IsAlternateTransferCompleted() const
     {
         return ChannelGetMode(channel.number, ChannelType::alternate) == Transfer::stop;
+    }
+
+    bool DmaChannel::IsAlternateActive() const
+    {
+        return (UDMA->ALTSET & (1u << channel.number)) != 0;
     }
 
     void DmaChannel::StopTransfer() const
@@ -334,17 +343,17 @@ namespace hal::tiva
         return ((ctrl & UDMA_CHCTL_XFERSIZE_M) >> 4) + 1;
     }
 
-#if defined(TM4C123)
-    bool DmaChannel::IsCompletionPending() const
+    // The controller clears USEBURST at the end of a cycle that ends with a single request
+    void DmaChannel::RestoreBurst() const
     {
-        return (UDMA->CHIS & (1u << channel.number)) != 0;
+        if (useBurst)
+            UDMA->USEBURSTSET = 1u << channel.number;
     }
 
-    void DmaChannel::ClearCompletion() const
+    uint8_t DmaChannel::ChannelNumber() const
     {
-        UDMA->CHIS = 1u << channel.number;
+        return channel.number;
     }
-#endif
 
     void DmaChannel::ForceRequest() const
     {
