@@ -1,0 +1,561 @@
+---
+# EK-TM4C123GXL LaunchPad (TM4C123GH6PM).
+# Pins may be written as P<port><index> or as an alias from `pins`.
+board: ek_tm4c123gxl
+firmware_name: EK-TM4C123GXL
+family: tm4c123
+description: EK-TM4C123GXL LaunchPad
+sysclk: 80000000
+
+terminal:
+  baud: 921600
+  interface: ICDI virtual COM port (UART0 PA1/PA0), /dev/ttyACM0 or COMx
+  uart: 0
+  pins: [terminalrx, terminaltx]
+  max_command_length: 255
+  command_timeout: 2.0
+  boot_timeout: 5.0
+
+# PROTOCOL.md board profile, compared with `board.pins` in both directions.
+pins:
+  terminaltx: PA1
+  terminalrx: PA0
+  ain0: PE3
+  ain1: PE2
+  ain2: PE1
+  ain3: PE0
+  m0pwm0: PB6
+  m0pwm1: PB7
+  m0pwm2: PB4
+  m0pwm3: PB5
+  m0pwm4: PE4
+  m0pwm5: PE5
+  qei0a: PD6
+  qei0b: PD7
+  qei0idx: PD3
+  can0rx: PF0
+  can0tx: PF3
+  led0: PF1
+  gpio0: PA2
+  gpio1: PA4
+  gpio2: PA5
+  gpio3: PA6
+
+ad3:
+  # V+/V- stay off (null): the LaunchPad is powered from USB.
+  vplus: null
+  vminus: null
+  # Wavegen levels are refused outside this range (TM4C pins are 3.3 V).
+  analog_limits: [0.0, 3.3]
+
+# Two fixed bundles: wire one, run its tests, then switch. Every AD3
+# channel is wired once per bundle and each pin serves several tests (the
+# notes list the functions and the J1-J4 header pin). bundle2 keeps the DIOs
+# of bundle1 and moves W1/W2/scope to the comparator inputs plus a jumper.
+# dio: AD3 DIO index -> pin. wavegen/scope: channel 1 or 2 -> pin;
+# `jumpered` pins are tied to `pin` with a wire.
+# Always connect AD3 GND to LaunchPad GND.
+wiring_sets:
+  bundle1:
+    description: >-
+      PWM, SPI, QEI, UART (with flow control), PWM fault, comparator 1
+      output, GPIO, locked pin, watchdog and ADC; W1/W2 on the ADC inputs
+    options:
+      loopback: >-
+        jumper PB7 (SSI2 MOSI) to PB6 (SSI2 MISO); DIO0 then only listens
+    jumpers:
+      - >-
+        stock boards short PB6-PD0 and PB7-PD1 through R9/R10; remove
+        them or leave PD0/PD1 unconfigured
+    dio:
+      0:
+        pin: m0pwm0
+        note: M0PWM0, SSI2 MISO, GPIO (J2.7)
+      1:
+        pin: m0pwm1
+        note: M0PWM1, SSI2 MOSI, GPIO (J2.6)
+      2:
+        pin: m0pwm2
+        note: M0PWM2, SSI2 CLK, GPIO (J1.7)
+      3:
+        pin: m0pwm3
+        note: M0PWM3, SSI2 FSS, GPIO (J1.2)
+      4:
+        pin: m0pwm4
+        note: M0PWM4, GPIO (J1.5)
+      5:
+        pin: m0pwm5
+        note: M0PWM5, GPIO (J1.6)
+      6:
+        pin: PC4
+        note: M0PWM6, QEI1 index, UART1 RTS, GPIO; C1- in bundle2 (J4.4)
+      7:
+        pin: PC5
+        note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO (J4.5)
+      8:
+        pin: PC6
+        note: QEI1 phase B, GPIO; C0+ (W1) in bundle2 (J4.6)
+      9:
+        pin: qei0a
+        note: QEI0 phase A, M0FAULT0, GPIO (J4.8)
+      10:
+        pin: qei0b
+        note: QEI0 phase B, locked pin (NMI) (J4.9)
+      11:
+        pin: qei0idx
+        note: QEI0 index, GPIO (J3.6)
+      12:
+        pin: PB1
+        note: UART1 TX (J1.4)
+      13:
+        pin: PB0
+        note: UART1 RX, GPIO (J1.3)
+      14:
+        pin: gpio0
+        note: GPIO, watchdog early-warning toggle (J2.10)
+      15:
+        pin: led0
+        note: C1o output, red LED, GPIO (J3.10)
+    wavegen:
+      1:
+        pin: ain0
+        note: J3.9
+      2:
+        pin: ain3
+        note: J2.3
+    scope:
+      1: ain0
+      2: ain3
+  bundle2:
+    description: >-
+      bundle1's DIOs with W1/W2 on the analog comparator inputs and PC7
+      jumpered to PC4, so C0- and C1- both follow W2; DIO6 (PC4) and DIO8
+      (PC6) stay plugged but unused, because PC4/PC6 are comparator inputs
+    options:
+      loopback: >-
+        jumper PB7 (SSI2 MOSI) to PB6 (SSI2 MISO); DIO0 then only listens
+    jumpers:
+      - >-
+        stock boards short PB6-PD0 and PB7-PD1 through R9/R10; remove
+        them or leave PD0/PD1 unconfigured
+    dio:
+      0:
+        pin: m0pwm0
+        note: M0PWM0, SSI2 MISO, GPIO (J2.7)
+      1:
+        pin: m0pwm1
+        note: M0PWM1, SSI2 MOSI, GPIO (J2.6)
+      2:
+        pin: m0pwm2
+        note: M0PWM2, SSI2 CLK, GPIO (J1.7)
+      3:
+        pin: m0pwm3
+        note: M0PWM3, SSI2 FSS, GPIO (J1.2)
+      4:
+        pin: m0pwm4
+        note: M0PWM4, GPIO (J1.5)
+      5:
+        pin: m0pwm5
+        note: M0PWM5, GPIO (J1.6)
+      7:
+        pin: PC5
+        note: M0PWM7, QEI1 phase A, UART1 CTS, GPIO (J4.5)
+      9:
+        pin: qei0a
+        note: QEI0 phase A, M0FAULT0, GPIO (J4.8)
+      10:
+        pin: qei0b
+        note: QEI0 phase B, locked pin (NMI) (J4.9)
+      11:
+        pin: qei0idx
+        note: QEI0 index, GPIO (J3.6)
+      12:
+        pin: PB1
+        note: UART1 TX (J1.4)
+      13:
+        pin: PB0
+        note: UART1 RX, GPIO (J1.3)
+      14:
+        pin: gpio0
+        note: GPIO, watchdog early-warning toggle (J2.10)
+      15:
+        pin: led0
+        note: C1o output, red LED, GPIO (J3.10)
+    wavegen:
+      1:
+        pin: PC6
+        note: C0+ input (J4.6)
+      2:
+        pin: PC7
+        jumpered: [PC4]
+        note: C0- input (J4.7), jumper to C1- PC4 (J4.4)
+    scope:
+      1: PC6
+      2: PC7
+  can:
+    description: CAN0 through a 3.3 V transceiver to a CANable (no AD3 channels)
+    jumpers:
+      - 3.3 V CAN transceiver (SN65HVD230 or similar), VCC 3.3 V
+      - transceiver TXD to PF3 (can0tx, J4.2), RXD to PF0 (can0rx, J2.4)
+      - transceiver CANH/CANL/GND to the CANable CANH/CANL/GND
+      - 120 Ohm across CANH/CANL at each end (CANable jumper on)
+
+# Test parameters. A mapping used by `@pytest.mark.matrix` is one dimension
+# per key: `--depth full` runs the cartesian product, `--depth quick` a
+# pairwise subset. Lists used by `@pytest.mark.board_params` are one
+# dimension each.
+tests:
+  system:
+    boot_timeout: 5.0
+    reserved_uarts: [0]
+    # Blinking debug LED (blue), reserved by the firmware.
+    debug_led: PF2
+    # Instances the MCU lacks: ERR range.
+    missing_instances: ["comp.open 2 neg=PC7"]
+  gpio:
+    # Harness pins on ports A-E; PF0 (locked) is the CAN receive line.
+    loop_pins: [gpio0, PB0, PC6, qei0idx, m0pwm4]
+    locked_pins: [PD7]
+    output_pins: [led0]
+    drives: [2, 4, 8]
+    pulls: [up, down]
+    irq:
+      edge: [rising, falling, both]
+      handler: [immediate, dispatched]
+      pulses: [1, 10, 100]
+      frequency: [100, 1000, 10000]
+    pulse:
+      count: 10
+      periods_ms: [1, 5, 20]
+      tolerance: 0.05
+      jitter_ms: 0.5
+  pwm:
+    module: 0
+    # Generators in the order the tests use them, with their wired outputs.
+    generators:
+      - gen: 0
+        a: m0pwm0
+        b: m0pwm1
+      - gen: 1
+        a: m0pwm2
+        b: m0pwm3
+      - gen: 2
+        a: m0pwm4
+        b: m0pwm5
+      - gen: 3
+        a: PC4
+        b: PC5
+    waveform:
+      mode: [edge, center]
+      div: [1, 2, 4, 8, 16, 32, 64]
+      freq: [100, 1000, 10000, 20000, 50000, 200000]
+      duty: [0, 12.5, 50, 90, 100]
+      sync: [0, 1]
+    outputs:
+      generators: [1, 2, 3, 4]
+      output: [ab, a, b]
+      sync: [0, 1]
+    dead_time:
+      mode: [edge, center]
+      dead: [250, [500, 1000], [1000, 250], 2000]
+      inversion: [[0, 0], [1, 0], [0, 1], [1, 1]]
+      sync: [0, 1]
+    dead_time_frequency: 20000
+    update:
+      update: [local, global]
+      mode: [edge, center]
+      generators: [2, 3, 4]
+      sync: [0, 1]
+    irq:
+      source: [zero, load, cmpau, cmpad, cmpbu, cmpbd]
+      mode: [edge, center]
+      freq: [1000, 20000]
+    irq_window_ms: 200
+    irq_tolerance: 0.05
+    adc_trigger:
+      source: [zero, load, cmpau, cmpad, cmpbu, cmpbd]
+      gen: [0, 1, 2, 3]
+      mode: [edge, center]
+    # Sequencer that checks the ADC trigger of a generator (input unwired).
+    adc_trigger_input:
+      adc: 0
+      seq: 3
+      pin: ain1
+      freq: 100
+      runs: 10
+    fault:
+      pin: qei0a
+      inputs: 1
+      options:
+        latch: [0, 1]
+        minperiod: [0, 1000]
+        gens: [first, all]
+      dcmp:
+        adc: 0
+        seq: 1
+        pin: ain0
+        comparator: 0
+        low: 0
+        high: 2000
+        safe_v: 0.5
+        trip_v: 2.5
+      timeout_s: 1.0
+    frequency_changes: [10000, 25000]
+    capture_periods: 20
+    tolerance:
+      frequency: 0.01
+      duty: 1.0
+      dead_ticks: 2
+      alignment_s: 2.0e-7
+      static_fraction: 0.99
+  uart:
+    instances:
+      - index: 1
+        tx: PB1
+        rx: PB0
+    flow_instance:
+      index: 1
+      tx: PB1
+      rx: PB0
+      rts: PC4
+      cts: PC5
+    variants:
+      interrupt:
+        dma: 0
+        sync: 0
+      dma:
+        dma: 1
+        sync: 0
+      sync:
+        dma: 0
+        sync: 1
+    transfer:
+      baud:
+        - 600
+        - 1200
+        - 2400
+        - 4800
+        - 9600
+        - 19200
+        - 38400
+        - 57600
+        - 115200
+        - 230400
+        - 460800
+        - 921600
+      parity: [none, even, odd]
+      stop: [1, 2]
+      variant: [interrupt, dma, sync]
+    flow:
+      flow: [rts, cts, rtscts]
+      variant: [interrupt, dma, sync]
+    large:
+      baud: [115200, 921600]
+      variant: [interrupt, dma, sync]
+    payloads: ["55", "00ff", "0123456789abcdef", "48656c6c6f2c20484954"]
+    # uart.send takes at most 112 bytes, uart.recv returns at most 256.
+    large_payload: 112
+    large_payload_to_firmware: 240
+    stream_rounds: 8
+    stream_size: 64
+    bit_rate_tolerance: 0.03
+  spi:
+    instances:
+      - index: 2
+        clk: m0pwm2
+        cs: m0pwm3
+        mosi: m0pwm1
+        miso: m0pwm0
+    transfer:
+      mode: [0, 1, 2, 3]
+      baud: [100000, 1000000, 4000000, 10000000, 20000000, 40000000]
+      sync: [0, 1]
+      cs: [fss, none]
+    sessions:
+      mode: [0, 1, 2, 3]
+      sync: [0, 1]
+    session_baud: 20000
+    payloads: ["a5", "0102030405060708", "ff00aa55"]
+    miso_levels: [0, 1]
+    max_transfer: 64
+    tolerance:
+      baud: 0.05
+  adc:
+    vref: 3.3
+    bits: 12
+    tolerance_codes: 40
+    # Peak-to-peak of raw samples, which grows with the reading as on the TM4C1294 (measured on the bench: 83 codes at
+    # 0.8 V up to 165 at 3.1 V), so single conversions spread wider than twice the mean tolerance.
+    spread_codes: 180
+    samples: 16
+    # The two inputs driven by W1/W2 in the adc wiring set.
+    inputs: [ain0, ain3]
+    levels:
+      adc: [0, 1]
+      pin: [ain0, ain3]
+      level: [0.2, 0.8, 1.65, 2.5, 3.1]
+      sync: [0, 1]
+    sequencers:
+      adc: [0, 1]
+      seq: [0, 1, 2, 3]
+      sync: [0, 1]
+    timing:
+      sh: [4, 8, 16, 32, 64, 128, 256]
+      avg: ["off", 2, 4, 8, 16, 32, 64]
+      delay: ["off", 0, 7, 15]
+      sync: [0, 1]
+    # PWM generator the tests open as trigger of asynchronous sequencers.
+    trigger:
+      module: 0
+      gen: 0
+      freq: 10000
+    dcmp:
+      band: [low, mid, high]
+      mode: [always, once, hyst, hystonce]
+      comparator: [0, 7]
+    dcmp_window: [1000, 3000]
+    dcmp_levels_v:
+      low: 0.4
+      mid: 1.6
+      high: 2.9
+    priorities: [[0, 3], [3, 0]]
+    # VREFA+ voltage for ref=ext; null skips the external reference test.
+    external_reference_v: null
+  comparator:
+    instances:
+      - index: 0
+        pos: PC6
+        neg: PC7
+        # C0o (PF0) is the CAN receive line: output read through the
+        # firmware only.
+        out: null
+    # Comparators whose positive input is C0+ (src=c0), wiring set
+    # comparator_c0.
+    c0_instances:
+      - index: 1
+        c0: PC6
+        neg: PC4
+        out: PF1
+    output:
+      pos_level: [0.6, 1.0, 1.4, 2.0]
+      invert: [0, 1]
+      sync: [0, 1]
+    neg_level_v: 1.2
+    triggers: ["off", rising, falling, both, high, low]
+    ladder:
+      ref_range: [low, high]
+      step: [0, 4, 8, 12, 15]
+    # VIREF per protocol range name; low/high map to hal-ti ReferenceRange,
+    # whose value is written to ACREFCTL.RNG (RNG=0 is the datasheet
+    # "high range" 0.731..2.184 V, RNG=1 the "low range" 0..2.063 V).
+    # Least-squares fit of the 16 steps measured on the EK-TM4C123GXL at
+    # VDDA 3.30 V (residuals <= 6 mV low, <= 16 mV high with its offset rounded to 0);
+    # the ladder is ratiometric to VDDA, so the datasheet values come out low.
+    reference:
+      low:
+        offset_v: 0.773
+        step_v: 0.1133
+      high:
+        offset_v: 0.0
+        step_v: 0.1481
+    ref_tolerance_v: 0.06
+    ref_search_step_v: 0.01
+    irq:
+      edge: [rising, falling, both]
+      cycles: [1, 10, 50]
+      invert: [0, 1]
+    irq_frequency_hz: 1000
+    irq_low_v: 0.8
+    irq_high_v: 1.8
+  qei:
+    instances:
+      - index: 0
+        a: qei0a
+        b: qei0b
+        idx: qei0idx
+      - index: 1
+        a: PC5
+        b: PC6
+        idx: PC4
+    resolution: 4096
+    position:
+      freq: [100, 1000, 10000, 50000]
+      cycles: [1, 10, 250]
+      direction: [fwd, rev]
+      cap: [ab, a]
+      inva: [0, 1]
+      invb: [0, 1]
+    counts_per_cycle:
+      ab: 4
+      a: 2
+    index:
+      direction: [fwd, rev]
+      invi: [0, 1]
+      every: [4, 16]
+    velocity:
+      freq: [1000, 10000]
+      vel: [1000, 10000]
+    speed_tolerance: 0.03
+    rollover:
+      res: [100, 4096]
+      offset: [0, 50]
+    # Clock/direction mode counts both edges of PhA, whatever the capture mode (measured on the bench).
+    clkdir_counts_per_pulse: 2
+    index_tolerance: 4
+  can:
+    index: 0
+    rx: can0rx
+    tx: can0tx
+    frames:
+      bitrate: [125000, 250000, 500000, 1000000]
+      ext: [0, 1]
+      dlc: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    ids:
+      std: [0x000, 0x123, 0x7ff]
+      ext: [0x00000000, 0x1abcdef0, 0x1fffffff]
+    # tseg1, tseg2, sjw, brp; the bit rate is
+    # sysclk / (brp * (1 + tseg1 + tseg2)).
+    timings:
+      - [12, 3, 1, 10]
+      - [12, 3, 4, 5]
+      - [13, 2, 2, 20]
+      - [15, 4, 1, 16]
+    filters:
+      - name: std-match
+        filter: [0x120, 0x7f0, 0, 1]
+        accepted: [[0x120, 0], [0x12f, 0]]
+        rejected: [[0x130, 0], [0x220, 0], [0x4800000, 1]]
+      - name: std-any-type
+        filter: [0x120, 0x7f0, 0, 0]
+        accepted: [[0x120, 0], [0x4800000, 1], [0x480abcd, 1]]
+        rejected: [[0x130, 0], [0x4c00000, 1]]
+      - name: ext-match
+        filter: [0x1abc0000, 0x1fff0000, 1, 1]
+        accepted: [[0x1abc0000, 1], [0x1abcffff, 1]]
+        rejected: [[0x1abd0000, 1], [0x6af, 0]]
+    recover: [0, 1]
+    # Bus tests: the controller at `bitrate`; the CANable at
+    # `wrong_bitrate` destroys its frames with error flags.
+    bus:
+      bitrate: 500000
+      wrong_bitrate: 125000
+  eeprom:
+    size: 2048
+    max_chunk: 64
+    max_transfer: 112
+    patterns: ["aa55aa55", "00000000", "0123456789abcdef", "ffffffff"]
+    addresses: [0, 4, 3, 1024, 2040]
+  watchdog:
+    behaviour:
+      index: [0, 1]
+      timeout_ms: [1, 10, 100, 1000, 5000]
+      reset: [0, 1]
+      feed: [auto, manual]
+    period:
+      index: [0, 1]
+      timeout_ms: [1, 10, 100, 1000, 5000]
+      reset: [0, 1]
+    pin: gpio0
+    observe_periods: 3
+    period_tolerance: 0.03
+  ethernet: null
