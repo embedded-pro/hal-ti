@@ -9,12 +9,17 @@ marker adds the dimensions of a YAML mapping; `--depth full` runs their cartesia
 
 Tests with a `link` argument run once per `--can-mode` link: `loopback` (the controller's internal test mode)
 and `bus` (a CANable on the other end of the transceiver, `--can-peer`; see `hal_ti_validation.can_peer`).
+
+The HIL tests are pytest-bdd scenarios: `tests/hil/features/<peripheral>.feature` holds the Gherkin and
+`tests/hil/test_<peripheral>.py` binds each scenario to a test function (which carries the parametrisation
+markers above and takes their argnames) and defines its steps. Feature tags become markers, see
+`pytest_bdd_apply_tag`.
 """
 
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -71,6 +76,18 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=int(os.environ["HAL_TI_CAN_PEER_BITRATE"]) if os.environ.get("HAL_TI_CAN_PEER_BITRATE") else None,
         help="bit rate the adapter is fixed at (port-bridge --can-bitrate, socketcan ip link); tests at other rates skip",
     )
+
+
+def pytest_bdd_apply_tag(tag: str, function: Callable[..., Any]) -> Callable[..., Any] | None:
+    """`@ad3` also requests the `ad3` fixture, so the AD3 opens before the scenario and is reset after it;
+    `@name:argument` is `pytest.mark.name("argument")` (`@family:tm4c129`, `@requires_option:ethernet`). Other tags
+    fall through to pytest-bdd, which makes them plain markers (`@slow`, `@resets_board`)."""
+    name, separator, argument = tag.partition(":")
+    if separator:
+        return getattr(pytest.mark, name)(argument)(function)
+    if name == "ad3":
+        return pytest.mark.usefixtures("ad3")(pytest.mark.ad3(function))
+    return None
 
 
 def board_config(config: pytest.Config) -> BoardConfig:
