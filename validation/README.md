@@ -5,7 +5,7 @@ Every driver is exercised generically, with its synchronous and asynchronous var
 Hardware baseline: the pin assignment follows LaunchPads modified for the e-foc project; nothing else of e-foc is assumed.
 
 - `firmware/` - C++ firmware on hal-ti and EMIL. It exposes every hal-ti peripheral through a line-based terminal; the command set is specified in [PROTOCOL.md](PROTOCOL.md).
-- `host/` - Python package `hal_ti_validation` and a pytest suite that talks to the firmware terminal over a serial port and to the AD3 through the WaveForms SDK.
+- `host/` - Python package `hal_ti_validation` and a pytest-bdd suite that talks to the firmware terminal over a serial port and to the AD3 through the WaveForms SDK. The scenarios are Gherkin (`host/tests/hil/features/`), their steps are Python (`host/tests/hil/test_*.py`).
 - The generic bench code (AD3 wrapper over the WaveForms SDK, signal analysis, `OK`/`ERR`/`EVT` terminal client, console, pytest plugin and fakes) lives in the separate [ad3-waveforms-bench](https://github.com/embedded-pro/ad3-waveforms-bench) repository; `hal_ti_validation` only adds what is specific to hal-ti.
 - hal-ti has no I2C driver, so there is no I2C validation.
 
@@ -13,6 +13,7 @@ Hardware baseline: the pin assignment follows LaunchPads modified for the e-foc 
 
 - The firmware has to be C++: it is built from hal-ti and EMIL exactly like an application would use them, so what is validated is the real driver code with the real interrupt table, clocks and pin muxing.
 - The host is Python because Digilent ships the WaveForms SDK with official Python bindings and samples, `pyserial` covers the terminal, and pytest brings parametrisation, fixtures, skips and JUnit/HTML reports for free.
+- pytest-bdd runs Gherkin scenarios as ordinary pytest tests, so every test reads as Given/When/Then while the board-file parametrisation, `--depth`, `--set`, `--fake`, fixtures and reports stay those of pytest.
 - Python's latency does not matter: every timing-critical stimulus or measurement is done by the AD3 hardware (pattern generator, logic analyzer, wavegen, protocol engines) or by the firmware itself; the host only configures, triggers and evaluates.
 
 ## What the AD3 does
@@ -131,6 +132,8 @@ Tests that reset the board on purpose (watchdog, EEPROM persistence) are marked 
 Every instance a test opened is closed afterwards and the AD3 outputs are released, so tests are independent (the firmware keeps at most one PWM module, UART, SSI, comparator, QEI and CAN open at a time).
 Where a known driver gap makes an assertion fail on hardware, the test is marked `xfail(strict=False)` with the reason, so the run reports it without failing.
 Use `-k`, `-m "not slow"` and `--junitxml report.xml` as usual.
+`-k` matches the test function a scenario is bound to (`test_frames`, `test_write_read`), so test ids are the same as before the scenarios were written in Gherkin.
+`-v --gherkin-terminal-reporter` prints the steps of every scenario, and `--cucumber-json report.json` writes a Cucumber JSON report.
 
 ### CAN bus
 
@@ -376,6 +379,8 @@ The tables are generated from the board files; the notes list every function a p
 
 ## What is tested
 
+Each peripheral has a feature file `host/tests/hil/features/<peripheral>.feature`, with one scenario per test, and a module `host/tests/hil/test_<peripheral>.py` that binds the scenarios to test functions and implements their steps.
+
 - `test_system.py` - `ping`, `info`, and the `board.pins` alias table against the board file in both directions, every alias accepted as a pin, generic alias names, reserved terminal pins/UART, error reasons (`usage`, `busy`, `notopen`, `range`), `delay`, `reset` and the `EVT boot` cause.
 - `test_gpio.py` - output levels with every drive strength, inputs following the AD3 with every pull, pull-only idle levels, open drain, locked pins (PD7), LED output, interrupt counts for edge x handler type x pulse count x frequency against exact AD3 pulse trains, `gpio.pulse` timing.
 - `test_pwm.py` - for `Pwm` and `SynchronousPwm`:
@@ -412,9 +417,12 @@ Each board file (`host/boards/<board>.yaml`) holds:
 - `terminal`, `pins` (the PROTOCOL.md alias table, compared with `board.pins`; only the generic names of `hal_ti_validation.protocol.PIN_ALIASES` are accepted) and `ad3` (supplies, analog limits).
 - `wiring_sets` - per set, `dio`, `wavegen` and `scope` maps from AD3 channel to pin or alias. An entry is either a pin or a mapping with `pin`, `jumpered` (pins tied to `pin` with a wire), `role` (a name tests can look up), `note` and `requires` (only used with `--with <tag>`); `jumpers` and `options` document extra wiring.
 - `tests` - the parameters of every test module: parameter matrices, pins and instances, levels and tolerances.
-  - `@pytest.mark.matrix("pwm.waveform")` turns every key of that mapping into one test parameter of the same name; `@pytest.mark.board_params("argname", "section.key")` adds one parameter from a list.
+  - `@pytest.mark.matrix("pwm.waveform")` turns every key of that mapping into one test parameter of the same name; `@pytest.mark.board_params("argname", "section.key")` adds one parameter from a list. These markers go on the function a scenario is bound to, which takes the parameters as arguments; the steps read them as fixtures.
   - All parameters of a test form one matrix: `--depth full` runs its product, `--depth quick` a pairwise subset (`hal_ti_validation.pairwise`); `@pytest.mark.constraint(valid=...)` removes combinations a driver cannot take (for example parity with the synchronous UART).
   - Extending a sweep or moving a peripheral to other pins is a YAML change.
+
+The other markers are tags in the feature files: `@ad3` (also opens the AD3 for the scenario and resets its outputs afterwards), `@slow`, `@resets_board`, `@family:tm4c129` and `@requires_option:ethernet`. A tag on the `Feature` line applies to all of its scenarios.
+To add a test, add a scenario to the feature file, bind it with `@scenario("<peripheral>.feature", "<scenario name>")` in the module and write the steps it is missing. `pytest tests/unit/test_features.py` fails while a scenario is not bound or a step has no definition. Without hardware most scenarios skip before their first step, so pytest-bdd would not report these until a run on the bench.
 
 To validate another board, copy a board file, adapt the pins, wiring sets and parameters, and pass `--board path/to/board.yaml`.
 
@@ -429,6 +437,13 @@ hal-ti-console --port /dev/ttyACM0 -c info -c board.pins
 The console forwards commands, prints final lines and events, and keeps a history in `~/.hal_ti_validation_history`. `:wait <s>` listens for events, `:raw` also shows non-protocol output, `:quit` leaves.
 
 ## Package layout
+
+In `tests`:
+
+- `hil/features/*.feature` - the scenarios, one feature per peripheral.
+- `hil/test_*.py` - the scenario bindings with their parametrisation markers, the step definitions and the helpers of one peripheral.
+- `conftest.py` - the command line options, the board-file parametrisation, the tag hook and the fixtures (`fw`, `need`, `board_cfg`, `can_peer`, the per-test cleanup).
+- `unit/` - tests of `hal_ti_validation` and of the scenario bindings that need no hardware.
 
 In `hal_ti_validation` (hal-ti specific):
 
