@@ -1,5 +1,5 @@
 ---
-description: "hal-ti C++ coding rules: no heap allocation, ISR safety with QueueForOneReaderOneIrqWriter (trivial types only), TI Tiva C peripheral register sequences, ARM Cortex-M NVIC and vector table hygiene (both startup files), peripheral lifecycle order (NVIC disable before clock disable), embedded-infra-lib patterns, Allman brace style, PascalCase naming, SOLID principles, const correctness."
+description: "hal-ti C++ coding rules: no heap allocation, ISR safety with QueueForOneReaderOneIrqWriter (trivial types only), TI Tiva C peripheral register sequences, ARM Cortex-M NVIC and EMIL interrupt registration, peripheral lifecycle order (handler released before clock disable), embedded-infra-lib patterns, Allman brace style, PascalCase naming, SOLID principles, const correctness."
 applyTo: "**/*.{hpp,cpp}"
 ---
 
@@ -26,7 +26,7 @@ Replace standard containers:
   - `infra::BoundedDeque` is **NOT** ISR-safe across ISR/main boundary
 - Shared flags written in ISR and read in main must be `volatile` (or `std::atomic`)
 - Clear all interrupt status bits before returning from ISR
-- Always: `NVIC_ClearPendingIRQ(irq)` **before** `NVIC_EnableIRQ(irq)`
+- Always: `NVIC_ClearPendingIRQ(irq)` **before** registering the EMIL interrupt handler (registration enables the IRQ) — never call `NVIC_EnableIRQ` directly
 - `WithStorage` buffers passed to `QueueForOneReaderOneIrqWriter` need `N + 1` capacity (one sentinel slot)
 
 ## Peripheral Lifecycle — ORDER IS MANDATORY
@@ -35,21 +35,19 @@ Replace standard containers:
 1. `PeripheralPin` members are **class member variables** initialized in the C++ initializer list — they are constructed before the constructor body runs, so before `EnableClock()` is called
 2. `EnableClock()` — **first call in the constructor body**: `SYSCTL->RCGCxxx |= bit`, then poll `SYSCTL->PRxxx` until the peripheral-ready bit is set (e.g., `while ((SYSCTL->PRCAN & (1 << index)) == 0) {}`) — no `__asm("nop")` pattern
 3. Peripheral register configuration
-4. `NVIC_ClearPendingIRQ` + `NVIC_EnableIRQ`
+4. `NVIC_ClearPendingIRQ`, then register the EMIL handler **last** — `handler.emplace(irq, priority, callback)` on a `std::optional<hal::cortex::ImmediateInterruptHandler>` / `DispatchedInterruptHandler` member, or `Register(irq, priority)` when deriving from `hal::cortex::InterruptHandler`
 
 **Destructor** (this order only):
-1. `NVIC_DisableIRQ` — **before** clock disable
-2. `DisableClock()` — `SYSCTL->RCGCxxx &= ~bit`
-3. `PeripheralPin` / `ImmediateInterruptHandler` destructors run automatically
+1. Release the EMIL handler **first** — `handler.reset()` / `Unregister()` (disables the IRQ)
+2. Disable the peripheral, then `DisableClock()` — `SYSCTL->RCGCxxx &= ~bit`
+3. `PeripheralPin` destructors run automatically
 
-## Vector Table — BOTH STARTUP FILES
+## Interrupt Dispatch — EMIL InterruptTable
 
-For every new ISR handler, all three steps are required:
-1. `extern "C" void HandlerName()` in driver `.cpp` inside anonymous namespace, calling `InterruptTable::Instance().Invoke(IRQn)`
-2. Weak alias declaration in `tiva/CMSIS/.../startup_TM4C123.c`
-3. Weak alias declaration in `tiva/CMSIS/.../startup_TM4C129.c` plus vector table slot updated in **both** files
-
-Missing any step → interrupt silently falls through to `Default_Handler` (infinite loop) on hardware.
+- No vector-table entry or weak alias is needed for a new ISR: `Default_Handler` in both startup files calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`) → `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`
+- Registering an EMIL handler for the `IRQn` is what makes the interrupt reach the driver
+- The table is `InterruptTable::WithStorage<155>` (indexed by IRQn + 16) — an out-of-range IRQ, or one that fires with no registered handler, hits `really_assert`
+- Existing named `extern "C"` handlers (`Can0_Handler`, …) only call `Invoke(IRQn)`; if you add one, keep `startup_TM4C123.c` and `startup_TM4C129.c` in sync
 
 ## Register Access
 

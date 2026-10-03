@@ -116,17 +116,19 @@ namespace hal::tiva
         void ReArmPingPongHalf(bool alternate, const Buffers& buffer) const;
         bool IsPrimaryTransferCompleted() const;
         bool IsAlternateTransferCompleted() const;
+        bool IsAlternateActive() const;
         void StopTransfer() const;
         std::size_t RemainingTransfers(bool alternate) const;
         void ForceRequest() const;
         std::size_t MaxTransferSize() const;
-#if defined(TM4C123)
-        bool IsCompletionPending() const;
-        void ClearCompletion() const;
-#endif
+        uint8_t ChannelNumber() const;
 
     private:
-        const Channel& channel;
+        void RestoreBurst() const;
+
+    private:
+        Channel channel;
+        bool useBurst;
     };
 }
 

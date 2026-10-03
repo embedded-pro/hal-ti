@@ -1,36 +1,34 @@
 #include "hal_tiva/tiva/Ethernet.hpp"
-#include "TM4C1294NCPDT.h"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/BitLogic.hpp"
 #include "infra/util/ReallyAssert.hpp"
-#include "system_TM4C129.h"
 #include <array>
 #include <stdint.h>
 
 namespace
 {
 #if defined(ewarm) || defined(DOXYGEN)
-    extern "C" void Delay(uint32_t count)
+    void Delay(uint32_t count)
     {
-        __asm("    subs    r0, #1\n"
-              "    bne.n   Delay\n"
+        __asm("1:  subs    r0, #1\n"
+              "    bne.n   1b\n"
               "    bx      lr");
     }
 #endif
 #if defined(codered) || defined(gcc) || defined(sourcerygxx) || defined(__GNUC__) || defined(__GNUG__)
-    extern "C" void __attribute__((naked)) Delay(uint32_t count)
+    void __attribute__((naked)) Delay(uint32_t count)
     {
-        __asm("    subs    r0, #1\n"
-              "    bne     Delay\n"
+        __asm("1:  subs    r0, #1\n"
+              "    bne     1b\n"
               "    bx      lr");
     }
 #endif
 #if defined(rvmdk) || defined(__ARMCC_VERSION)
-    extern "C" __asm void Delay(uint32_t count)
+    void Delay(uint32_t count)
     {
-        subs r0, #1;
-        bne Delay;
-        bx lr;
+        __asm("1:  subs    r0, #1\n"
+              "    bne     1b\n"
+              "    bx      lr");
     }
 #endif
 
@@ -648,10 +646,6 @@ namespace hal::tiva
         , led2{ leds.led2, PinConfigPeripheral::ethernetLed2 }
         , macAddress(macAddress)
         , phyId(phySelection == PhySelection::internal ? 0 : 1)
-        , interrupt(EMAC0_IRQn, [this]()
-              {
-                  Interrupt();
-              })
     {
         EnableEMACClock();
         ResetEMACClock();
@@ -679,12 +673,17 @@ namespace hal::tiva
         ReadPhy(phyId, EPHY_MISR1);
 
         Initialize();
+
+        NVIC_ClearPendingIRQ(EMAC0_IRQn);
+        interrupt.emplace(EMAC0_IRQn, [this]()
+            {
+                Interrupt();
+            });
     }
 
     Ethernet::~Ethernet()
     {
-        NVIC_DisableIRQ(EMAC0_IRQn);
-        NVIC_ClearPendingIRQ(EMAC0_IRQn);
+        interrupt.reset();
         EMAC0->DMAIM = 0;
         EMAC0->DMABUSMOD |= EMAC_DMABUSMOD_SWR;
         while (EMAC0->DMABUSMOD & EMAC_DMABUSMOD_SWR)
@@ -723,8 +722,13 @@ namespace hal::tiva
 
     void Ethernet::AddMacAddressFilter(hal::MacAddress address)
     {
-        auto lr = reinterpret_cast<const uint32_t*>(address.data())[0];
-        auto hr = (reinterpret_cast<const uint32_t*>(address.data())[1] & 0xffff) | (1 << 31);
+        const uint32_t lr = static_cast<uint32_t>(address[0])
+                          | (static_cast<uint32_t>(address[1]) << 8)
+                          | (static_cast<uint32_t>(address[2]) << 16)
+                          | (static_cast<uint32_t>(address[3]) << 24);
+        const uint32_t hr = static_cast<uint32_t>(address[4])
+                          | (static_cast<uint32_t>(address[5]) << 8)
+                          | (1u << 31);
 
         if ((EMAC0->ADDR1H & infra::Bit<uint32_t>(31)) == 0)
         {
@@ -747,8 +751,13 @@ namespace hal::tiva
 
     void Ethernet::RemoveMacAddressFilter(hal::MacAddress address)
     {
-        auto lr = reinterpret_cast<const uint32_t*>(address.data())[0];
-        auto hr = (reinterpret_cast<const uint32_t*>(address.data())[1] & 0xffff) | (1 << 31);
+        const uint32_t lr = static_cast<uint32_t>(address[0])
+                          | (static_cast<uint32_t>(address[1]) << 8)
+                          | (static_cast<uint32_t>(address[2]) << 16)
+                          | (static_cast<uint32_t>(address[3]) << 24);
+        const uint32_t hr = static_cast<uint32_t>(address[4])
+                          | (static_cast<uint32_t>(address[5]) << 8)
+                          | (1u << 31);
 
         if (EMAC0->ADDR1H == hr && EMAC0->ADDR1L == lr)
         {
@@ -771,7 +780,7 @@ namespace hal::tiva
 
     uint16_t Ethernet::PhyAddress() const
     {
-        return 0;
+        return phyId;
     }
 
     void Ethernet::Interrupt()

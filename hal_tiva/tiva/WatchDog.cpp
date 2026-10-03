@@ -1,6 +1,8 @@
 #include "hal_tiva/tiva/WatchDog.hpp"
 #include "infra/util/ReallyAssert.hpp"
+#include <array>
 #include <limits>
+#include <utility>
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -32,18 +34,99 @@ namespace
         really_assert(ticks > 0 && ticks <= std::numeric_limits<uint32_t>::max());
         return static_cast<uint32_t>(ticks);
     }
+
+    struct WatchDogSlot
+    {
+        hal::tiva::WatchDog* dog = nullptr;
+        hal::cortex::InterruptPriority priority{ hal::cortex::InterruptPriority::normal };
+        infra::Function<void()> invoke;
+    };
+
+    class WatchDogSharedHandler
+        : public hal::cortex::InterruptHandler
+    {
+    public:
+        void Add(hal::tiva::WatchDog* dog, hal::cortex::InterruptPriority priority, infra::Function<void()> invoke)
+        {
+            for (auto& slot : slots)
+            {
+                if (slot.dog == nullptr)
+                {
+                    slot.dog = dog;
+                    slot.priority = priority;
+                    slot.invoke = invoke;
+                    if (!Registered())
+                        Enable();
+                    else if (priority < Priority())
+                    {
+                        Unregister();
+                        Enable();
+                    }
+                    return;
+                }
+            }
+            really_assert(false);
+        }
+
+        void Remove(hal::tiva::WatchDog* dog)
+        {
+            for (auto& slot : slots)
+            {
+                if (slot.dog == dog)
+                {
+                    slot.dog = nullptr;
+                    slot.invoke = nullptr;
+                }
+            }
+            bool anyActive = false;
+            for (const auto& slot : slots)
+                if (slot.dog != nullptr)
+                    anyActive = true;
+            if (!anyActive && Registered())
+                Unregister();
+            else if (anyActive && Registered() && HighestPriority() != Priority())
+            {
+                Unregister();
+                Enable();
+            }
+        }
+
+        void Enable()
+        {
+            NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(WATCHDOG0_IRQn));
+            Register(WATCHDOG0_IRQn, HighestPriority());
+        }
+
+        void Invoke() override
+        {
+            for (auto& slot : slots)
+                if (slot.dog != nullptr && slot.invoke)
+                    slot.invoke();
+        }
+
+    private:
+        hal::cortex::InterruptPriority HighestPriority() const
+        {
+            auto highest = hal::cortex::InterruptPriority::lowest;
+            for (const auto& slot : slots)
+                if (slot.dog != nullptr && slot.priority < highest)
+                    highest = slot.priority;
+            return highest;
+        }
+
+        std::array<WatchDogSlot, numberOfWatchDogs> slots{};
+    };
+
+    WatchDogSharedHandler watchDogSharedHandler;
 }
 
 namespace hal::tiva
 {
     WatchDog::WatchDog(uint8_t watchDogIndex, const Config& config)
-        : ImmediateInterruptHandler(WATCHDOG0_IRQn, config.interruptPriority, [this]()
-              {
-                  HandleInterrupt();
-              })
-        , watchDogIndex(watchDogIndex)
+        : watchDogIndex(watchDogIndex)
         , timeout(config.timeout)
         , reloadValue(ToTicks(ClockFrequency(), config.timeout))
+        , resetOnMissedInterrupt(config.resetOnMissedInterrupt)
     {
         really_assert(watchDogIndex < numberOfWatchDogs);
 
@@ -62,13 +145,16 @@ namespace hal::tiva
         // The destructor only gates the clock, so CTL keeps its previous contents and has to be written in full rather than or-ed into
         watchDog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
         WaitForWriteComplete();
+
+        watchDogSharedHandler.Add(this, config.interruptPriority, [this]()
+            {
+                HandleInterrupt();
+            });
     }
 
     WatchDog::~WatchDog()
     {
-        NVIC_DisableIRQ(WATCHDOG0_IRQn);
-        NVIC_ClearPendingIRQ(WATCHDOG0_IRQn);
-
+        watchDogSharedHandler.Remove(this);
         DisablePeripheralClock();
     }
 
@@ -87,13 +173,11 @@ namespace hal::tiva
 
     void WatchDog::Refresh()
     {
+        warned = false;
         Peripheral().ICR = 0;
         WaitForWriteComplete();
-        if (onEarlyWarning)
-        {
-            NVIC_ClearPendingIRQ(WATCHDOG0_IRQn);
-            NVIC_EnableIRQ(WATCHDOG0_IRQn);
-        }
+        if (onEarlyWarning && !watchDogSharedHandler.Registered())
+            watchDogSharedHandler.Enable();
     }
 
     WATCHDOG0_Type& WatchDog::Peripheral() const
@@ -145,7 +229,18 @@ namespace hal::tiva
         if ((Peripheral().MIS & misTimeout) == 0)
             return;
 
-        NVIC_DisableIRQ(WATCHDOG0_IRQn);
+        if (!resetOnMissedInterrupt)
+        {
+            // Watchdog 1 resets the device on a second time-out even with RESEN clear (TM4C123 erratum WDT#03), so
+            // without reset the interrupt is cleared here and the warning is reported once until the next Refresh
+            Peripheral().ICR = 0;
+            WaitForWriteComplete();
+            if (!std::exchange(warned, true))
+                onEarlyWarning();
+            return;
+        }
+
+        watchDogSharedHandler.Unregister();
         onEarlyWarning();
     }
 }

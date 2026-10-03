@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/SpiMaster.hpp"
+#include "hal_tiva/tiva/SpiClockDivisor.hpp"
 #include "infra/event/EventDispatcher.hpp"
 #include "infra/util/BitLogic.hpp"
 
@@ -141,32 +142,33 @@ namespace hal::tiva
         irqArray = infra::MakeRange(peripheralIrqSsiArray);
 
         EnableClock();
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE; /* Disable SPI */
 
-        auto max = SystemCoreClock / config.baudRate;
-        uint32_t div = 0;
-        uint32_t scr = 0;
-        do
-        {
-            div += 2;
-            scr = (max / div) - 1;
-        } while (scr > 255);
+        const SpiClockDivisors clk = CalculateSpiClockDivisors(SystemCoreClock, config.baudRate);
 
-        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;                                                                                      /* SSI clock is sourced by main system clock  */
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;                                                                                         /* Enable master mode */
-        ssiArray[ssiIndex]->CR1 |= SSI_CR1_EOT;                                                                                         /* Enable end of transmission */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;                                           /* Configure number of bits */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;                                        /* Configure to SPI freescale format */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow); /* Configure SPI phase/polarity */
-        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | ((scr & 0xFF) << SSI_CR0_SCR_S);                         /* Sets clock rate */
-        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | div;                                              /* Sets prescaler */
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE;
+        ssiArray[ssiIndex]->CC = SSI_CC_CS_SYSPLL;
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_MS;
+        ssiArray[ssiIndex]->CR1 |= SSI_CR1_EOT;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_DSS_M) | SSI_CR0_DSS_8;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_FRF_M) | SSI_CR0_FRF_MOTO;
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SPH_SPO_M) | phase_polarity(config.phase1st, config.polarityLow);
+        ssiArray[ssiIndex]->CR0 = (ssiArray[ssiIndex]->CR0 & ~SSI_CR0_SCR_M) | (clk.scr << SSI_CR0_SCR_S);
+        ssiArray[ssiIndex]->CPSR = (ssiArray[ssiIndex]->CPSR & ~SSI_CPSR_CPSDVSR_M) | clk.cpsdvsr;
+        ssiArray[ssiIndex]->IM = 0;
 
-        ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE; /* Enable SPI */
+        ssiArray[ssiIndex]->CR1 |= SSI_CR1_SSE;
+
+        NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(irqArray[ssiIndex]));
+        spiInterruptRegistration.emplace(irqArray[ssiIndex], [this]()
+            {
+                HandleInterrupt();
+            });
     }
 
     SpiMaster::~SpiMaster()
     {
-        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE; /* Disable SPI */
+        spiInterruptRegistration.reset();
+        ssiArray[ssiIndex]->CR1 &= ~SSI_CR1_SSE;
         DisableClock();
     }
 
@@ -191,14 +193,16 @@ namespace hal::tiva
         else
             dummyToReceive = 0;
 
-        really_assert(!spiInterruptRegistration);
-        spiInterruptRegistration.emplace(irqArray[ssiIndex], [this]()
-            {
-                HandleInterrupt();
-            });
+        while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE) != 0)
+            static_cast<void>(ssiArray[ssiIndex]->DR);
+        ssiArray[ssiIndex]->ICR = SSI_ICR_RORIC | SSI_ICR_RTIC;
 
         StartBatch();
-        ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RORIM;
+        // The TM4C123 does not latch TXRIS at end of transmission (erratum SSI#07), so the receive interrupts also complete a batch
+        if (batchSize != 0)
+            ssiArray[ssiIndex]->IM = SSI_IM_TXIM | SSI_IM_RXIM | SSI_IM_RTIM | SSI_IM_RORIM;
+        else
+            Finish();
     }
 
     void SpiMaster::SetChipSelectConfigurator(ChipSelectConfigurator& configurator)
@@ -224,6 +228,7 @@ namespace hal::tiva
     {
         const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
         batchSize = remaining < 8 ? remaining : 8;
+        batchReceived = 0;
 
         for (uint32_t i = 0; i < batchSize; ++i)
         {
@@ -250,19 +255,12 @@ namespace hal::tiva
             really_assert(false);
         }
 
-        if ((mis & SSI_MIS_TXMIS) == 0)
-        {
-            spiInterruptRegistration->ClearPending();
-            return;
-        }
+        ssiArray[ssiIndex]->ICR = SSI_ICR_RTIC;
 
-        for (uint32_t i = 0; i < batchSize; ++i)
+        while (batchReceived != batchSize && (ssiArray[ssiIndex]->SR & SSI_SR_RNE) != 0)
         {
-            while ((ssiArray[ssiIndex]->SR & SSI_SR_RNE) == 0)
-            {
-            }
-
             const uint32_t data = ssiArray[ssiIndex]->DR;
+            ++batchReceived;
             if (!receiveData.empty())
             {
                 receiveData.front() = static_cast<uint8_t>(data);
@@ -274,24 +272,27 @@ namespace hal::tiva
             }
         }
 
+        spiInterruptRegistration->ClearPending();
+
+        if (batchReceived != batchSize || ssiArray[ssiIndex]->IM == 0)
+            return;
+
         const uint32_t remaining = static_cast<uint32_t>(sendData.size() + dummyToSend);
         if (remaining > 0)
-        {
             StartBatch();
-            spiInterruptRegistration->ClearPending();
-        }
         else
         {
             ssiArray[ssiIndex]->IM = 0;
-            spiInterruptRegistration->ClearPending();
-            spiInterruptRegistration = std::nullopt;
-            if (chipSelectConfigurator && !continuedSession)
-                chipSelectConfigurator->EndSession();
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    onDone();
-                });
+            Finish();
         }
+    }
+
+    void SpiMaster::Finish()
+    {
+        if (chipSelectConfigurator && !continuedSession)
+            chipSelectConfigurator->EndSession();
+        infra::EventDispatcher::Instance().Schedule(onDone.Clone());
+        onDone = nullptr;
     }
 
     void SpiMaster::EnableClock()

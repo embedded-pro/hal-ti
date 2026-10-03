@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/Eeprom.hpp"
+#include "infra/event/EventDispatcher.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 extern "C" void Eeprom_Handler()
@@ -86,21 +87,22 @@ namespace hal::tiva
     }
 
     Eeprom::Eeprom()
-        : ImmediateInterruptHandler(FLASH_CTRL_IRQn, [this]()
-              {
-                  HandleInterrupt();
-              })
     {
         numberOfBlocks = InitAndGetNumberOfBlocks();
         ClearEepromInterrupt();
         FLASH_CTRL->FCIM |= FlashFcimEeprom;
         EEPROM->EEINT = EeintProgram;
+
+        NVIC_ClearPendingIRQ(FLASH_CTRL_IRQn);
+        handler.emplace(FLASH_CTRL_IRQn, [this]()
+            {
+                HandleInterrupt();
+            });
     }
 
     Eeprom::~Eeprom()
     {
-        NVIC_DisableIRQ(FLASH_CTRL_IRQn);
-        NVIC_ClearPendingIRQ(FLASH_CTRL_IRQn);
+        handler.reset();
         EEPROM->EEINT = 0u;
         FLASH_CTRL->FCIM &= ~FlashFcimEeprom;
         ClearEepromInterrupt();
@@ -153,7 +155,7 @@ namespace hal::tiva
             }
         }
 
-        onDone();
+        infra::EventDispatcher::Instance().Schedule(onDone);
     }
 
     void Eeprom::WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone)
@@ -249,8 +251,11 @@ namespace hal::tiva
             AssertNoEepromErrors();
         }
 
-        currentOperation = Operation::Idle;
-        onOperationDone();
+        infra::EventDispatcher::Instance().Schedule([this]()
+            {
+                currentOperation = Operation::Idle;
+                onOperationDone();
+            });
     }
 
     void Eeprom::HandleInterrupt()
@@ -270,8 +275,11 @@ namespace hal::tiva
                 return;
             }
 
-            currentOperation = Operation::Idle;
-            onOperationDone();
+            infra::EventDispatcher::Instance().Schedule([this]()
+                {
+                    currentOperation = Operation::Idle;
+                    onOperationDone();
+                });
         }
     }
 }

@@ -24,16 +24,16 @@ You triage incoming development requests and route them to the right specialist 
 ## Context to Gather Before Routing
 
 - Which layer is affected?
-  - `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, TimeKeeper, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL, not this repo
+  - `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher — all from EMIL, not this repo
   - `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Dma, Clock)
-  - `hal_tiva/synchronous_tiva/` — Blocking driver variants (SynchronousAdc, SynchronousPwm, SynchronousQuadratureEncoder)
+  - `hal_tiva/synchronous_tiva/` — Blocking driver variants (SynchronousAdc, SynchronousPwm, QuadratureEncoder in `SynchronousQuadratureEncoder.hpp`)
   - `hal_tiva/instantiations/` — Board Support Packages (LaunchPadBsp, EventInfrastructure)
-  - `hal_tiva/bringup/` — Startup, atomics shim, hardware init hooks
+  - `hal_tiva/bringup/` — Startup glue (`HardwareInitialization()`, weak `Default_Handler_Forwarded()`); atomics shim and syscall stubs come from EMIL's `hal.cortex_m.runtime`
   - `tiva/CMSIS/` — Device headers, startup vector tables, linker scripts
 - Which MCU family? TM4C123 / TM4C129 / both
 - Is this asynchronous (event-driven) or synchronous (blocking/polling)?
 - Does it involve ISR context? (ISR-safety and `QueueForOneReaderOneIrqWriter` rules apply)
-- Does it require vector table changes in **both** startup files?
+- Does it need a new EMIL interrupt handler registration? (No startup-file change: `Default_Handler` forwards every IRQ to `hal::cortex::InterruptTable`)
 - Does this require documentation updates in `doc/`?
 
 ## Project References

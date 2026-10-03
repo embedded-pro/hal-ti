@@ -1,8 +1,13 @@
 #include "hal_tiva/tiva/AnalogComparator.hpp"
+#include "AnalogComparatorFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 
 namespace
 {
+    namespace family = hal::tiva::family;
+
+    using family::peripheralIrqComp;
+
     extern "C" void Comp0_Handler()
     {
         hal::cortex::InterruptTable::Instance().Invoke(COMP0_IRQn);
@@ -13,26 +18,6 @@ namespace
         hal::cortex::InterruptTable::Instance().Invoke(COMP1_IRQn);
     }
 
-#if defined(TM4C129)
-    extern "C" void Comp2_Handler()
-    {
-        hal::cortex::InterruptTable::Instance().Invoke(COMP2_IRQn);
-    }
-#endif
-
-#if defined(TM4C129)
-    constexpr std::array<int32_t, 3> peripheralIrqComp = { {
-        COMP0_IRQn,
-        COMP1_IRQn,
-        COMP2_IRQn,
-    } };
-#else
-    constexpr std::array<int32_t, 2> peripheralIrqComp = { {
-        COMP0_IRQn,
-        COMP1_IRQn,
-    } };
-#endif
-
     constexpr uint32_t AcctlAsrcpShift   = 9;
     constexpr uint32_t AcctlAsrcpMask    = 0x3u << AcctlAsrcpShift;
     constexpr uint32_t AcctlTslval       = 1u << 7;
@@ -42,7 +27,7 @@ namespace
     constexpr uint32_t AcctlIsenShift    = 2;
     constexpr uint32_t AcctlIsenMask     = 0x3u << AcctlIsenShift;
     constexpr uint32_t AcctlCinv         = 1u << 1;
-    constexpr uint32_t AcctlToen         = 1u << 0;
+    constexpr uint32_t AcctlToen         = 1u << 11;
 
     constexpr uint32_t AcstatOval        = 1u << 1;
 
@@ -94,8 +79,6 @@ namespace hal::tiva
         : index(aIndex)
         , config(aConfig)
     {
-        really_assert(config.routeToPwmFault.has_value() ? config.triggerEnabled : true);
-
         if (&vinPositive != &dummyPin)
             vinPositivePin.emplace(vinPositive);
         if (&vinNegative != &dummyPin)
@@ -196,6 +179,7 @@ namespace hal::tiva
             val |= (static_cast<uint32_t>(config.triggerSense) << AcctlTsenShift) & AcctlTsenMask;
             if (config.triggerLevelHigh)
                 val |= AcctlTslval;
+            val |= AcctlToen;
         }
 
         val |= (static_cast<uint32_t>(isen) << AcctlIsenShift) & AcctlIsenMask;
@@ -204,46 +188,18 @@ namespace hal::tiva
 
         if (config.invertOutput)
             val |= AcctlCinv;
-        if (config.outputToPin)
-            val |= AcctlToen;
 
         return val;
     }
 
     volatile uint32_t& AnalogComparator::Acctl() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACCTL0;
-            case 1:
-                return COMP->ACCTL1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACCTL2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACCTL0;
-        }
+        return family::GetAcctl(index);
     }
 
     volatile uint32_t& AnalogComparator::Acstat() const
     {
-        switch (index)
-        {
-            case 0:
-                return COMP->ACSTAT0;
-            case 1:
-                return COMP->ACSTAT1;
-#if defined(TM4C129)
-            case 2:
-                return COMP->ACSTAT2;
-#endif
-            default:
-                really_assert(false);
-                return COMP->ACSTAT0;
-        }
+        return family::GetAcstat(index);
     }
 
     void AnalogComparator::HandleIrq()

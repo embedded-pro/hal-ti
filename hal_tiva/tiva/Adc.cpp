@@ -1,4 +1,5 @@
 #include "hal_tiva/tiva/Adc.hpp"
+#include "hal_tiva/tiva/AdcClock.hpp"
 #include "hal/interfaces/AdcMultiChannel.hpp"
 #include "infra/util/EnumCast.hpp"
 #include "infra/util/ReallyAssert.hpp"
@@ -87,7 +88,7 @@ namespace
 
     constexpr static uint32_t ADC_DCCTL_CTC_LOW = 0x00000000;
     constexpr static uint32_t ADC_DCCTL_CTC_MID = 0x00000400;
-    constexpr static uint32_t ADC_DCCTL_CTC_HIGH = 0x00000800;
+    constexpr static uint32_t ADC_DCCTL_CTC_HIGH = 0x00000C00;
 
     constexpr static uint32_t ADC_DCCTL_CTE = 0x00001000;
 
@@ -221,7 +222,7 @@ namespace
 
     [[gnu::always_inline]] inline bool IsInterruptTriggered(ADC0_Type& adc, uint8_t sequencer)
     {
-        return (adc.RIS) & (0x10000 | (1 << sequencer));
+        return (adc.RIS) & (1u << sequencer);
     }
 
     [[gnu::always_inline]] inline void InterruptClear(ADC0_Type& adc, uint8_t sequencer)
@@ -241,6 +242,17 @@ namespace
             auto data = *SSFIFO;
             samples.push_back(static_cast<uint16_t>(data));
         }
+    }
+
+    void FlushFifo(ADC0_Type& adc, uint8_t sequencer)
+    {
+        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
+        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
+
+        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY))
+            static_cast<void>(*SSFIFO);
+
+        adc.OSTAT = 1u << sequencer;
     }
 
     void SetPhaseDelay(uint8_t adcIndex, uint32_t delay)
@@ -327,18 +339,7 @@ namespace
 namespace hal::tiva
 {
     Adc::Adc(uint8_t adcIndex, uint8_t adcSequencer, infra::MemoryRange<AnalogPin> inputs, const Config& config)
-        : ImmediateInterruptHandler(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer], config.interruptPriority, [this]()
-              {
-                  auto& adc = *peripheralAdc[this->adcIndex];
-                  if (IsInterruptTriggered(adc, this->adcSequencer))
-                  {
-                      InterruptClear(adc, this->adcSequencer);
-                      DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
-                      if (callback)
-                          callback(infra::MakeRange(buffer));
-                  }
-              })
-        , adcIndex(adcIndex)
+        : adcIndex(adcIndex)
         , adcSequencer(adcSequencer)
         , numberOfChannels(inputs.size())
     {
@@ -348,36 +349,73 @@ namespace hal::tiva
 
         EnableClock();
 
-        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
-        SequenceConfigure(*peripheralAdc[adcIndex], adcSequencer, config.trigger, config.priority);
+        SequenceDisable(*peripheralAdc[this->adcIndex], this->adcSequencer);
+        SequenceConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, config.trigger, config.priority);
 
         auto lastChannel = inputs.size() - 1;
         auto sh = sampleAndHoldFields.at(infra::enum_cast(config.sampleAndHold));
 
         for (std::size_t i = 0; i < inputs.size() - 1; i++)
-            SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, i, inputs[i].AdcChannel() | sh);
+        {
+            auto ch = inputs[i].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, i, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh);
+        }
 
-        SequenceStepConfigure(*peripheralAdc[adcIndex], adcSequencer, lastChannel, inputs[lastChannel].AdcChannel() | sh | ADC_CTL_IE | ADC_CTL_END);
+        {
+            auto ch = inputs[lastChannel].AdcChannel();
+            SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, lastChannel, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh | ADC_CTL_IE | ADC_CTL_END);
+        }
 
         if (config.oversampling)
-            SequenceOversampling(*peripheralAdc[adcIndex], infra::enum_cast(*config.oversampling));
+            SequenceOversampling(*peripheralAdc[this->adcIndex], infra::enum_cast(*config.oversampling));
 
         if (config.samplingDelay)
-            SetPhaseDelay(adcIndex, config.samplingDelay->Value());
+            SetPhaseDelay(this->adcIndex, config.samplingDelay->Value());
 
         if (!config.digitalComparators.empty())
         {
             ValidateDigitalComparators(config.digitalComparators, inputs.size());
             numberOfChannels = CountFifoSteps(config.digitalComparators);
-            ConfigureDigitalComparators(*peripheralAdc[adcIndex], adcSequencer, config.digitalComparators);
+
+            // When the END step goes to a digital comparator, the TM4C123 delivers one FIFO sample per run too few (erratum
+            // ADC#03), so a dummy FIFO step ends the sequence instead and its sample is discarded
+            const bool endsOnComparator = config.digitalComparators[lastChannel].comparatorIndex != DigitalComparatorConfig::noComparator;
+            if (endsOnComparator && numberOfChannels != 0 && inputs.size() < sequencerDepths[adcSequencer])
+            {
+                auto ch = inputs[lastChannel].AdcChannel();
+                SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, lastChannel, (ch & 0xFu) | ((ch >> 4u) << 8u) | sh);
+                SequenceStepConfigure(*peripheralAdc[this->adcIndex], this->adcSequencer, inputs.size(), (ch & 0xFu) | ((ch >> 4u) << 8u) | sh | ADC_CTL_IE | ADC_CTL_END);
+                ++numberOfChannels;
+                discardLastSample = true;
+            }
+
+            ConfigureDigitalComparators(*peripheralAdc[this->adcIndex], this->adcSequencer, config.digitalComparators);
+            monitorsWithComparators = true;
         }
+
+        const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * this->adcIndex + this->adcSequencer]);
+        NVIC_ClearPendingIRQ(irqn);
+        irqHandler.emplace(irqn, config.interruptPriority, [this]()
+            {
+                auto& adc = *peripheralAdc[this->adcIndex];
+                if (IsInterruptTriggered(adc, this->adcSequencer))
+                {
+                    InterruptClear(adc, this->adcSequencer);
+                    DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
+                    if (discardLastSample && buffer.size() == numberOfChannels)
+                        buffer.pop_back();
+                    if (callback)
+                        callback(infra::MakeRange(buffer));
+                }
+            });
+
+        if (monitorsWithComparators)
+            SequenceEnable(*peripheralAdc[this->adcIndex], this->adcSequencer);
     }
 
     Adc::~Adc()
     {
-        const auto irqn = static_cast<IRQn_Type>(peripheralIrqAdcArray[numberOfSequencers * adcIndex + adcSequencer]);
-        NVIC_DisableIRQ(irqn);
-        NVIC_ClearPendingIRQ(irqn);
+        irqHandler.reset();
         SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
         InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
         DisableClock();
@@ -386,27 +424,27 @@ namespace hal::tiva
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
         callback = onDone;
+        if (monitorsWithComparators)
+            FlushFifo(*peripheralAdc[adcIndex], adcSequencer);
         InterruptEnable(*peripheralAdc[adcIndex], adcSequencer);
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
+    // Digital comparator steps keep feeding the PWM fault logic and the comparator interrupts, so such a sequence keeps converting
     void Adc::Stop()
     {
-        SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
+        if (!monitorsWithComparators)
+            SequenceDisable(*peripheralAdc[adcIndex], adcSequencer);
         InterruptDisable(*peripheralAdc[adcIndex], adcSequencer);
     }
 
     void Adc::EnableClock()
     {
-        SYSCTL->RCGCADC |= 1 << adcIndex;
-
-        while ((SYSCTL->PRADC & (1 << adcIndex)) == 0)
-        {
-        }
+        AcquireAdcClock(adcIndex);
     }
 
     void Adc::DisableClock()
     {
-        SYSCTL->RCGCADC &= ~(1 << adcIndex);
+        ReleaseAdcClock(adcIndex);
     }
 }

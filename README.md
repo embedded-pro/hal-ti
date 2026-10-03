@@ -16,7 +16,7 @@ hal-ti cannot be built by-itself, it must be built as part of a larger project. 
 > CMakeLists.txt
 
 ```cmake
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 
 project(MyProject VERSION 1.0.0)
 
@@ -29,18 +29,18 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    halst
+    halti
     GIT_REPOSITORY https://github.com/embedded-pro/hal-ti.git
     GIT_TAG        main
 )
 
-FetchContent_MakeAvailable(emil halst)
+FetchContent_MakeAvailable(emil halti)
 
 add_executable(myprogram Main.cpp)
 
 target_link_libraries(myprogram PUBLIC
     infra.event
-    hal_st.tiva
+    hal_tiva.tiva
 )
 
 hal_ti_target_default_linker_scripts(myprogram)
@@ -48,13 +48,28 @@ hal_ti_target_bringup(myprogram)
 
 ```
 
+Build options defined in the top-level `CMakeLists.txt`:
+
+- `HAL_TI_INCLUDE_BRINGUP` (default `ON`): include the default bringup code; turn off when providing custom initialization.
+- `HAL_TI_INCLUDE_LWIP` (default `OFF`): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
+- `HAL_TI_BUILD_TESTS` (default `OFF`): build the host unit tests (standalone builds only).
+- `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS` (default `OFF`): build the examples.
+
 ## How to test the software
 
-Due to the nature of hal-ti: a HAL implementation, there are no included automated tests. Testing should be done in-context on the target hardware.
+Host unit tests (GoogleTest, in `integration_test/test`) cover hardware-independent logic such as CAN bit timing and the SPI clock divisor. They are built with `-DHAL_TI_BUILD_TESTS=ON`, which the host presets set:
+
+```bash
+cmake --preset host
+cmake --build --preset host-Debug
+ctest --preset host
+```
+
+Driver behaviour on the peripherals themselves can only be verified in-context on the target hardware.
 
 ## Community
 
-This project uses a [code-of-conduct](CODE_OF_CONDUCT.md) to define expected conduct in our community. Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting a project [maintainer](.github/CODEOWNERS)
+This project uses a [code-of-conduct](CODE_OF_CONDUCT.md) to define expected conduct in our community. Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the repository maintainers.
 
 ## Contributing
 
@@ -62,7 +77,7 @@ Please refer to our [contributing](CONTRIBUTING.md) guide when you want to contr
 
 ## Examples
 
-In order to run the examples, please check the document [EK-TM4C123GXL](doc/EK-TM4C123GXL.md) first.
+In order to run the examples, please check the document [EK-TM4C123GXL](doc/EK-TM4C123GXL.md) (TM4C123) or [EK-TM4C1294XL](doc/EK-TM4C1294XL.md) (TM4C129) first.
 
 ## License
 

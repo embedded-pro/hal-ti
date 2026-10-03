@@ -7,12 +7,12 @@
 #include "infra/util/AutoResetFunction.hpp"
 #include "infra/util/Function.hpp"
 #include <cstdint>
+#include <optional>
 
 namespace hal::tiva
 {
     class Eeprom
         : public hal::Eeprom
-        , private hal::cortex::ImmediateInterruptHandler
     {
     public:
         Eeprom();
@@ -45,5 +45,6 @@ namespace hal::tiva
         uint32_t numberOfBlocks = 0;
         infra::TimerSingleShot erasePollTimer;
         infra::AutoResetFunction<void()> onOperationDone;
+        std::optional<hal::cortex::ImmediateInterruptHandler> handler;
     };
 }

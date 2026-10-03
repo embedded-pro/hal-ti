@@ -1,11 +1,14 @@
 #include "hal_tiva/tiva/UartWithDma.hpp"
+#include "UartWithDmaFamily.hpp"
 #include "hal_tiva/tiva/Dma.hpp"
 #include "infra/util/MemoryRange.hpp"
+#include "infra/util/ReallyAssert.hpp"
 
 namespace hal::tiva
 {
     namespace
     {
+        namespace family = hal::tiva::family;
         constexpr const uint32_t UART_FR_RXFE = 0x00000010;      // Receive FIFO Empty
         constexpr const uint32_t UART_RIS_OERIS = 0x00000400;    // UART Overrun Error Raw Interrupt Status
         constexpr const uint32_t UART_RIS_DMATXRIS = 0x00020000; // Transmit DMA Raw Interrupt Status
@@ -34,10 +37,16 @@ namespace hal::tiva
             { { 21, 2 }, { 20, 2 } },
         } };
 
-        constexpr DmaChannel::Attributes txAttributes{ false, false, true, false };
+        // Burst-only: a single request could move a whole arbitration unit into a TX FIFO with fewer free entries, and the
+        // UART drops what does not fit (bytes went missing at 115200 on the TM4C123). Bursts only start at half empty.
+        constexpr DmaChannel::Attributes txAttributes{ true, false, true, false };
+        // Burst-only, with bursts smaller than the RX FIFO trigger level: a character always stays in the FIFO so the
+        // receive time-out fires; otherwise a short message waits in the DMA buffer until the half-buffer fills.
+        // One item per request: at a ping-pong half switch the uDMA can serve a burst request the UART has not yet
+        // withdrawn, and a 4-item burst then reads the empty FIFO and stores a stale entry 16 characters old.
         constexpr DmaChannel::Attributes rxAttributes{ true, false, true, false };
         constexpr DmaChannel::ControlBlock controlBlockTx{ DmaChannel::Increment::_8_bits, DmaChannel::Increment::none, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
-        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_4_items };
+        constexpr DmaChannel::ControlBlock controlBlockRx{ DmaChannel::Increment::none, DmaChannel::Increment::_8_bits, DmaChannel::DataSize::_8_bits, DmaChannel::ArbitrationSize::_1_item };
     }
 
     UartWithDma::UartWithDma(infra::MemoryRange<uint8_t> rxBuffer, uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRx, Dma& dma, const Config& config)
@@ -72,7 +81,8 @@ namespace hal::tiva
     void UartWithDma::Initialize() const
     {
         DisableUart();
-        SetFifo(Fifo::_1_8, Fifo::_4_8);
+        really_assert(rxBufferPrimary.size() % 4 == 0 && rxBufferAlternate.size() % 4 == 0);
+        SetFifo(Fifo::_4_8, Fifo::_4_8);
         EnableRxDma();
         EnableTxDma();
         EnableUart();
@@ -142,18 +152,29 @@ namespace hal::tiva
     void UartWithDma::ProcessRxTimeout() const
     {
         dmaRx.StopTransfer();
-        bool fillingAlternate = dmaRx.IsPrimaryTransferCompleted();
+        ProcessDmaRx();
+
+        bool fillingAlternate = dmaRx.IsAlternateActive();
         auto activeBuffer = fillingAlternate ? rxBufferAlternate : rxBufferPrimary;
         std::size_t bytesReceived = activeBuffer.size() - dmaRx.RemainingTransfers(fillingAlternate);
 
-        while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
+        // The FIFO residue can exceed the space left in the active half; the receiver copies delivered data, so the half is reused
+        while (true)
         {
-            activeBuffer[bytesReceived] = static_cast<uint8_t>(uartArray[uartIndex]->DR);
-            ++bytesReceived;
-        }
+            while (bytesReceived < activeBuffer.size() && (uartArray[uartIndex]->FR & UART_FR_RXFE) == 0)
+            {
+                activeBuffer[bytesReceived] = static_cast<uint8_t>(uartArray[uartIndex]->DR);
+                ++bytesReceived;
+            }
 
-        if (bytesReceived > 0 && dataReceived != nullptr)
-            dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
+            if (bytesReceived > 0 && dataReceived != nullptr)
+                dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
+
+            if ((uartArray[uartIndex]->FR & UART_FR_RXFE) != 0)
+                break;
+
+            bytesReceived = 0;
+        }
 
         if (dataReceived != nullptr)
             ReceiveData();
@@ -167,36 +188,34 @@ namespace hal::tiva
         if (rawStatus & UART_RIS_OERIS)
             InterruptClear(UART_ICR_OEIC);
 
-#if defined(TM4C123)
-        if (dmaTx.IsCompletionPending())
+        if (family::DmaTxComplete(dmaTx, rawStatus))
         {
-            dmaTx.ClearCompletion();
-            ProcessDmaTx();
+            family::ClearDmaTx(dmaTx);
+            if constexpr (family::DmaTxClearMask != 0)
+                InterruptClear(family::DmaTxClearMask);
+            if (sending && dmaTx.IsPrimaryTransferCompleted())
+                ProcessDmaTx();
         }
 
-        if (dmaRx.IsCompletionPending())
-        {
-            dmaRx.ClearCompletion();
-            ProcessDmaRx();
-        }
-#else
-        if (rawStatus & UART_RIS_DMATXRIS)
-        {
-            InterruptClear(UART_ICR_DMATXIC);
-            ProcessDmaTx();
-        }
+        bool flushRx = false;
 
-        if (rawStatus & UART_RIS_DMARXRIS)
+        if (family::DmaRxComplete(dmaRx, rawStatus))
         {
-            InterruptClear(UART_ICR_DMARXIC);
+            family::ClearDmaRx(dmaRx);
+            if constexpr (family::DmaRxClearMask != 0)
+                InterruptClear(family::DmaRxClearMask);
             ProcessDmaRx();
+            // Single requests may have emptied the FIFO before USEBURST was restored, so no time-out would follow
+            flushRx = (uartArray[uartIndex]->FR & UART_FR_RXFE) != 0;
         }
-#endif
 
         if (maskedStatus & UART_RIS_RTRIS)
         {
             InterruptClear(UART_ICR_RTIC);
-            ProcessRxTimeout();
+            flushRx = true;
         }
+
+        if (flushRx)
+            ProcessRxTimeout();
     }
 }

@@ -1,12 +1,7 @@
 #include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
+#include "QuadratureEncoderFamily.hpp"
 #include "infra/util/ReallyAssert.hpp"
 #include <limits>
-
-#if defined(TM4C129)
-#define NUMBER_OF_QEI 1
-#else
-#define NUMBER_OF_QEI 2
-#endif
 
 extern "C" uint32_t SystemCoreClock;
 
@@ -72,19 +67,8 @@ namespace hal::tiva
         constexpr const uint32_t QEI_ISC_TIMER = 0x00000002; // Velocity Timer Expired Interrupt
         constexpr const uint32_t QEI_ISC_INDEX = 0x00000001; // Index Pulse Interrupt
 
-        constexpr std::array<uint32_t, NUMBER_OF_QEI> peripheralQeiArray = { {
-            QEI0_BASE,
-#if defined(TM4C123)
-            QEI1_BASE,
-#endif
-        } };
-
-        constexpr std::array<int32_t, NUMBER_OF_QEI> peripheralIrqQeiArray = { {
-            QEI0_IRQn,
-#if defined(TM4C123)
-            QEI1_IRQn,
-#endif
-        } };
+        using hal::tiva::family::peripheralIrqQeiArray;
+        using hal::tiva::family::peripheralQeiArray;
 
         const infra::MemoryRange<QEI0_Type* const> peripheralQei = infra::ReinterpretCastMemoryRange<QEI0_Type* const>(infra::MakeRange(peripheralQeiArray));
 
@@ -100,16 +84,20 @@ namespace hal::tiva
 
     QuadratureEncoder::QuadratureEncoder(uint8_t aQeiIndex, GpioPin& phaseA, GpioPin& phaseB, GpioPin& index, const Config& config)
         : qeiIndex(aQeiIndex)
+        , resolution(config.resolution)
         , phaseA(phaseA, PinConfigPeripheral::qeiPhaseA)
         , phaseB(phaseB, PinConfigPeripheral::qeiPhaseB)
         , index(index, PinConfigPeripheral::qeiIndex)
     {
         qeiArray = peripheralQei;
-        irqArray = infra::MakeRange(peripheralIrqQeiArray);
 
         EnableClock();
 
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
+        SYSCTL->SRQEI |= (1u << qeiIndex);
+        SYSCTL->SRQEI &= ~(1u << qeiIndex);
+        while (!(SYSCTL->PRQEI & (1u << qeiIndex)))
+        {
+        }
 
         {
             const auto us = std::chrono::duration_cast<std::chrono::microseconds>(config.velocityPeriod).count();
@@ -129,16 +117,14 @@ namespace hal::tiva
         SetRegister(config.captureMode == Config::CaptureMode::phaseAandPhaseB, qeiArray[qeiIndex]->CTL, QEI_CTL_CAPMODE);
         SetRegister(config.signalMode == Config::SignalMode::clockAndDirection, qeiArray[qeiIndex]->CTL, QEI_CTL_SIGMODE);
 
-        qeiArray[qeiIndex]->MAXPOS = config.resolution - 1;
-        qeiArray[qeiIndex]->POS = config.offset;
+        qeiArray[qeiIndex]->MAXPOS = resolution - 1;
         qeiArray[qeiIndex]->CTL |= QEI_CTL_ENABLE;
+        // QEIPOS ignores writes while the module is disabled
+        qeiArray[qeiIndex]->POS = config.offset;
     }
 
     QuadratureEncoder::~QuadratureEncoder()
     {
-        qeiArray[qeiIndex]->INTEN &= ~QEI_INTEN_DIR;
-        qeiInterruptRegistration = std::nullopt;
-        qeiArray[qeiIndex]->CTL &= ~QEI_CTL_ENABLE;
         DisableClock();
     }
 
@@ -149,7 +135,7 @@ namespace hal::tiva
 
     uint32_t QuadratureEncoder::Resolution()
     {
-        return qeiArray[qeiIndex]->MAXPOS;
+        return resolution;
     }
 
     QuadratureEncoder::MotionDirection QuadratureEncoder::Direction()

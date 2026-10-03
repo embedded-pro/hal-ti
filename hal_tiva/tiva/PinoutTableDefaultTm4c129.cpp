@@ -105,7 +105,7 @@ namespace hal::tiva
         { 3, Port::F, 2, 0x0e },
     } };
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiRxPins = { {
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins = { {
         { 0, Port::A, 4, 0x0f },
         { 1, Port::E, 4, 0x0f },
         { 2, Port::D, 1, 0x0f },
@@ -113,7 +113,7 @@ namespace hal::tiva
         { 3, Port::F, 1, 0x0e },
     } };
 
-    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiTxPins = { {
+    constexpr std::array<const Gpio::PinPosition, 5> pinoutTableSpiRxPins = { {
         { 0, Port::A, 5, 0x0f },
         { 1, Port::E, 5, 0x0f },
         { 2, Port::D, 0, 0x0f },
@@ -441,9 +441,9 @@ namespace hal::tiva
     constexpr infra::MemoryRange<const Gpio::PinoutTable> pinoutTableEthernet = pinoutTableEthernetArray;
 
     constexpr std::array<const Gpio::PinPosition, 3> pinoutTableComparatorOutputPins = { {
-        { 0, Port::D, 0, 0x08 },
-        { 1, Port::D, 1, 0x08 },
-        { 2, Port::D, 2, 0x08 },
+        { 0, Port::D, 0, 0x05 },
+        { 1, Port::D, 1, 0x05 },
+        { 2, Port::D, 2, 0x05 },
     } };
 
     constexpr std::array<const Gpio::PinoutTable, 1> pinoutTableComparatorArray = { {
