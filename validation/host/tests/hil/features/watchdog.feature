@@ -12,7 +12,7 @@ Feature: Watchdog
     `feed=auto` keeps the board alive with one warning per timeout; a missed feed resets only with
     `reset=1`, and warns without resetting otherwise.
     When the watchdog starts with the timeout, the reset setting and the feed mode
-    Then a manually fed watchdog with reset warns within 2 timeouts plus 1 s, and the board then boots from its reset within 3 timeouts plus the boot timeout
+    Then a manually fed watchdog with reset warns under its index within 2 timeouts plus 1 s, and the board then boots from its reset within 3 timeouts plus the boot timeout
     And any other watchdog warns at least once during the observation window, only under its own index, and the board does not reset
     And an automatically fed watchdog warns at least 0.5 and at most 1.5 times plus 1 as often as the observation window holds timeouts
     And the board answers ping unless the watchdog is fed manually with reset

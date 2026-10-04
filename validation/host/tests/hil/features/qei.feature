@@ -61,7 +61,7 @@ Feature: Quadrature encoder
     When the position change modulo the default resolution over 50 pulses at 1000 Hz on A is measured with the AD3 driving B low, then high
     And the AD3 releases B
     Then the two position changes are opposite
-    And each position change is 50 times the counts per clock pulse
+    And each position change is 50 times the counts per clock pulse in size
 
   Scenario: QEI0 opens on its default pins, other instances need A and B
     QEI0 opens on its default pins without arguments; other instances need `a` and `b`.

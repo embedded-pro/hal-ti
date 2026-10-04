@@ -236,13 +236,15 @@ def tx_line_decodes(fw, ad3, uart_cfg, instance, tx_dio, baud, parity, stop):
 
 
 @then(
-    "a payload counting up from 00, as long as one uart.send command line can carry and at most the large payload size, goes from "
-    "the firmware to the AD3"
+    parsers.parse(
+        "a payload counting up from 00, as long as one uart.send command line can carry but at most the large payload size and "
+        "{byte_values:d} bytes, goes from the firmware to the AD3"
+    )
 )
-def largest_to_ad3(fw, ad3, board_cfg, uart_cfg, instance, baud):
+def largest_to_ad3(fw, ad3, board_cfg, uart_cfg, instance, baud, byte_values):
     prefix = format_command("uart.send", instance["index"])
     size = min(uart_cfg["large_payload"], expect.max_hex_payload(board_cfg.terminal.max_command_length, prefix))
-    firmware_to_ad3(fw, ad3, instance["index"], bytes(range(256))[:size], baud, "none", 1)
+    firmware_to_ad3(fw, ad3, instance["index"], bytes(range(byte_values))[:size], baud, "none", 1)
 
 
 @then("a payload of the large payload size to the firmware, counting in steps of 7, goes from the AD3 to the firmware")

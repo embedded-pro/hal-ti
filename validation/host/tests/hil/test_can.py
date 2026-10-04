@@ -371,7 +371,8 @@ def receive_errors_reported(fw, can, ms):
 
 @then(
     parsers.parse(
-        "the CANable receives a frame with its id and id type within {seconds:g} s if the recovery setting is on, and does not if it is off"
+        "the CANable receives a frame with the id and id type of the sent frame within {seconds:g} s if the recovery setting is on, "
+        "and does not if it is off"
     )
 )
 def recovery_as_set(can_peer, recover, pending_frame, seconds):

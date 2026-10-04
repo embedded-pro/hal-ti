@@ -128,7 +128,7 @@ def count_cleared(fw, pin):
     parsers.parse("the pulse count, tolerance and jitter of the board file, the jitter {default_ms:g} ms unless set"),
     target_fixture="pulse_spec",
 )
-def pulse_spec(board_cfg, default_ms):
+def pulse_parameters(board_cfg, default_ms):
     return {
         "count": board_cfg.param("gpio.pulse.count"),
         "tolerance": board_cfg.param("gpio.pulse.tolerance"),

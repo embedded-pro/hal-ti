@@ -88,4 +88,4 @@ Feature: CAN
     And the controller is open at the bus bit rate with the recovery setting
     When the firmware sends a standard frame with id 0x0 and 8 zero bytes in the background while the controller reports busOff within 2 s
     And the CANable switches to the bus bit rate
-    Then the CANable receives a frame with its id and id type within 1 s if the recovery setting is on, and does not if it is off
+    Then the CANable receives a frame with the id and id type of the sent frame within 1 s if the recovery setting is on, and does not if it is off

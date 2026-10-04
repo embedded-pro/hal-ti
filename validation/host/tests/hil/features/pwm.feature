@@ -19,7 +19,8 @@ Feature: PWM
   Scenario: The selected outputs run in step while the unused ones stay low
     1-4 generators with both outputs, only A (`<pin>:-`) or only B (`-:<pin>`); the unused pin stays a
     GPIO driven low, so the driver must not take it over.
-    Given both outputs of as many generators as the generator count are wired
+    Given the system clock of the board
+    And both outputs of as many generators as the generator count are wired
     And the outputs the output option leaves out are configured as GPIO outputs
     And the generators are opened on the outputs of the output option at 10000 Hz in edge mode with the sync and no dead band
     When the generators get the duties 20, 40, 60 and 80 % in order and the outputs are recorded, triggered on the first used one
@@ -86,7 +87,7 @@ Feature: PWM
 
   Scenario: The generator triggers the ADC on the events of its source
     Generator `gen` triggers an asynchronous ADC sequencer (`trigger=pwm<gen>`) once per `source` event.
-    Given the generator gen is opened at the ADC trigger frequency in the mode with divisor 64 and the trigger source
+    Given the generator is opened at the ADC trigger frequency in the mode with divisor 64 and the trigger source
     And the duty is 50 %
     Then an ADC sequencer triggered by the generator converts no faster than the trigger, or times out if the source has no events in the mode
 

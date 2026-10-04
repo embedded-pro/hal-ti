@@ -144,8 +144,8 @@ def feed_regularly(fw, index, fed_timeout_ms, seconds):
 
 @then(
     parsers.parse(
-        "a manually fed watchdog with reset warns within {warn_timeouts:d} timeouts plus {warn_margin:d} s, and the board then "
-        "boots from its reset within {boot_timeouts:d} timeouts plus the boot timeout"
+        "a manually fed watchdog with reset warns under its index within {warn_timeouts:d} timeouts plus {warn_margin:d} s, "
+        "and the board then boots from its reset within {boot_timeouts:d} timeouts plus the boot timeout"
     )
 )
 def missed_feed_resets(fw, board_cfg, index, timeout_ms, reset, feed, warn_timeouts, warn_margin, boot_timeouts):

@@ -21,7 +21,7 @@ Feature: UART
   @ad3
   Scenario: The largest payloads cross both ways
     Given the instance is open against the AD3 at the baud rate with the variant
-    Then a payload counting up from 00, as long as one uart.send command line can carry and at most the large payload size, goes from the firmware to the AD3
+    Then a payload counting up from 00, as long as one uart.send command line can carry but at most the large payload size and 256 bytes, goes from the firmware to the AD3
     And a payload of the large payload size to the firmware, counting in steps of 7, goes from the AD3 to the firmware
 
   @ad3

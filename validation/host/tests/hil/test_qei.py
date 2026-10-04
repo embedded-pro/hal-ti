@@ -294,7 +294,7 @@ def changes_opposite(deltas):
     assert deltas[0] == -deltas[1], f"direction levels must count opposite ways: {deltas}"
 
 
-@then(parsers.parse("each position change is {pulses:d} times the counts per clock pulse"))
+@then(parsers.parse("each position change is {pulses:d} times the counts per clock pulse in size"))
 def changes_match_pulses(qei, deltas, pulses):
     assert abs(deltas[0]) == pulses * qei["clkdir_counts_per_pulse"]
 

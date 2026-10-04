@@ -398,9 +398,7 @@ def open_with_interrupt_sources(fw, pwm, sysclk, state, mode, frequency, irq_sou
     state.update(selected=selected, sources=sources, frequency=frequency)
 
 
-@given(
-    parsers.parse("the generator gen is opened at the ADC trigger frequency in the mode with divisor {divisor:d} and the trigger source")
-)
+@given(parsers.parse("the generator is opened at the ADC trigger frequency in the mode with divisor {divisor:d} and the trigger source"))
 def open_for_adc_trigger(fw, pwm, source, gen, mode, divisor):
     frequency = pwm["adc_trigger_input"]["freq"]
     fw.pwm.open(pwm["module"], gens=[gen], freq=frequency, mode=mode, div=divisor, trigger=source)
