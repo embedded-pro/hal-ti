@@ -27,3 +27,17 @@ def test_every_hil_module_has_its_feature():
     modules = {path.stem.removeprefix("test_") for path in (HOST / "tests" / "hil").glob("test_*.py")}
     features = {path.stem for path in FEATURES.glob("*.feature")}
     assert modules == features
+
+
+def test_skips_at_the_test_point_at_the_bound_function():
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests/hil/test_ethernet.py", "--fake", "--board", "ek_tm4c1294xl", "-rs", "-q"]
+        + ["-k", "unsupported", "-p", "no:cacheprovider"],
+        cwd=HOST,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    skipped = [line for line in result.stdout.splitlines() if line.startswith("SKIPPED")]
+    assert skipped, result.stdout + result.stderr
+    assert all("tests/hil/test_ethernet.py:" in line for line in skipped), "\n".join(skipped)

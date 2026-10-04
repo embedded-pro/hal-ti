@@ -18,6 +18,7 @@ markers above and takes their argnames) and defines its steps. Feature tags beco
 
 from __future__ import annotations
 
+import inspect
 import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -88,6 +89,17 @@ def pytest_bdd_apply_tag(tag: str, function: Callable[..., Any]) -> Callable[...
     if name == "ad3":
         return pytest.mark.usefixtures("ad3")(pytest.mark.ad3(function))
     return None
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_pycollect_makeitem(collector: pytest.Collector, name: str, obj: object) -> None:
+    """Locate a scenario at the test function it is bound to. pytest-bdd's scenario wrapper is defined in
+    pytest_bdd/scenario.py, so the skips pytest reports at the test (`-rs`: fixture skips, `family`/`requires_option`)
+    would otherwise point there instead of at tests/hil/test_<peripheral>.py."""
+    if inspect.isfunction(obj) and obj.__module__ == "pytest_bdd.scenario":
+        bound = inspect.getclosurevars(obj).nonlocals.get("fn")
+        if inspect.isfunction(bound):
+            obj.place_as = bound
 
 
 def board_config(config: pytest.Config) -> BoardConfig:
