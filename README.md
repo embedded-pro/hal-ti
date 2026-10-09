@@ -51,7 +51,7 @@ hal_ti_target_bringup(myprogram)
 Build options defined in the top-level `CMakeLists.txt`:
 
 - `HAL_TI_INCLUDE_BRINGUP` (default `ON`): include the default bringup code; turn off when providing custom initialization.
-- `HAL_TI_INCLUDE_LWIP` (default `OFF`): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
+- `HAL_TI_INCLUDE_LWIP` (default `OFF`, switched on by the `tm4c1294ncpdt` preset): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
 - `HAL_TI_BUILD_TESTS` (default `OFF`): build the host unit tests (standalone builds only).
 - `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS` (default `OFF`): build the examples (`HAL_TI_BUILD_EXAMPLES` also builds `validation/` and `demo/`).
 
