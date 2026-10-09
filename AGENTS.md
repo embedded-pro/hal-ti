@@ -14,6 +14,7 @@ hal-ti is a Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4
 - `tiva/CMSIS/Device/TI/` — CMSIS device headers, startup vector tables (`startup_TM4C123.c`, `startup_TM4C129.c`), linker scripts
 - `integration_test/` — Host-side integration tests (GoogleTest)
 - `examples/` — Reference applications (`blink`, `terminal_and_peripherals`, `terminal_uart_with_dma`, `freertos`)
+- `demo/` — Board-specific firmware, one folder per board or board + BoosterPack (`ek_tm4c123xgl`, `ek_tm4c123xgl_boostxl_k350qvg_s1`, `ek_tm4c1294xl`, `tm4c1294xl_boost_drv8711`); each builds only for its own MCU
 - `doc/` — Board-specific documentation
 
 ## Memory — no heap

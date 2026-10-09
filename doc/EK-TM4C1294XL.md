@@ -21,3 +21,10 @@ Board support package: `hal_tiva/instantiations/LaunchPadBspEkTm4c1294.hpp`, sel
 1. Configure: `cmake --preset tm4c1294ncpdt`
 2. Build: `cmake --build --preset tm4c1294ncpdt-Debug`
 3. Optionally add `-DHAL_TI_INCLUDE_LWIP=ON` at configure time to build the lwIP Ethernet instantiation (TM4C129 only)
+
+## Demos
+
+1. [`demo/ek_tm4c1294xl`](../demo/ek_tm4c1294xl/README.md): LEDs, user switches and trace UART
+2. [`demo/tm4c1294xl_boost_drv8711`](../demo/tm4c1294xl_boost_drv8711/README.md): BOOST-DRV8711 stepper driver BoosterPack
+
+Build with `cmake --preset tm4c1294ncpdt` and `cmake --build --preset tm4c1294ncpdt-RelWithDebInfo --target <target>`; see [demo/README.md](../demo/README.md) for the target names.
