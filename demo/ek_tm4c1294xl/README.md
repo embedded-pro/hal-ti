@@ -41,4 +41,5 @@ Plug the board into a network with a DHCP server. Once lwIP has a lease, the tra
 1. The MAC address is the one programmed in the flash user registers (the board sticker); if they are blank it falls back to a locally administered address derived from the unique ID.
 2. lwIP asks for random numbers (DHCP transaction id, TCP sequence numbers). The TM4C1294NCPDT has no random number generator, so `UniqueIdRandomGenerator` is a xorshift generator seeded from the unique ID. It is not cryptographically secure and is predictable per device.
 3. lwIP needs `HAL_GetTick`, which EMIL's lwIP configuration takes from the ST HAL; `hal_tiva/bringup/Bringup.cpp` now provides a weak one from the system tick timer service, as hal-st does.
-4. Verified only by building (about 127 KB flash and 36 KB RAM); nothing has been run on hardware, so DHCP, the HTTP pages and LLMNR are untried.
+4. `hal::tiva::Ethernet` now ties the MAC DMA to the stack: it starts when the stack attaches as MAC observer and stops, with the descriptor rings reset, when it detaches. Before, the driver asked a not yet attached observer for receive buffers at boot, and a link flap left the DMA pointing at buffers the stack had freed.
+5. Verified only by building (about 127 KB flash and 36 KB RAM); nothing has been run on hardware, so DHCP, the HTTP pages, LLMNR and the link-flap recovery are untried.
