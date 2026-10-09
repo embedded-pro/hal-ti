@@ -13,14 +13,14 @@ The BoosterPack is used in its default 4-wire SPI mode (SCS, SCL, SDI, SDC; PS0 
 
 BoosterPack pins are from the BOOSTXL-K350QVG-S1 schematic, LaunchPad pins from table 2-3 to 2-6 of the EK-TM4C123GXL user's manual (SPMU296). The pin constants are in `BoardPins.hpp`.
 
-| BoosterPack signal | BoosterPack pin | LaunchPad pin | Use                                                        |
-|--------------------|-----------------|---------------|------------------------------------------------------------|
-| LCD_SCL            | J1.7            | PB4           | SSI2 clock, `hal::tiva::SpiMaster`                         |
-| LCD_SDI            | J2.15           | PB7           | SSI2 transmit                                              |
+| BoosterPack signal | BoosterPack pin | LaunchPad pin | Use                                                                |
+|--------------------|-----------------|---------------|--------------------------------------------------------------------|
+| LCD_SCL            | J1.7            | PB4           | SSI2 clock, `hal::tiva::SpiMaster`                                 |
+| LCD_SDI            | J2.15           | PB7           | SSI2 transmit                                                      |
 | LCD_SCS            | J2.13           | PA4           | chip select, driven as GPIO by `services::SpiMasterWithChipSelect` |
-| LCD_SDC            | J1.8            | PA5           | data/command, GPIO                                         |
-| LCD_RST            | J4.32           | PD7           | reset, GPIO (NMI-locked pin, unlocked by `hal::tiva::GpioPin`) |
-| LED_PWM            | J4.40           | PF2           | backlight enable, shared with the blue LED                 |
+| LCD_SDC            | J1.8            | PA5           | data/command, GPIO                                                 |
+| LCD_RST            | J4.32           | PD7           | reset, GPIO (NMI-locked pin, unlocked by `hal::tiva::GpioPin`)     |
+| LED_PWM            | J4.40           | PF2           | backlight enable, shared with the blue LED                         |
 
 The SPI runs in mode 0 at 4 MHz. SSD2119 has no read-back over SPI, so MISO (PB6) is not configured.
 

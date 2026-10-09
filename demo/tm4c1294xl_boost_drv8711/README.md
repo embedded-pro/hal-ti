@@ -23,21 +23,21 @@ With TORQUE 0x80 and ISGAIN 40 the full-scale current is about 0.7 A per the DRV
 
 BoosterPack pins are from the BOOST-DRV8711 schematic and reference firmware (SLVC575B), LaunchPad pins from the EK-TM4C1294XL schematic (SPMR241, BoosterPack 1 interface, connectors X8 and X9). The pin constants are in `BoardPins.hpp`.
 
-| DRV8711 signal | BoosterPack pin | LaunchPad pin | Connector | Use                                                       |
-|----------------|-----------------|---------------|-----------|-----------------------------------------------------------|
-| POT            | J1.2            | PE4 (AIN9)    | X8-3      | speed, `hal::tiva::SynchronousAdc`                        |
-| nSLEEP         | J1.6            | PE5           | X8-11     | output, high = awake                                      |
-| SCLK           | J1.7            | PD3           | X8-13     | SSI2 clock                                                |
-| RESET          | J1.8            | PC7           | X8-15     | output, high = reset                                      |
-| STEP / AIN1    | J1.9            | PB2           | X8-17     | step pulse                                                |
-| DIR / AIN2     | J1.10           | PB3           | X8-19     | direction                                                 |
-| SCS            | J2.11           | PP2           | X9-20     | chip select, active high (`services::GpioPinInverted`)    |
-| BIN2           | J2.12           | PN3           | X9-18     | held low (unused with the indexer)                        |
-| BIN1           | J2.13           | PN2           | X9-16     | held low (unused with the indexer)                        |
-| SDATO (MISO)   | J2.14           | PD0           | X9-14     | SSI2 receive                                              |
-| SDATI (MOSI)   | J2.15           | PD1           | X9-12     | SSI2 transmit                                             |
-| nFAULT         | J2.18           | PH2           | X9-6      | input with pull-up, interrupt on falling edge             |
-| nSTALL         | J2.19           | PM3           | X9-4      | input with pull-up, interrupt on falling edge             |
+| DRV8711 signal | BoosterPack pin | LaunchPad pin | Connector | Use                                                    |
+|----------------|-----------------|---------------|-----------|--------------------------------------------------------|
+| POT            | J1.2            | PE4 (AIN9)    | X8-3      | speed, `hal::tiva::SynchronousAdc`                     |
+| nSLEEP         | J1.6            | PE5           | X8-11     | output, high = awake                                   |
+| SCLK           | J1.7            | PD3           | X8-13     | SSI2 clock                                             |
+| RESET          | J1.8            | PC7           | X8-15     | output, high = reset                                   |
+| STEP / AIN1    | J1.9            | PB2           | X8-17     | step pulse                                             |
+| DIR / AIN2     | J1.10           | PB3           | X8-19     | direction                                              |
+| SCS            | J2.11           | PP2           | X9-20     | chip select, active high (`services::GpioPinInverted`) |
+| BIN2           | J2.12           | PN3           | X9-18     | held low (unused with the indexer)                     |
+| BIN1           | J2.13           | PN2           | X9-16     | held low (unused with the indexer)                     |
+| SDATO (MISO)   | J2.14           | PD0           | X9-14     | SSI2 receive                                           |
+| SDATI (MOSI)   | J2.15           | PD1           | X9-12     | SSI2 transmit                                          |
+| nFAULT         | J2.18           | PH2           | X9-6      | input with pull-up, interrupt on falling edge          |
+| nSTALL         | J2.19           | PM3           | X9-4      | input with pull-up, interrupt on falling edge          |
 
 The BoosterPack is a 20-pin board (J1 and J2 only). Pin numbers use the BoosterPack standard, so pins 11 to 19 of J2 are pins 10 to 2 of J2 on the BOOST-DRV8711 schematic. SPI is mode 0 at 1 MHz: the reference firmware sets UCCKPH and clears UCCKPL on its MSP430 USCI, which is clock idle low with data captured on the first edge, and idles SCS low.
 

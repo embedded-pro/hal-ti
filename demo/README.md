@@ -2,12 +2,12 @@
 
 Board-specific firmware, one folder per board or board plus BoosterPack. Each demo builds only for its own MCU, so the configure preset decides which ones exist. Trace output is on UART0 (PA1 TX, 115200 8N1), which the on-board ICDI exposes as a virtual COM port.
 
-| Folder                             | Hardware                                | Preset          | Target                                          |
-|------------------------------------|-----------------------------------------|-----------------|-------------------------------------------------|
-| `ek_tm4c123xgl`                    | EK-TM4C123GXL                           | `tm4c123gh6pm`  | `demo_ti.ek_tm4c123xgl`                         |
-| `ek_tm4c123xgl_boostxl_k350qvg_s1` | EK-TM4C123GXL + BOOSTXL-K350QVG-S1      | `tm4c123gh6pm`  | `demo_ti.ek_tm4c123xgl_boostxl_k350qvg_s1`      |
-| `ek_tm4c1294xl`                    | EK-TM4C1294XL                           | `tm4c1294ncpdt` | `demo_ti.ek_tm4c1294xl`                         |
-| `tm4c1294xl_boost_drv8711`         | EK-TM4C1294XL + BOOST-DRV8711           | `tm4c1294ncpdt` | `demo_ti.tm4c1294xl_boost_drv8711`              |
+| Folder                             | Hardware                           | Preset          | Target                                     |
+|------------------------------------|------------------------------------|-----------------|--------------------------------------------|
+| `ek_tm4c123xgl`                    | EK-TM4C123GXL                      | `tm4c123gh6pm`  | `demo_ti.ek_tm4c123xgl`                    |
+| `ek_tm4c123xgl_boostxl_k350qvg_s1` | EK-TM4C123GXL + BOOSTXL-K350QVG-S1 | `tm4c123gh6pm`  | `demo_ti.ek_tm4c123xgl_boostxl_k350qvg_s1` |
+| `ek_tm4c1294xl`                    | EK-TM4C1294XL                      | `tm4c1294ncpdt` | `demo_ti.ek_tm4c1294xl`                    |
+| `tm4c1294xl_boost_drv8711`         | EK-TM4C1294XL + BOOST-DRV8711      | `tm4c1294ncpdt` | `demo_ti.tm4c1294xl_boost_drv8711`         |
 
 Build one (the demos are part of `HAL_TI_BUILD_EXAMPLES`, which the presets enable):
 
