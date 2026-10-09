@@ -1,0 +1,4 @@
+add_subdirectory(ek_tm4c123xgl)
+add_subdirectory(ek_tm4c123xgl_boostxl_k350qvg_s1)
+add_subdirectory(ek_tm4c1294xl)
+add_subdirectory(tm4c1294xl_boost_drv8711)

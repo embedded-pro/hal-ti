@@ -85,7 +85,8 @@
       "cacheVariables": {
         "TARGET_CORTEX": "m4",
         "TARGET_MCU_FAMILY": "TM4C129",
-        "TARGET_MCU": "tm4c1294ncpdt"
+        "TARGET_MCU": "tm4c1294ncpdt",
+        "HAL_TI_INCLUDE_LWIP": true
       }
     }
   ],

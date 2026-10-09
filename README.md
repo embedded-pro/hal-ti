@@ -51,9 +51,9 @@ hal_ti_target_bringup(myprogram)
 Build options defined in the top-level `CMakeLists.txt`:
 
 - `HAL_TI_INCLUDE_BRINGUP` (default `ON`): include the default bringup code; turn off when providing custom initialization.
-- `HAL_TI_INCLUDE_LWIP` (default `OFF`): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
+- `HAL_TI_INCLUDE_LWIP` (default `OFF`, switched on by the `tm4c1294ncpdt` preset): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
 - `HAL_TI_BUILD_TESTS` (default `OFF`): build the host unit tests (standalone builds only).
-- `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS` (default `OFF`): build the examples.
+- `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS` (default `OFF`): build the examples (`HAL_TI_BUILD_EXAMPLES` also builds `validation/` and `demo/`).
 
 ## How to test the software
 
@@ -78,6 +78,8 @@ Please refer to our [contributing](CONTRIBUTING.md) guide when you want to contr
 ## Examples
 
 In order to run the examples, please check the document [EK-TM4C123GXL](doc/EK-TM4C123GXL.md) (TM4C123) or [EK-TM4C1294XL](doc/EK-TM4C1294XL.md) (TM4C129) first.
+
+The [demo](demo/README.md) folder has one firmware per board, and per board plus BoosterPack (BOOSTXL-K350QVG-S1 display, BOOST-DRV8711 stepper driver).
 
 ## License
 

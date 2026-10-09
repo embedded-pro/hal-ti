@@ -15,6 +15,7 @@ This is a Hardware Abstraction Layer (HAL) for TI ARM Cortex-M based microcontro
 - **tiva/CMSIS/Device/TI/**: CMSIS device headers, register structs, startup vector tables, linker scripts
 - **integration_test/**: Host-side integration tests (GoogleTest)
 - **examples/**: Reference applications (blink, terminal, FreeRTOS)
+- **demo/**: Board-specific firmware per board or board + BoosterPack (EK-TM4C123GXL, EK-TM4C1294XL, BOOSTXL-K350QVG-S1, BOOST-DRV8711)
 - **doc/**: Board-specific documentation
 
 ## Critical Constraints

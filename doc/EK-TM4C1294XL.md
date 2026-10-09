@@ -10,6 +10,7 @@ Board support package: `hal_tiva/instantiations/LaunchPadBspEkTm4c1294.hpp`, sel
 4. User switch SW1: PJ0 (`ui.sw1`), internal pull-up
 5. User switch SW2: PJ1 (`ui.sw2`), internal pull-up
 6. Trace output: UART0 TX on PA1 (`LaunchPadTerminalAndTracer`), 115200 baud; the `terminal_uart_with_dma` example also uses UART0 RX on PA0
+7. Ethernet: internal PHY and RJ45 jack; LED D4 (PF0) is link OK and LED D3 (PF4) is TX/RX activity when the Ethernet MAC drives them, as the Ethernet demo does
 
 ## Debugging
 
@@ -20,4 +21,11 @@ Board support package: `hal_tiva/instantiations/LaunchPadBspEkTm4c1294.hpp`, sel
 
 1. Configure: `cmake --preset tm4c1294ncpdt`
 2. Build: `cmake --build --preset tm4c1294ncpdt-Debug`
-3. Optionally add `-DHAL_TI_INCLUDE_LWIP=ON` at configure time to build the lwIP Ethernet instantiation (TM4C129 only)
+3. The preset builds the lwIP Ethernet instantiation (`HAL_TI_INCLUDE_LWIP=ON`); add `-DHAL_TI_INCLUDE_LWIP=OFF` at configure time to leave it out
+
+## Demos
+
+1. [`demo/ek_tm4c1294xl`](../demo/ek_tm4c1294xl/README.md): LEDs, user switches and trace UART, and an Ethernet demo (DHCP, HTTP server, LLMNR) on the on-board PHY
+2. [`demo/tm4c1294xl_boost_drv8711`](../demo/tm4c1294xl_boost_drv8711/README.md): BOOST-DRV8711 stepper driver BoosterPack
+
+Build with `cmake --preset tm4c1294ncpdt` and `cmake --build --preset tm4c1294ncpdt-RelWithDebInfo --target <target>`; see [demo/README.md](../demo/README.md) for the target names.

@@ -17,3 +17,10 @@
 
 1. Remove resistors R9 and R10.
 2. Solder resistors R25 and R29 (0 ohm)
+
+## Demos
+
+1. [`demo/ek_tm4c123xgl`](../demo/ek_tm4c123xgl/README.md): LEDs, user switches and trace UART
+2. [`demo/ek_tm4c123xgl_boostxl_k350qvg_s1`](../demo/ek_tm4c123xgl_boostxl_k350qvg_s1/README.md): BOOSTXL-K350QVG-S1 display over SPI
+
+Build with `cmake --preset tm4c123gh6pm` and `cmake --build --preset tm4c123gh6pm-RelWithDebInfo --target <target>`; see [demo/README.md](../demo/README.md) for the target names.

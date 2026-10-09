@@ -2,9 +2,9 @@
 #define HAL_ETHERNET_TIVA_HPP
 
 #include DEVICE_HEADER
+#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/interfaces/Ethernet.hpp"
 #include "hal/interfaces/MacAddress.hpp"
-#include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <optional>
 
@@ -38,6 +38,10 @@ namespace hal::tiva
         void RemoveMacAddressFilter(hal::MacAddress address) override;
 
         uint16_t PhyAddress() const override;
+
+    protected:
+        void RegisterObserver(infra::SingleObserver<hal::EthernetMacObserver, hal::EthernetMac>* newObserver) override;
+        void UnregisterObserver(infra::SingleObserver<hal::EthernetMacObserver, hal::EthernetMac>* oldObserver) override;
 
     private:
         struct EMACDescriptor;
@@ -103,9 +107,11 @@ namespace hal::tiva
 
         void Initialize();
         void EnableEMACClock() const;
+        void DisableEMACClock() const;
         void ResetEMACClock() const;
         bool IsEMACReady() const;
         void EnableEPHYClock() const;
+        void DisableEPHYClock() const;
         void ResetEPHYClock() const;
         bool IsEPHYPresent() const;
         bool IsEPHYReady() const;
@@ -125,6 +131,8 @@ namespace hal::tiva
         uint32_t GetInterruptStatus(bool mask) const;
         void EnableTxInterrupts() const;
         void EnableRxInterrupts() const;
+        void StopDma() const;
+        void ConfigureMacLink(uint16_t phyStatus);
         void EnableInterruptsSource(uint32_t options) const;
         void ProcessInterrupt(uint32_t status);
         void ProcessPhyInterrupt();

@@ -547,10 +547,7 @@ namespace
     constexpr uint32_t EMAC_TS_INT_TS_SEC_OVERFLOW = 0x00000001;
     constexpr uint32_t EMAC_INT_POWER_MGMNT = 0x10000000;
 
-    constexpr uint16_t phyAnlpaHalfDuplex10MHz = 5;
-    constexpr uint16_t phyAnlpaFullDuplex10MHz = 6;
-    constexpr uint16_t phyAnlpaHalfDuplex100MHz = 7;
-    constexpr uint16_t phyAnlpaFullDuplex100MHz = 8;
+    constexpr uint32_t dmaStopPollLimit = 100000;
 
     const std::array<uint32_t, 4> toTivaLinkSpeed = { {
         EMAC_PHY_AN_10B_T_FULL_DUPLEX,  /* fullDuplex10MHz */
@@ -685,9 +682,38 @@ namespace hal::tiva
     {
         interrupt.reset();
         EMAC0->DMAIM = 0;
+        EMAC0->EPHYIM &= ~EMAC_EPHYIM_INT;
         EMAC0->DMABUSMOD |= EMAC_DMABUSMOD_SWR;
         while (EMAC0->DMABUSMOD & EMAC_DMABUSMOD_SWR)
             ;
+
+        DisableEPHYClock();
+        DisableEMACClock();
+    }
+
+    void Ethernet::RegisterObserver(infra::SingleObserver<hal::EthernetMacObserver, hal::EthernetMac>* newObserver)
+    {
+        hal::EthernetMac::RegisterObserver(newObserver);
+
+        EnableTxInterrupts();
+        EnableRxInterrupts();
+
+        // The observer is still being constructed, so it can only be asked for receive buffers once it is complete
+        infra::EventDispatcher::Instance().Schedule([this]()
+            {
+                if (EthernetMac::HasObserver())
+                    receiveDescriptors->RequestReceiveBuffers();
+            });
+    }
+
+    void Ethernet::UnregisterObserver(infra::SingleObserver<hal::EthernetMacObserver, hal::EthernetMac>* oldObserver)
+    {
+        hal::EthernetMac::UnregisterObserver(oldObserver);
+
+        // The observer owns the receive buffers and frees them when it goes away, so the DMA must not keep them
+        StopDma();
+        receiveDescriptors.emplace(*this);
+        sendDescriptors.emplace(*this);
     }
 
     void Ethernet::Initialize()
@@ -701,9 +727,6 @@ namespace hal::tiva
         EnableTimestamp();
 
         ClearInterruptPending(GetInterruptStatus(false));
-
-        EnableTxInterrupts();
-        EnableRxInterrupts();
 
         EnableInterruptsSource(EMAC_INT_RECEIVE | EMAC_INT_TRANSMIT | EMAC_INT_TX_STOPPED | EMAC_INT_RX_NO_BUFFER | EMAC_INT_RX_STOPPED | EMAC_INT_PHY);
 
@@ -722,13 +745,12 @@ namespace hal::tiva
 
     void Ethernet::AddMacAddressFilter(hal::MacAddress address)
     {
-        const uint32_t lr = static_cast<uint32_t>(address[0])
-                          | (static_cast<uint32_t>(address[1]) << 8)
-                          | (static_cast<uint32_t>(address[2]) << 16)
-                          | (static_cast<uint32_t>(address[3]) << 24);
-        const uint32_t hr = static_cast<uint32_t>(address[4])
-                          | (static_cast<uint32_t>(address[5]) << 8)
-                          | (1u << 31);
+        const uint32_t lr = static_cast<uint32_t>(address[0]) | (static_cast<uint32_t>(address[1]) << 8) | (static_cast<uint32_t>(address[2]) << 16) | (static_cast<uint32_t>(address[3]) << 24);
+        const uint32_t hr = static_cast<uint32_t>(address[4]) | (static_cast<uint32_t>(address[5]) << 8) | (1u << 31);
+
+        // The frame filter passes all multicast frames, so the address registers only mirror the groups and running out of them is harmless
+        if ((EMAC0->ADDR1H == hr && EMAC0->ADDR1L == lr) || (EMAC0->ADDR2H == hr && EMAC0->ADDR2L == lr) || (EMAC0->ADDR3H == hr && EMAC0->ADDR3L == lr))
+            return;
 
         if ((EMAC0->ADDR1H & infra::Bit<uint32_t>(31)) == 0)
         {
@@ -745,19 +767,12 @@ namespace hal::tiva
             EMAC0->ADDR3L = lr;
             EMAC0->ADDR3H = hr;
         }
-        else
-            abort();
     }
 
     void Ethernet::RemoveMacAddressFilter(hal::MacAddress address)
     {
-        const uint32_t lr = static_cast<uint32_t>(address[0])
-                          | (static_cast<uint32_t>(address[1]) << 8)
-                          | (static_cast<uint32_t>(address[2]) << 16)
-                          | (static_cast<uint32_t>(address[3]) << 24);
-        const uint32_t hr = static_cast<uint32_t>(address[4])
-                          | (static_cast<uint32_t>(address[5]) << 8)
-                          | (1u << 31);
+        const uint32_t lr = static_cast<uint32_t>(address[0]) | (static_cast<uint32_t>(address[1]) << 8) | (static_cast<uint32_t>(address[2]) << 16) | (static_cast<uint32_t>(address[3]) << 24);
+        const uint32_t hr = static_cast<uint32_t>(address[4]) | (static_cast<uint32_t>(address[5]) << 8) | (1u << 31);
 
         if (EMAC0->ADDR1H == hr && EMAC0->ADDR1L == lr)
         {
@@ -774,8 +789,6 @@ namespace hal::tiva
             EMAC0->ADDR3L = 0;
             EMAC0->ADDR3H = 0;
         }
-        else
-            abort();
     }
 
     uint16_t Ethernet::PhyAddress() const
@@ -815,6 +828,11 @@ namespace hal::tiva
         infra::ReplaceBit(SYSCTL->RCGCEMAC, true, 0);
     }
 
+    void Ethernet::DisableEMACClock() const
+    {
+        infra::ReplaceBit(SYSCTL->RCGCEMAC, false, 0);
+    }
+
     void Ethernet::ResetEMACClock() const
     {
         infra::ReplaceBit(SYSCTL->SREMAC, true, 0);
@@ -836,6 +854,11 @@ namespace hal::tiva
     void Ethernet::EnableEPHYClock() const
     {
         infra::ReplaceBit(SYSCTL->RCGCEPHY, true, 0);
+    }
+
+    void Ethernet::DisableEPHYClock() const
+    {
+        infra::ReplaceBit(SYSCTL->RCGCEPHY, false, 0);
     }
 
     void Ethernet::ResetEPHYClock() const
@@ -1065,6 +1088,24 @@ namespace hal::tiva
         EMAC0->CFG |= EMAC_CFG_RE;
     }
 
+    void Ethernet::StopDma() const
+    {
+        EMAC0->CFG &= ~EMAC_CFG_RE;
+        EMAC0->DMAOPMODE &= ~(EMAC_DMAOPMODE_SR | EMAC_DMAOPMODE_ST);
+
+        for (uint32_t i = 0; i != dmaStopPollLimit && (EMAC0->DMARIS & (EMAC_DMARIS_TS_M | EMAC_DMARIS_RS_M)) != 0; ++i)
+            ;
+
+        EMAC0->DMAOPMODE |= EMAC_DMAOPMODE_FTF;
+
+        for (uint32_t i = 0; i != dmaStopPollLimit && (EMAC0->DMAOPMODE & EMAC_DMAOPMODE_FTF) != 0; ++i)
+            ;
+
+        EMAC0->CFG &= ~EMAC_CFG_TE;
+
+        ClearInterruptPending(EMAC_NORMAL_INTS | EMAC_ABNORMAL_INTS);
+    }
+
     void Ethernet::EnableInterruptsSource(uint32_t options) const
     {
         if (options & EMAC_NORMAL_INTS)
@@ -1123,6 +1164,9 @@ namespace hal::tiva
         if (status & EMAC_INT_PHY)
             ProcessPhyInterrupt();
 
+        if (!EthernetMac::HasObserver())
+            return;
+
         if (status & EMAC_INT_TRANSMIT)
         {
             if (EEELinkActive)
@@ -1141,24 +1185,25 @@ namespace hal::tiva
         auto phyStatus = ReadPhy(phyId, EPHY_STS);
         auto EEEStatus = ReadExtendedPhy(phyId, 0x703D);
 
+        const bool linkUp = (phyStatus & EPHY_STS_LINK) != 0;
+
+        if (linkUp && (interruptStatus & (EPHY_MISR1_LINKSTAT | EPHY_MISR1_SPEED | EPHY_MISR1_DUPLEXM | EPHY_MISR1_ANC)))
+            ConfigureMacLink(phyStatus);
+
         if (interruptStatus & EPHY_MISR1_LINKSTAT)
         {
-            if (phyStatus & EPHY_STS_LINK)
+            if (linkUp)
             {
-                auto linkAbility = ReadPhy(phyId, EPHY_ANA);
-                auto linkPartnerAbility = ReadPhy(phyId, EPHY_ANLPA);
-
+                const bool fullDuplex = (phyStatus & EPHY_STS_DUPLEX) != 0;
                 LinkSpeed speed;
-                if (infra::IsBitSet(linkPartnerAbility, phyAnlpaFullDuplex100MHz) && infra::IsBitSet(linkAbility, phyAnlpaFullDuplex100MHz))
-                    speed = LinkSpeed::fullDuplex100MHz;
-                else if (infra::IsBitSet(linkPartnerAbility, phyAnlpaHalfDuplex100MHz) && infra::IsBitSet(linkAbility, phyAnlpaHalfDuplex100MHz))
-                    speed = LinkSpeed::halfDuplex100MHz;
-                else if (infra::IsBitSet(linkPartnerAbility, phyAnlpaFullDuplex10MHz) && infra::IsBitSet(linkAbility, phyAnlpaFullDuplex10MHz))
-                    speed = LinkSpeed::fullDuplex10MHz;
-                else
-                    speed = LinkSpeed::halfDuplex10MHz;
 
-                EthernetSmi::GetObserver().LinkUp(speed);
+                if (phyStatus & EPHY_STS_SPEED)
+                    speed = fullDuplex ? LinkSpeed::fullDuplex10MHz : LinkSpeed::halfDuplex10MHz;
+                else
+                    speed = fullDuplex ? LinkSpeed::fullDuplex100MHz : LinkSpeed::halfDuplex100MHz;
+
+                if (EthernetSmi::HasObserver())
+                    EthernetSmi::GetObserver().LinkUp(speed);
 
                 if (EEEStatus & 0x2)
                 {
@@ -1169,34 +1214,35 @@ namespace hal::tiva
             }
             else
             {
-                EthernetSmi::GetObserver().LinkDown();
+                if (EthernetSmi::HasObserver())
+                    EthernetSmi::GetObserver().LinkDown();
 
                 EEELinkActive = false;
                 EMAC0->LPICTLSTAT &= ~EMAC_LPICTLSTAT_PLS;
                 ConfigureLPITimers(false, 1000, 0);
             }
         }
+    }
 
-        if (interruptStatus & (EPHY_MISR1_SPEED | EPHY_MISR1_DUPLEXM | EPHY_MISR1_ANC))
-        {
-            uint32_t config = 0;
-            uint32_t mode = 0;
-            uint32_t maxRxFrameSize = 0;
+    void Ethernet::ConfigureMacLink(uint16_t phyStatus)
+    {
+        uint32_t config = 0;
+        uint32_t mode = 0;
+        uint32_t maxRxFrameSize = 0;
 
-            GetEthernetMacConfiguration(config, mode, maxRxFrameSize);
+        GetEthernetMacConfiguration(config, mode, maxRxFrameSize);
 
-            if (phyStatus & EPHY_STS_SPEED)
-                config &= ~EMAC_CONFIG_100MBPS;
-            else
-                config |= EMAC_CONFIG_100MBPS;
+        if (phyStatus & EPHY_STS_SPEED)
+            config &= ~EMAC_CONFIG_100MBPS;
+        else
+            config |= EMAC_CONFIG_100MBPS;
 
-            if (phyStatus & EPHY_STS_DUPLEX)
-                config |= EMAC_CONFIG_FULL_DUPLEX;
-            else
-                config &= ~EMAC_CONFIG_FULL_DUPLEX;
+        if (phyStatus & EPHY_STS_DUPLEX)
+            config |= EMAC_CONFIG_FULL_DUPLEX;
+        else
+            config &= ~EMAC_CONFIG_FULL_DUPLEX;
 
-            SetEthernetMacConfiguration(config, mode, maxRxFrameSize);
-        }
+        SetEthernetMacConfiguration(config, mode, maxRxFrameSize);
     }
 
     Ethernet::ReceiveDescriptors::ReceiveDescriptors(Ethernet& ethernetMac)
@@ -1215,11 +1261,6 @@ namespace hal::tiva
         descriptors.back().Desc3.link = &descriptors.front();
 
         EMAC0->RXDLADDR = reinterpret_cast<uint32_t>(descriptors.data()); //NOSONAR
-
-        infra::EventDispatcher::Instance().Schedule([this]()
-            {
-                RequestReceiveBuffers();
-            });
     }
 
     void Ethernet::ReceiveDescriptors::ReceivedFrame()
