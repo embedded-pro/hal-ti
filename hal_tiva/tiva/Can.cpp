@@ -559,13 +559,7 @@ namespace hal::tiva
         ClearMessageObjectInterrupt(Peripheral(), txMessageObject);
 
         if (sending.exchange(false, std::memory_order_acq_rel))
-        {
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    if (onSendComplete)
-                        onSendComplete(true);
-                });
-        }
+            QueueSendCompletion(true);
     }
 
     void Can::HandleRxInterrupt()
@@ -610,12 +604,31 @@ namespace hal::tiva
     void Can::NotifySendFailedFromInterrupt()
     {
         if (sending.exchange(false, std::memory_order_acq_rel))
-        {
-            infra::EventDispatcher::Instance().Schedule([this]()
-                {
-                    if (onSendComplete)
-                        onSendComplete(false);
-                });
-        }
+            QueueSendCompletion(false);
+    }
+
+    // The callback is copied here because the next SendData may rebind onSendComplete before the dispatcher runs the completion
+    void Can::QueueSendCompletion(bool success)
+    {
+        const auto end = sendCompletionsEnd.load(std::memory_order_relaxed);
+        really_assert(static_cast<uint8_t>(end - sendCompletionsBegin.load(std::memory_order_acquire)) < sendCompletions.size());
+
+        sendCompletions[end % sendCompletions.size()] = SendCompletion{ onSendComplete, success };
+        sendCompletionsEnd.store(static_cast<uint8_t>(end + 1), std::memory_order_release);
+
+        infra::EventDispatcher::Instance().Schedule([this]()
+            {
+                DispatchSendCompletion();
+            });
+    }
+
+    void Can::DispatchSendCompletion()
+    {
+        const auto begin = sendCompletionsBegin.load(std::memory_order_relaxed);
+        const SendCompletion completion = sendCompletions[begin % sendCompletions.size()];
+        sendCompletionsBegin.store(static_cast<uint8_t>(begin + 1), std::memory_order_release);
+
+        if (completion.action)
+            completion.action(completion.success);
     }
 }
