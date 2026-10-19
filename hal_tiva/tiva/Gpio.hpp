@@ -5,6 +5,7 @@
 #include "GpioFamily.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal/interfaces/Gpio.hpp"
+#include "infra/util/HotSwapFunction.hpp"
 #include "infra/util/MemoryRange.hpp"
 #include <atomic>
 #include <cstdint>
@@ -243,9 +244,9 @@ namespace hal::tiva
         infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable;
         infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable;
 
-        std::array<infra::Function<void()>, 8 * 15> handlers;
-        std::array<InterruptType, 8 * 15> interruptTypes;
-        std::array<std::atomic<uint16_t>, 8 * 15> pendingEdges{};
+        std::array<infra::HotSwapFunction<void()>, 8 * family::numberOfPorts> handlers;
+        std::array<InterruptType, 8 * family::numberOfPorts> interruptTypes;
+        std::array<std::atomic<uint16_t>, 8 * family::numberOfPorts> pendingEdges{};
         std::array<uint32_t, 15> assignedPins;
 
         std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 15> portHandlers;

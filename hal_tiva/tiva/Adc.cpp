@@ -404,8 +404,7 @@ namespace hal::tiva
                     DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
                     if (discardLastSample && buffer.size() == numberOfChannels)
                         buffer.pop_back();
-                    if (callback)
-                        callback(infra::MakeRange(buffer));
+                    callback(infra::MakeRange(buffer));
                 }
             });
 
@@ -423,7 +422,7 @@ namespace hal::tiva
 
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
-        callback = onDone;
+        callback.Set(onDone);
         if (monitorsWithComparators)
             FlushFifo(*peripheralAdc[adcIndex], adcSequencer);
         InterruptEnable(*peripheralAdc[adcIndex], adcSequencer);

@@ -100,7 +100,10 @@ namespace hal::tiva
 
     void UartWithDma::ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived)
     {
-        this->dataReceived = dataReceived;
+        if (dataReceived)
+            this->dataReceived.Set(dataReceived);
+        else
+            this->dataReceived.Clear();
 
         ReceiveData();
     }
@@ -130,26 +133,24 @@ namespace hal::tiva
             TransferComplete();
     }
 
-    void UartWithDma::ProcessDmaRx() const
+    void UartWithDma::ProcessDmaRx()
     {
         auto* drAddr = reinterpret_cast<volatile void*>(&(uartArray[uartIndex]->DR));
 
         if (dmaRx.IsPrimaryTransferCompleted())
         {
             dmaRx.ReArmPingPongHalf(false, { drAddr, rxBufferPrimary.begin(), rxBufferPrimary.size() });
-            if (dataReceived != nullptr)
-                dataReceived(rxBufferPrimary);
+            dataReceived(rxBufferPrimary);
         }
 
         if (dmaRx.IsAlternateTransferCompleted())
         {
             dmaRx.ReArmPingPongHalf(true, { drAddr, rxBufferAlternate.begin(), rxBufferAlternate.size() });
-            if (dataReceived != nullptr)
-                dataReceived(rxBufferAlternate);
+            dataReceived(rxBufferAlternate);
         }
     }
 
-    void UartWithDma::ProcessRxTimeout() const
+    void UartWithDma::ProcessRxTimeout()
     {
         dmaRx.StopTransfer();
         ProcessDmaRx();
@@ -167,7 +168,7 @@ namespace hal::tiva
                 ++bytesReceived;
             }
 
-            if (bytesReceived > 0 && dataReceived != nullptr)
+            if (bytesReceived > 0)
                 dataReceived(infra::MakeRange(activeBuffer.begin(), activeBuffer.begin() + bytesReceived));
 
             if ((uartArray[uartIndex]->FR & UART_FR_RXFE) != 0)
@@ -176,7 +177,7 @@ namespace hal::tiva
             bytesReceived = 0;
         }
 
-        if (dataReceived != nullptr)
+        if (dataReceived.IsSet())
             ReceiveData();
     }
 

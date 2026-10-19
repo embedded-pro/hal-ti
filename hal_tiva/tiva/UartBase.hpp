@@ -5,6 +5,7 @@
 #include "hal/interfaces/SerialCommunication.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
+#include "infra/util/HotSwapFunction.hpp"
 #include <optional>
 
 namespace hal::tiva
@@ -125,7 +126,7 @@ namespace hal::tiva
         uint32_t enableRx = 0;
 
         infra::Function<void()> transferDataComplete;
-        infra::Function<void(infra::ConstByteRange data)> dataReceived;
+        infra::HotSwapFunction<void(infra::ConstByteRange data)> dataReceived;
 
         infra::MemoryRange<const uint8_t> sendData;
         bool sending = false;

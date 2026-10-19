@@ -6,6 +6,7 @@
 #include "hal/interfaces/AdcMultiChannel.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
+#include "infra/util/HotSwapFunction.hpp"
 #include <optional>
 
 namespace hal::tiva
@@ -115,7 +116,7 @@ namespace hal::tiva
 
         uint8_t adcIndex;
         uint8_t adcSequencer;
-        infra::Function<void(Samples)> callback;
+        infra::HotSwapFunction<void(Samples)> callback;
         infra::BoundedVector<uint16_t>::WithMaxSize<maxSamples> buffer;
         std::size_t numberOfChannels;
         bool monitorsWithComparators = false;

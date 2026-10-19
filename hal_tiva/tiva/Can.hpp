@@ -5,6 +5,7 @@
 #include "hal_tiva/tiva/CanBitTiming.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/event/QueueForOneReaderOneIrqWriter.hpp"
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <optional>
@@ -73,6 +74,12 @@ namespace hal::tiva
         void ReceiveData(const infra::Function<void(Id id, const Message& data)>& receivedAction) override;
 
     private:
+        struct SendCompletion
+        {
+            infra::Function<void(bool success)> action;
+            bool success{ false };
+        };
+
         CAN0_Type& Peripheral() const;
 
         void HandleInterrupt();
@@ -83,6 +90,8 @@ namespace hal::tiva
         void ProcessRxBuffer();
         void ScheduleError(Error error) const;
         void NotifySendFailedFromInterrupt();
+        void QueueSendCompletion(bool success);
+        void DispatchSendCompletion();
 
     private:
         infra::QueueForOneReaderOneIrqWriter<CanRxEntry> rxQueue;
@@ -94,6 +103,9 @@ namespace hal::tiva
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
         std::atomic<bool> sending{ false };
+        std::array<SendCompletion, 2> sendCompletions;
+        std::atomic<uint8_t> sendCompletionsBegin{ 0 };
+        std::atomic<uint8_t> sendCompletionsEnd{ 0 };
         bool prevEWarn = false;
         bool prevEPass = false;
         std::optional<hal::cortex::ImmediateInterruptHandler> handler;

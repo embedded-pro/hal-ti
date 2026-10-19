@@ -26,8 +26,8 @@ namespace hal::tiva
         void ReceiveData() const;
         void Invoke() override;
         void ProcessDmaTx();
-        void ProcessDmaRx() const;
-        void ProcessRxTimeout() const;
+        void ProcessDmaRx();
+        void ProcessRxTimeout();
 
     private:
         DmaChannel dmaTx;

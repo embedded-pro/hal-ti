@@ -40,7 +40,10 @@ namespace hal::tiva
 
     void Uart::ReceiveData(infra::Function<void(infra::ConstByteRange data)> dataReceived)
     {
-        this->dataReceived = dataReceived;
+        if (dataReceived)
+            this->dataReceived.Set(dataReceived);
+        else
+            this->dataReceived.Clear();
 
         auto imMask = UART_IM_RXIM | UART_IM_RTIM;
         uartArray[uartIndex]->IM = (uartArray[uartIndex]->IM & ~imMask) | (dataReceived ? imMask : 0);
@@ -62,8 +65,7 @@ namespace hal::tiva
                 while (!buffer.full() && !(uartArray[uartIndex]->FR & UART_FR_RXFE))
                     buffer.push_back(static_cast<uint8_t>(uartArray[uartIndex]->DR));
 
-                if (dataReceived != nullptr)
-                    dataReceived(buffer.range());
+                dataReceived(buffer.range());
             }
         }
 

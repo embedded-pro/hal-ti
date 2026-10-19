@@ -106,7 +106,7 @@ namespace hal::tiva
 
     void AnalogComparator::Enable(const infra::Function<void(bool output)>& aOnOutputChanged, InterruptTrigger trigger)
     {
-        onOutputChanged = aOnOutputChanged;
+        onOutputChanged.Set(aOnOutputChanged);
         const InterruptSense isen = SenseFromTrigger(trigger);
         const uint32_t isenBits = (static_cast<uint32_t>(isen) << AcctlIsenShift) & AcctlIsenMask;
         Acctl() = (Acctl() & ~(AcctlIsenMask | AcctlIslval)) | isenBits;
@@ -118,7 +118,7 @@ namespace hal::tiva
     {
         COMP->ACINTEN &= ~(1u << index);
         COMP->ACMIS = (1u << index);
-        onOutputChanged = nullptr;
+        onOutputChanged.Clear();
     }
 
     bool AnalogComparator::GetOutput() const
@@ -206,7 +206,6 @@ namespace hal::tiva
     {
         bool output = (Acstat() & AcstatOval) != 0;
         COMP->ACMIS = (1u << index);
-        if (onOutputChanged)
-            onOutputChanged(output);
+        onOutputChanged(output);
     }
 }
