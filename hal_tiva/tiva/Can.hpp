@@ -103,6 +103,7 @@ namespace hal::tiva
         infra::Function<void(Id id, const Message& data)> onReceive;
         infra::Function<void(Error)> onError;
         std::atomic<bool> sending{ false };
+        mutable std::atomic<uint16_t> pendingErrors{ 0 };
         std::array<SendCompletion, 2> sendCompletions;
         std::atomic<uint8_t> sendCompletionsBegin{ 0 };
         std::atomic<uint8_t> sendCompletionsEnd{ 0 };
