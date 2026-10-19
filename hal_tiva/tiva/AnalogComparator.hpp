@@ -4,6 +4,7 @@
 #include "hal/cortex_m/InterruptCortex.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/Function.hpp"
+#include "infra/util/HotSwapFunction.hpp"
 #include <cstdint>
 #include <optional>
 #include DEVICE_HEADER
@@ -87,6 +88,6 @@ namespace hal::tiva
         std::optional<AnalogPin> vinNegativePin;
         std::optional<PeripheralPin> outputPeripheralPin;
         std::optional<hal::cortex::ImmediateInterruptHandler> irqHandler;
-        infra::Function<void(bool)> onOutputChanged;
+        infra::HotSwapFunction<void(bool)> onOutputChanged;
     };
 }
