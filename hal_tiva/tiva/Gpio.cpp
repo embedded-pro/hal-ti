@@ -511,8 +511,8 @@ namespace hal::tiva
 
         const std::size_t handlerIndex = portIdx * 8 + index;
         really_assert(handlerIndex < handlers.size());
-        really_assert(!handlers[handlerIndex]);
-        handlers[handlerIndex] = action;
+        really_assert(!handlers[handlerIndex].IsSet());
+        handlers[handlerIndex].Set(action);
         interruptTypes[handlerIndex] = type;
 
         infra::ReplaceBit(GpioTiva(port)->ICR, true, index);
@@ -525,7 +525,7 @@ namespace hal::tiva
 
         const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
         really_assert(handlerIndex < handlers.size());
-        handlers[handlerIndex] = nullptr;
+        handlers[handlerIndex].Clear();
         pendingEdges[handlerIndex] = 0;
     }
 
@@ -533,12 +533,12 @@ namespace hal::tiva
     {
         for (std::size_t line = from; line != to; ++line)
         {
-            if (infra::IsBitSet(gpio->RIS, line))
+            if (infra::IsBitSet(gpio->MIS, line))
             {
                 infra::ReplaceBit(gpio->ICR, true, line);
 
                 const std::size_t h = portIndex * 8 + line;
-                if (handlers[h])
+                if (handlers[h].IsSet())
                 {
                     if (interruptTypes[h] == InterruptType::immediate)
                         handlers[h]();
@@ -555,7 +555,7 @@ namespace hal::tiva
     // One queued event per pin no matter how fast edges arrive; it runs the handler once per edge seen so far
     void Gpio::DispatchPending(std::size_t handlerIndex)
     {
-        for (auto edges = pendingEdges[handlerIndex].exchange(0, std::memory_order_relaxed); edges != 0 && handlers[handlerIndex]; --edges)
+        for (auto edges = pendingEdges[handlerIndex].exchange(0, std::memory_order_relaxed); edges != 0 && handlers[handlerIndex].IsSet(); --edges)
             handlers[handlerIndex]();
     }
 

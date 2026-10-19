@@ -3,6 +3,7 @@
 
 #include DEVICE_HEADER
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace hal::tiva::family
@@ -14,6 +15,8 @@ namespace hal::tiva::family
         int32_t irq;
         bool perPin;
     };
+
+    inline constexpr std::size_t numberOfPorts = 6;
 
     // clang-format off
     inline const std::array<GpioPortEntry, 15> portAndRcgc = { {

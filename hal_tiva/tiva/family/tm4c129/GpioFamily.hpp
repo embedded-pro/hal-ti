@@ -13,6 +13,7 @@
 #define GPIOH GPIOH_AHB
 #define GPIOJ GPIOJ_AHB
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace hal::tiva::family
@@ -24,6 +25,8 @@ namespace hal::tiva::family
         int32_t irq;
         bool perPin;
     };
+
+    inline constexpr std::size_t numberOfPorts = 15;
 
     // clang-format off
     inline const std::array<GpioPortEntry, 15> portAndRcgc = { {
