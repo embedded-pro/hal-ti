@@ -592,10 +592,18 @@ namespace hal::tiva
         }
     }
 
+    // A bus nobody acknowledges reports an error per retransmission; one pending notification per class keeps the event queue bounded
     void Can::ScheduleError(Error error) const
     {
-        infra::EventDispatcher::Instance().Schedule([this, error]()
+        const auto bit = static_cast<uint16_t>(1u << static_cast<uint8_t>(error));
+
+        if ((pendingErrors.fetch_or(bit, std::memory_order_acq_rel) & bit) != 0)
+            return;
+
+        infra::EventDispatcher::Instance().Schedule([this, error, bit]()
             {
+                pendingErrors.fetch_and(static_cast<uint16_t>(~bit), std::memory_order_acq_rel);
+
                 if (onError)
                     onError(error);
             });
