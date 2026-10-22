@@ -334,9 +334,15 @@ namespace hal::tiva
         pin.ConfigAnalog();
     }
 
+    AnalogPin::AnalogPin(GpioPin& pin, Shared)
+        : pin(pin)
+        , owner(false)
+    {}
+
     AnalogPin::~AnalogPin()
     {
-        pin.ResetConfig();
+        if (owner)
+            pin.ResetConfig();
     }
 
     uint32_t AnalogPin::AdcChannel() const

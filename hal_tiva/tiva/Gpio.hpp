@@ -155,7 +155,14 @@ namespace hal::tiva
     class AnalogPin
     {
     public:
+        struct Shared
+        {};
+
+        static constexpr Shared shared{};
+
         explicit AnalogPin(GpioPin& pin);
+        // Converts a pin that another AnalogPin owns, so one sequence can sample it in more than one step
+        AnalogPin(GpioPin& pin, Shared);
         AnalogPin(const AnalogPin& other) = delete;
         AnalogPin& operator=(const AnalogPin& other) = delete;
         ~AnalogPin();
@@ -164,6 +171,7 @@ namespace hal::tiva
 
     private:
         GpioPin& pin;
+        bool owner{ true };
     };
 
     class MultiGpioPin
