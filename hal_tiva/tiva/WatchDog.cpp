@@ -17,6 +17,7 @@ namespace
     constexpr uint32_t ctlIntEnable = 1u << 0;
     constexpr uint32_t ctlResetEnable = 1u << 1;
     constexpr uint32_t ctlWriteComplete = 1u << 31;
+    constexpr uint32_t testStall = 1u << 8;
     constexpr uint32_t lockUnlockKey = 0x1ACCE551u;
     constexpr uint32_t numberOfWatchDogs = 2u;
     constexpr uint32_t precisionInternalOscillatorFrequency = 16000000u;
@@ -144,6 +145,10 @@ namespace hal::tiva
 
         // The destructor only gates the clock, so CTL keeps its previous contents and has to be written in full rather than or-ed into
         watchDog.CTL = config.resetOnMissedInterrupt ? ctlResetEnable : 0;
+        WaitForWriteComplete();
+
+        // Without the stall a debugger halt lets the count run out, and the target resets under the probe
+        watchDog.TEST = testStall;
         WaitForWriteComplete();
 
         watchDogSharedHandler.Add(this, config.interruptPriority, [this]()
