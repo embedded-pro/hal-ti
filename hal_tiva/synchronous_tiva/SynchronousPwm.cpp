@@ -298,11 +298,6 @@ namespace
         { hal::tiva::PinConfigPeripheral::pwmChannel6, hal::tiva::PinConfigPeripheral::pwmChannel7 },
     } };
 
-    float GetSystemCoreClock()
-    {
-        return static_cast<float>(SystemCoreClock);
-    }
-
     uint32_t ToPeriod(PWM0_Type* const pwmBase, hal::Hertz& baseFrequency)
     {
         auto pwmClock = SystemCoreClock / family::GetClockDivisor(pwmBase);
@@ -665,10 +660,8 @@ namespace hal::tiva
     {
         static constexpr std::array<uint32_t, 7> divisorValues = { { 1, 2, 4, 8, 16, 32, 64 } };
 
-        auto divisorValue = divisorValues[static_cast<uint32_t>(divisor)];
-        auto pwmClockFreq = GetSystemCoreClock() / static_cast<float>(divisorValue);
-        auto deadTimeNs = static_cast<float>(deadTime.count());
-        auto cycles = static_cast<uint32_t>(deadTimeNs * pwmClockFreq / 1e9);
+        const uint64_t pwmClockHz = SystemCoreClock / divisorValues[static_cast<uint32_t>(divisor)];
+        const auto cycles = static_cast<uint64_t>(deadTime.count()) * pwmClockHz / 1'000'000'000u;
 
         really_assert(cycles <= 4095);
 
