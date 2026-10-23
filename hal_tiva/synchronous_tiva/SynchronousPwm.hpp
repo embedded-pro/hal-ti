@@ -140,6 +140,14 @@ namespace hal::tiva
             return reinterpret_cast<volatile PwmChannelType*>(pwmBaseAddress + peripheralPwmChannelOffsetArray[infra::enum_cast(generatorIndex)]);
         }
 
+        enum class Output : uint8_t
+        {
+            unknown,
+            low,
+            high,
+            compare
+        };
+
         struct Generator
         {
             Generator(PinChannel& pins, uint32_t pwmOffset, GeneratorIndex index, std::optional<PinChannel::Trigger> trigger);
@@ -151,11 +159,14 @@ namespace hal::tiva
             uint32_t generatorId = 0;
             std::optional<PinChannel::Trigger> trigger;
             std::optional<hal::DutyCycle> duty;
+            Output output = Output::unknown;
+            bool running = false;
         };
 
         uint8_t pwmIndex;
         Config config;
         infra::BoundedVector<Generator>::WithMaxSize<4> generators;
+        uint32_t load = 0;
 
     private:
         void Initialize();
@@ -166,10 +177,12 @@ namespace hal::tiva
         void EnableOutput(const Generator& generator) const;
         void DisableOutput(const Generator& generator) const;
         void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const;
+        Output OutputFor(uint32_t width) const;
+        void SetOutput(Generator& generator, Output output) const;
         void Sync() const;
         uint32_t RunningGenerators() const;
         void SynchronizeCounters(uint32_t runningBefore) const;
-        uint32_t GetLoad(const Generator& generator) const;
+        uint32_t GetLoad() const;
         void EnableClock() const;
         void DisableClock() const;
         void ConfigureInvert() const;

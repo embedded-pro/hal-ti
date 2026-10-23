@@ -399,8 +399,8 @@ namespace hal::tiva
 
     void SynchronousPwm::SetBaseFrequency(hal::Hertz baseFrequency)
     {
-        auto load = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
-        load = IsCenterAligned(config.control.mode) ? load / 2 : load - 1;
+        const auto period = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
+        load = IsCenterAligned(config.control.mode) ? period / 2 : period - 1;
         really_assert(load > 0 && load <= 0xffff);
 
         for (auto& generator : generators)
@@ -409,7 +409,7 @@ namespace hal::tiva
 
         // The comparators count against the old period; recompute them so a running generator keeps its duty cycle
         for (auto& generator : generators)
-            if (generator.duty && (generator.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+            if (generator.duty && generator.running)
                 SetComparator(generator, *generator.duty);
 
         Sync();
@@ -482,10 +482,7 @@ namespace hal::tiva
         if (generator.a || generator.b)
         {
             generator.address->CTL |= config.control.Value();
-            if (generator.a)
-                generator.address->GENA = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENA_ACTCMPAU_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO) : (PWM_CHANNEL_GENA_ACTLOAD_ONE | PWM_CHANNEL_GENA_ACTCMPAD_ZERO);
-            if (generator.b)
-                generator.address->GENB = IsCenterAligned(config.control.mode) ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO) : (PWM_CHANNEL_GENB_ACTLOAD_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
+            SetOutput(generator, Output::compare);
 
             if (generator.trigger)
                 generator.address->INTEN |= triggerType[static_cast<uint32_t>(*generator.trigger)];
@@ -497,25 +494,57 @@ namespace hal::tiva
         }
     }
 
+    // A control loop calls this every PWM period, so a running generator writes only its comparators, and its actions only when they change
     void SynchronousPwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
     {
         really_assert(dutyCycle.IsValid());
         generator.duty = dutyCycle;
 
-        auto load = generator.address->LOAD;
-        auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad(generator)));
+        auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad()));
 
         if (width > load)
             width = load;
 
+        const auto output = OutputFor(width);
+        if (output != generator.output)
+            SetOutput(generator, output);
+
+        if (output == Output::compare)
+        {
+            if (generator.a)
+                generator.address->CMPA = load - width;
+            if (generator.b)
+                generator.address->CMPB = load - width;
+        }
+
+        if (generator.running)
+            return;
+
+        EnableOutput(generator);
+        EnableGenerator(generator);
+    }
+
+    SynchronousPwm::Output SynchronousPwm::OutputFor(uint32_t width) const
+    {
         if (width == 0)
+            return Output::low;
+        if (width == load)
+            return Output::high;
+        return Output::compare;
+    }
+
+    void SynchronousPwm::SetOutput(Generator& generator, Output output) const
+    {
+        generator.output = output;
+
+        if (output == Output::low)
         {
             if (generator.a)
                 generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ZERO;
             if (generator.b)
                 generator.address->GENB = PWM_CHANNEL_GENB_ACTLOAD_ZERO;
         }
-        else if (width == load)
+        else if (output == Output::high)
         {
             if (generator.a)
                 generator.address->GENA = PWM_CHANNEL_GENA_ACTLOAD_ONE;
@@ -532,15 +561,7 @@ namespace hal::tiva
                 generator.address->GENB = IsCenterAligned(config.control.mode)
                     ? (PWM_CHANNEL_GENB_ACTCMPBU_ONE | PWM_CHANNEL_GENB_ACTCMPBD_ZERO)
                     : (PWM_CHANNEL_GENB_ACTLOAD_ONE  | PWM_CHANNEL_GENB_ACTCMPBD_ZERO);
-
-            if (generator.a)
-                generator.address->CMPA = load - width;
-            if (generator.b)
-                generator.address->CMPB = load - width;
         }
-
-        EnableOutput(generator);
-        EnableGenerator(generator);
     }
 
     void SynchronousPwm::Sync() const
@@ -558,7 +579,7 @@ namespace hal::tiva
         uint32_t running = 0;
 
         for (const auto& generator : generators)
-            if ((generator.address->CTL & PWM_CHANNEL_CTL_ENABLE) != 0)
+            if (generator.running)
                 running |= generator.generatorId;
 
         return running;
@@ -576,12 +597,12 @@ namespace hal::tiva
             peripheralPwm[pwmIndex]->SYNC = all;
     }
 
-    uint32_t SynchronousPwm::GetLoad(const Generator& generator) const
+    uint32_t SynchronousPwm::GetLoad() const
     {
         if (IsCenterAligned(config.control.mode))
-            return generator.address->LOAD * 2;
+            return load * 2;
         else
-            return generator.address->LOAD + 1;
+            return load + 1;
     }
 
     void SynchronousPwm::EnableClock() const
@@ -621,11 +642,13 @@ namespace hal::tiva
     void SynchronousPwm::EnableGenerator(Generator& generator) const
     {
         generator.address->CTL |= PWM_CHANNEL_CTL_ENABLE;
+        generator.running = true;
     }
 
     void SynchronousPwm::DisableGenerator(Generator& generator) const
     {
         generator.address->CTL &= ~PWM_CHANNEL_CTL_ENABLE;
+        generator.running = false;
     }
 
     void SynchronousPwm::EnableOutput(const Generator& generator) const
