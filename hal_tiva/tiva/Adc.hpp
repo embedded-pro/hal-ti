@@ -121,6 +121,7 @@ namespace hal::tiva
         std::size_t numberOfChannels;
         bool monitorsWithComparators = false;
         bool discardLastSample = false;
+        volatile bool resynchronising = false;
         std::optional<hal::cortex::ImmediateInterruptHandler> irqHandler;
     };
 }
