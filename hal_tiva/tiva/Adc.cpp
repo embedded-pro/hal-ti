@@ -230,28 +230,27 @@ namespace
         adc.ISC = 1 << sequencer;
     }
 
-    [[gnu::always_inline]] inline void DataGet(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples, std::size_t numberOfSamples)
+    [[gnu::always_inline]] inline std::size_t DrainFifo(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples)
     {
         volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
 
         samples.clear();
-
-        while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY) && numberOfSamples--)
-        {
-            auto data = *SSFIFO;
-            samples.push_back(static_cast<uint16_t>(data));
-        }
-    }
-
-    void FlushFifo(ADC0_Type& adc, uint8_t sequencer)
-    {
-        volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
-        volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
+        std::size_t drained = 0;
 
         while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY))
-            static_cast<void>(*SSFIFO);
+        {
+            auto data = *SSFIFO;
+            if (!samples.full())
+                samples.push_back(static_cast<uint16_t>(data));
+            ++drained;
+        }
 
+        return drained;
+    }
+
+    void ClearOverflow(ADC0_Type& adc, uint8_t sequencer)
+    {
         adc.OSTAT = 1u << sequencer;
     }
 
@@ -401,8 +400,16 @@ namespace hal::tiva
                 if (IsInterruptTriggered(adc, this->adcSequencer))
                 {
                     InterruptClear(adc, this->adcSequencer);
-                    DataGet(adc, this->adcSequencer, buffer, numberOfChannels);
-                    if (discardLastSample && buffer.size() == numberOfChannels)
+                    const auto drained = DrainFifo(adc, this->adcSequencer, buffer);
+                    if (resynchronising)
+                    {
+                        resynchronising = false;
+                        ClearOverflow(adc, this->adcSequencer);
+                        return;
+                    }
+
+                    really_assert(drained == numberOfChannels);
+                    if (discardLastSample)
                         buffer.pop_back();
                     callback(infra::MakeRange(buffer));
                 }
@@ -420,11 +427,11 @@ namespace hal::tiva
         DisableClock();
     }
 
+    // Arming can land mid-run, and a stopped sequence can leave samples behind, so the first run only realigns the FIFO
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
         callback.Set(onDone);
-        if (monitorsWithComparators)
-            FlushFifo(*peripheralAdc[adcIndex], adcSequencer);
+        resynchronising = true;
         InterruptEnable(*peripheralAdc[adcIndex], adcSequencer);
         SequenceEnable(*peripheralAdc[adcIndex], adcSequencer);
     }
