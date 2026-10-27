@@ -204,7 +204,10 @@ namespace hal::tiva
         really_assert(!channels.empty() && channels.size() <= generators.max_size());
 
         for (auto& channel : channels)
+        {
             generators.emplace_back(channel, peripheralPwmArray[pwmIndex], channel.generator, channel.trigger);
+            allGenerators |= generators.back().generatorId;
+        }
 
         Initialize();
     }
@@ -335,7 +338,7 @@ namespace hal::tiva
     void Pwm::Start(hal::DutyCycle dutyCycle)
     {
         really_assert(generators.size() >= 1);
-        const uint32_t running = RunningGenerators();
+        const uint32_t running = runningGenerators;
 
         for (auto& gen : generators)
             SetComparator(gen, dutyCycle);
@@ -347,7 +350,7 @@ namespace hal::tiva
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2)
     {
         really_assert(generators.size() == 2);
-        const uint32_t running = RunningGenerators();
+        const uint32_t running = runningGenerators;
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
@@ -359,7 +362,7 @@ namespace hal::tiva
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3)
     {
         really_assert(generators.size() == 3);
-        const uint32_t running = RunningGenerators();
+        const uint32_t running = runningGenerators;
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
@@ -372,7 +375,7 @@ namespace hal::tiva
     void Pwm::Start(hal::DutyCycle dutyCycle1, hal::DutyCycle dutyCycle2, hal::DutyCycle dutyCycle3, hal::DutyCycle dutyCycle4)
     {
         really_assert(generators.size() == 4);
-        const uint32_t running = RunningGenerators();
+        const uint32_t running = runningGenerators;
 
         SetComparator(generators[0], dutyCycle1);
         SetComparator(generators[1], dutyCycle2);
@@ -445,16 +448,18 @@ namespace hal::tiva
         generator.address->DBCTL |= PWM_CHANNEL_DBCTL_ENABLE;
     }
 
-    void Pwm::EnableGenerator(Generator& generator) const
+    void Pwm::EnableGenerator(Generator& generator)
     {
         generator.address->CTL |= PWM_CHANNEL_CTL_ENABLE;
         generator.running = true;
+        runningGenerators |= generator.generatorId;
     }
 
-    void Pwm::DisableGenerator(Generator& generator) const
+    void Pwm::DisableGenerator(Generator& generator)
     {
         generator.address->CTL &= ~PWM_CHANNEL_CTL_ENABLE;
         generator.running = false;
+        runningGenerators &= ~generator.generatorId;
     }
 
     void Pwm::EnableOutput(const Generator& generator) const
@@ -468,7 +473,7 @@ namespace hal::tiva
     }
 
     // A control loop calls this every PWM period, so a running generator writes only its comparators, and its actions only when they change
-    void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const
+    void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle)
     {
         really_assert(dutyCycle.IsValid());
         generator.duty = dutyCycle;
@@ -539,35 +544,14 @@ namespace hal::tiva
 
     void Pwm::Sync() const
     {
-        uint32_t ctl = 0;
-
-        for (const auto& gen : generators)
-            ctl |= gen.generatorId;
-
-        peripheralPwm[pwmIndex]->CTL = ctl;
-    }
-
-    uint32_t Pwm::RunningGenerators() const
-    {
-        uint32_t running = 0;
-
-        for (const auto& gen : generators)
-            if (gen.running)
-                running |= gen.generatorId;
-
-        return running;
+        peripheralPwm[pwmIndex]->CTL = allGenerators;
     }
 
     // Each counter starts when its generator is enabled, so newly started generators are restarted together to keep their edges aligned
     void Pwm::SynchronizeCounters(uint32_t runningBefore) const
     {
-        uint32_t all = 0;
-
-        for (const auto& gen : generators)
-            all |= gen.generatorId;
-
-        if (runningBefore != all)
-            peripheralPwm[pwmIndex]->SYNC = all;
+        if (runningBefore != allGenerators)
+            peripheralPwm[pwmIndex]->SYNC = allGenerators;
     }
 
     uint32_t Pwm::GetLoad() const

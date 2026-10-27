@@ -271,17 +271,19 @@ namespace hal::tiva
         std::optional<FaultInterruptSlot> faultHandler;
         uint32_t configuredFaultInterrupts = 0;
         uint32_t faultOutputs = 0;
+        uint32_t allGenerators = 0;
+        uint32_t runningGenerators = 0;
 
         void Initialize();
         void ConfigureNormalInterrupts(const Config::InterruptConfig& interruptConfig);
         void ConfigureFaultInterrupts(const Config::InterruptConfig& interruptConfig);
         void GeneratorConfiguration(Generator& generator) const;
         void EnableDeadBand(Generator& generator) const;
-        void EnableGenerator(Generator& generator) const;
-        void DisableGenerator(Generator& generator) const;
+        void EnableGenerator(Generator& generator);
+        void DisableGenerator(Generator& generator);
         void EnableOutput(const Generator& generator) const;
         void DisableOutput(const Generator& generator) const;
-        void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle) const;
+        void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle);
         Output OutputFor(uint32_t width) const;
         void SetOutput(Generator& generator, Output output) const;
         void Sync() const;
@@ -291,7 +293,6 @@ namespace hal::tiva
         void ConfigureInvert() const;
         void HandleGeneratorIrq(GeneratorIndex gen);
         void HandleFaultIrq();
-        uint32_t RunningGenerators() const;
         void SynchronizeCounters(uint32_t runningBefore) const;
         void DisableGenerators();
         void RearmFault() const;
