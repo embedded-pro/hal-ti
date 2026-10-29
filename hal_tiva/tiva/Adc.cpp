@@ -401,14 +401,13 @@ namespace hal::tiva
                 {
                     InterruptClear(adc, this->adcSequencer);
                     const auto drained = DrainFifo(adc, this->adcSequencer, buffer);
-                    if (resynchronising)
+                    if (resynchronising || drained != numberOfChannels)
                     {
                         resynchronising = false;
                         ClearOverflow(adc, this->adcSequencer);
                         return;
                     }
 
-                    really_assert(drained == numberOfChannels);
                     if (discardLastSample)
                         buffer.pop_back();
                     callback(infra::MakeRange(buffer));
@@ -427,7 +426,6 @@ namespace hal::tiva
         DisableClock();
     }
 
-    // Arming can land mid-run, and a stopped sequence can leave samples behind, so the first run only realigns the FIFO
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
         callback.Set(onDone);
