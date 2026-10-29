@@ -401,7 +401,6 @@ namespace hal::tiva
                 {
                     InterruptClear(adc, this->adcSequencer);
                     const auto drained = DrainFifo(adc, this->adcSequencer, buffer);
-                    // Two triggers in quick succession, as when the PWM restarts, queue part of the next run behind this one; the next run ends realigned
                     if (resynchronising || drained != numberOfChannels)
                     {
                         resynchronising = false;
@@ -427,7 +426,6 @@ namespace hal::tiva
         DisableClock();
     }
 
-    // Arming can land mid-run, and a stopped sequence can leave samples behind, so the first run only realigns the FIFO
     void Adc::Measure(const infra::Function<void(Samples)>& onDone)
     {
         callback.Set(onDone);
