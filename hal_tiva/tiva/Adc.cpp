@@ -401,14 +401,14 @@ namespace hal::tiva
                 {
                     InterruptClear(adc, this->adcSequencer);
                     const auto drained = DrainFifo(adc, this->adcSequencer, buffer);
-                    if (resynchronising)
+                    // Two triggers in quick succession, as when the PWM restarts, queue part of the next run behind this one; the next run ends realigned
+                    if (resynchronising || drained != numberOfChannels)
                     {
                         resynchronising = false;
                         ClearOverflow(adc, this->adcSequencer);
                         return;
                     }
 
-                    really_assert(drained == numberOfChannels);
                     if (discardLastSample)
                         buffer.pop_back();
                     callback(infra::MakeRange(buffer));
