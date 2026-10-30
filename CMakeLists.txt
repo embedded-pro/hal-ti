@@ -10,6 +10,7 @@ option(HAL_TI_INCLUDE_BRINGUP "Include default bringup code; turn off when provi
 option(HAL_TI_BUILD_EXAMPLES "Enable build of the examples" OFF)
 option(HAL_TI_BUILD_EXAMPLES_FREERTOS "Enable build of the FreeRTOS example" OFF)
 option(HAL_TI_INCLUDE_LWIP "Build the lwIP Ethernet instantiation (TM4C129 only)" OFF)
+set(HAL_TI_GPIO_MAX_INTERRUPT_PINS 8 CACHE STRING "Number of GPIO pins that can have an interrupt enabled at the same time")
 
 if (HAL_TI_BUILD_TESTS)
     # CTest cannot be included before the first project() statement, but amp-embedded-infa-lib

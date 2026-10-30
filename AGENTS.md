@@ -73,7 +73,7 @@ cmake --build --preset host-Debug
 ctest --preset host
 ```
 
-Target presets: `tm4c123gh6pm` / `tm4c1294ncpdt` (build: `<preset>-Debug`, `<preset>-RelWithDebInfo`). Options (top-level `CMakeLists.txt`): `HAL_TI_BUILD_TESTS`, `HAL_TI_INCLUDE_BRINGUP` (default ON), `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS`, `HAL_TI_INCLUDE_LWIP` (lwIP Ethernet instantiation, TM4C129 only).
+Target presets: `tm4c123gh6pm` / `tm4c1294ncpdt` (build: `<preset>-Debug`, `<preset>-RelWithDebInfo`). Options (top-level `CMakeLists.txt`): `HAL_TI_BUILD_TESTS`, `HAL_TI_INCLUDE_BRINGUP` (default ON), `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS`, `HAL_TI_INCLUDE_LWIP` (lwIP Ethernet instantiation, TM4C129 only), `HAL_TI_GPIO_MAX_INTERRUPT_PINS` (default 8; GPIO pins with an interrupt enabled at once).
 
 ## Dependency: EMIL (embedded-infra-lib)
 

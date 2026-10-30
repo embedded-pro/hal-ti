@@ -539,6 +539,7 @@ namespace hal::tiva
         if (pinInterrupt == nullptr)
             pinInterrupt = FindPinInterrupt(unassignedPin);
 
+        // Fails when more pins have an interrupt enabled than HAL_TI_GPIO_MAX_INTERRUPT_PINS allows
         really_assert(pinInterrupt != nullptr);
         pinInterrupt->pinNumber = static_cast<uint8_t>(pinNumber);
         return *pinInterrupt;

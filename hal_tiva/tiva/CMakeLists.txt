@@ -15,6 +15,11 @@ target_link_libraries(hal_tiva.tiva PUBLIC
     hal.cortex_m
 )
 
+# Public: it sizes a Gpio member, so every translation unit that includes Gpio.hpp must see the same value
+target_compile_definitions(hal_tiva.tiva PUBLIC
+    HAL_TI_GPIO_MAX_INTERRUPT_PINS=${HAL_TI_GPIO_MAX_INTERRUPT_PINS}
+)
+
 target_sources(hal_tiva.tiva PRIVATE
     Adc.cpp
     Adc.hpp

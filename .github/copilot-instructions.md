@@ -105,7 +105,7 @@ Always poll the peripheral-ready bit after enabling the clock gate. Use the corr
 - `PeripheralPin` — RAII wrapper that configures GPIO for peripheral alternate function on construction and restores on destruction
 - `AnalogPin` — Wraps GpioPin for ADC use; provides `AdcChannel()` method
 - Pin lookup tables (`pinoutTableTm4c123`, `pinoutTableTm4c129`) map `PinConfigPeripheral` enums to hardware multiplexing values
-- Pin interrupts come from a pool of `Gpio::maxInterruptPins` (16) slots, not one per pin: enabling a 17th pin while 16 are enabled hits `really_assert`; `DisableInterrupt` frees the slot. A port's IRQ (on ports P and Q, the pin's own IRQ) is registered by the first `EnableInterrupt` that needs it and stays registered, so a handler may disable its own pin
+- Pin interrupts come from a pool of `Gpio::maxInterruptPins` slots, not one per pin. Its size is the CMake cache variable `HAL_TI_GPIO_MAX_INTERRUPT_PINS` (default 8), a public compile definition of `hal_tiva.tiva`; a value above the MCU's pin count fails to compile. Enabling one pin more than the pool holds hits `really_assert`; `DisableInterrupt` frees the slot. A port's IRQ (on ports P and Q, the pin's own IRQ) is registered by the first `EnableInterrupt` that needs it and stays registered, so a handler may disable its own pin
 
 ### WithStorage Pattern
 

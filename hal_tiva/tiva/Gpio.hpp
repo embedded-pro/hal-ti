@@ -243,7 +243,8 @@ namespace hal::tiva
         void ReservePin(Port port, uint8_t index);
         void ClearPinReservation(Port port, uint8_t index);
 
-        static constexpr std::size_t maxInterruptPins{ 16 };
+        static constexpr std::size_t maxInterruptPins{ HAL_TI_GPIO_MAX_INTERRUPT_PINS };
+        static_assert(maxInterruptPins <= 8 * family::numberOfPorts, "HAL_TI_GPIO_MAX_INTERRUPT_PINS exceeds the number of GPIO pins");
 
     private:
         static constexpr uint8_t unassignedPin{ 0xff };
