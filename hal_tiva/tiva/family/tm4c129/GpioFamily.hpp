@@ -26,8 +26,6 @@ namespace hal::tiva::family
         bool perPin;
     };
 
-    inline constexpr std::size_t numberOfPorts = 15;
-
     // clang-format off
     inline const std::array<GpioPortEntry, 15> portAndRcgc = { {
         { GPIOA, 0x00000001, GPIOA_IRQn, false },

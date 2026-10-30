@@ -243,22 +243,43 @@ namespace hal::tiva
         void ReservePin(Port port, uint8_t index);
         void ClearPinReservation(Port port, uint8_t index);
 
+        static constexpr std::size_t maxInterruptPins{ 16 };
+
     private:
-        void ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to);
-        void ExtiInterruptPort(std::size_t portIndex);
-        void ExtiInterruptSinglePin(std::size_t handlerIndex);
-        void DispatchPending(std::size_t handlerIndex);
+        static constexpr uint8_t unassignedPin{ 0xff };
+
+        struct PinInterrupt
+        {
+            infra::HotSwapFunction<void()> handler;
+            std::atomic<uint16_t> pendingEdges{};
+            uint8_t pinNumber{ unassignedPin };
+            InterruptType type{};
+        };
+
+        struct InterruptLine
+        {
+            std::optional<hal::cortex::ImmediateInterruptHandler> handler;
+            int32_t irq{ -1 };
+            uint8_t portIndex{};
+            uint8_t firstPin{};
+            uint8_t endPin{};
+        };
+
+        PinInterrupt* FindPinInterrupt(std::size_t pinNumber);
+        PinInterrupt& ClaimPinInterrupt(std::size_t pinNumber);
+        void ConnectInterruptLine(std::size_t portIndex, uint8_t index);
+        void ExtiInterrupt(const InterruptLine& line);
+        void Notify(PinInterrupt& pinInterrupt);
+        void DispatchPending(PinInterrupt& pinInterrupt);
 
         infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable;
         infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable;
 
-        std::array<infra::HotSwapFunction<void()>, 8 * family::numberOfPorts> handlers;
-        std::array<InterruptType, 8 * family::numberOfPorts> interruptTypes;
-        std::array<std::atomic<uint16_t>, 8 * family::numberOfPorts> pendingEdges{};
         std::array<uint32_t, 15> assignedPins;
 
-        std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 15> portHandlers;
-        std::array<std::optional<hal::cortex::ImmediateInterruptHandler>, 16> pinHandlers;
+        // Pooled, not one per pin: the TM4C129's 120 pins would cost about 4 KiB of RAM for interrupts few of them use
+        std::array<PinInterrupt, maxInterruptPins> pinInterrupts;
+        std::array<InterruptLine, maxInterruptPins> interruptLines;
     };
 }
 

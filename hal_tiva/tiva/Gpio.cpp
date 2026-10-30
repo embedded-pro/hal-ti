@@ -102,6 +102,19 @@ namespace hal::tiva
             return 1 << index;
         }
 
+        constexpr std::size_t PinNumber(std::size_t portIndex, std::size_t index)
+        {
+            return portIndex * 8 + index;
+        }
+
+        int32_t InterruptLineIrq(std::size_t portIndex, uint8_t index)
+        {
+            if (portAndRcgc[portIndex].perPin)
+                return perPinIrqs[(portIndex - static_cast<std::size_t>(Port::P)) * 8 + index];
+
+            return portAndRcgc[portIndex].irq;
+        }
+
         uint8_t ToPctl(const infra::MemoryRange<const Gpio::PinPosition>& pins, Port port, uint8_t index)
         {
             for (auto& pin : pins)
@@ -448,39 +461,11 @@ namespace hal::tiva
         pins.ResetConfig();
     }
 
-    // clang-format off
     Gpio::Gpio(infra::MemoryRange<const infra::MemoryRange<const Gpio::PinoutTable>> pinoutTable, infra::MemoryRange<const Gpio::AnalogPinPosition> analogTable)
         : pinoutTable(pinoutTable)
         , analogTable(analogTable)
-        , interruptTypes{}
         , assignedPins()
-    {
-        for (std::size_t i = 0; i < portAndRcgc.size(); ++i)
-        {
-            if (portAndRcgc[i].address == nullptr || portAndRcgc[i].irq < 0)
-                continue;
-            NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(portAndRcgc[i].irq));
-            portHandlers[i].emplace(portAndRcgc[i].irq, [this, i]() { ExtiInterruptPort(i); });
-        }
-
-        for (std::size_t i = 0; i < portAndRcgc.size(); ++i)
-        {
-            if (portAndRcgc[i].address == nullptr || !portAndRcgc[i].perPin)
-                continue;
-            const std::size_t pinBase = (i - static_cast<std::size_t>(Port::P)) * 8;
-            for (std::size_t pin = 0; pin < 8; ++pin)
-            {
-                const std::size_t ph = pinBase + pin;
-                if (perPinIrqs[ph] >= 0)
-                {
-                    NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(perPinIrqs[ph]));
-                    pinHandlers[ph].emplace(perPinIrqs[ph], [this, h = i * 8 + pin]() { ExtiInterruptSinglePin(h); });
-                }
-            }
-        }
-    }
-
-    // clang-format on
+    {}
 
     std::pair<const Gpio::PinPosition&, const Gpio::PinoutTable&> Gpio::GetPeripheralPinConfig(Port port, uint8_t index, PinConfigPeripheral pinConfigType) const
     {
@@ -508,6 +493,7 @@ namespace hal::tiva
         const std::size_t portIdx = static_cast<uint8_t>(port);
         really_assert(portAndRcgc[portIdx].address != nullptr);
         really_assert(portAndRcgc[portIdx].irq >= 0 || portAndRcgc[portIdx].perPin);
+        really_assert(index < 8);
 
         infra::ReplaceBit(GpioTiva(port)->IM, false, index);
 
@@ -515,11 +501,11 @@ namespace hal::tiva
         infra::ReplaceBit(GpioTiva(port)->IS, interruptTiva[static_cast<uint8_t>(trigger)].is, index);
         infra::ReplaceBit(GpioTiva(port)->IEV, interruptTiva[static_cast<uint8_t>(trigger)].iev, index);
 
-        const std::size_t handlerIndex = portIdx * 8 + index;
-        really_assert(handlerIndex < handlers.size());
-        really_assert(!handlers[handlerIndex].IsSet());
-        handlers[handlerIndex].Set(action);
-        interruptTypes[handlerIndex] = type;
+        PinInterrupt& pinInterrupt = ClaimPinInterrupt(PinNumber(portIdx, index));
+        really_assert(!pinInterrupt.handler.IsSet());
+        pinInterrupt.type = type;
+        pinInterrupt.handler.Set(action);
+        ConnectInterruptLine(portIdx, index);
 
         infra::ReplaceBit(GpioTiva(port)->ICR, true, index);
         infra::ReplaceBit(GpioTiva(port)->IM, true, index);
@@ -529,52 +515,98 @@ namespace hal::tiva
     {
         infra::ReplaceBit(GpioTiva(port)->IM, false, index);
 
-        const std::size_t handlerIndex = static_cast<uint8_t>(port) * 8 + index;
-        really_assert(handlerIndex < handlers.size());
-        handlers[handlerIndex].Clear();
-        pendingEdges[handlerIndex] = 0;
+        PinInterrupt* pinInterrupt = FindPinInterrupt(PinNumber(static_cast<uint8_t>(port), index));
+        if (pinInterrupt != nullptr)
+        {
+            pinInterrupt->handler.Clear();
+            pinInterrupt->pendingEdges = 0;
+            pinInterrupt->pinNumber = unassignedPin;
+        }
     }
 
-    void Gpio::ExtiInterrupt(GPIOA_Type* gpio, std::size_t portIndex, std::size_t from, std::size_t to)
+    Gpio::PinInterrupt* Gpio::FindPinInterrupt(std::size_t pinNumber)
     {
-        for (std::size_t line = from; line != to; ++line)
-        {
-            if (infra::IsBitSet(gpio->MIS, line))
-            {
-                infra::ReplaceBit(gpio->ICR, true, line);
+        for (auto& pinInterrupt : pinInterrupts)
+            if (pinInterrupt.pinNumber == pinNumber)
+                return &pinInterrupt;
 
-                const std::size_t h = portIndex * 8 + line;
-                if (handlers[h].IsSet())
-                {
-                    if (interruptTypes[h] == InterruptType::immediate)
-                        handlers[h]();
-                    else if (pendingEdges[h].fetch_add(1, std::memory_order_relaxed) == 0)
-                        infra::EventDispatcher::Instance().Schedule([this, h]()
-                            {
-                                DispatchPending(h);
-                            });
-                }
+        return nullptr;
+    }
+
+    Gpio::PinInterrupt& Gpio::ClaimPinInterrupt(std::size_t pinNumber)
+    {
+        PinInterrupt* pinInterrupt = FindPinInterrupt(pinNumber);
+        if (pinInterrupt == nullptr)
+            pinInterrupt = FindPinInterrupt(unassignedPin);
+
+        really_assert(pinInterrupt != nullptr);
+        pinInterrupt->pinNumber = static_cast<uint8_t>(pinNumber);
+        return *pinInterrupt;
+    }
+
+    // A line stays registered once connected, so a handler that disables its own pin never unregisters the interrupt it runs in
+    void Gpio::ConnectInterruptLine(std::size_t portIndex, uint8_t index)
+    {
+        const int32_t irq = InterruptLineIrq(portIndex, index);
+        really_assert(irq >= 0);
+
+        InterruptLine* line = nullptr;
+        for (auto& candidate : interruptLines)
+        {
+            if (candidate.irq == irq)
+                return;
+            if (line == nullptr && candidate.irq < 0)
+                line = &candidate;
+        }
+
+        really_assert(line != nullptr);
+
+        const bool perPin = portAndRcgc[portIndex].perPin;
+        line->irq = irq;
+        line->portIndex = static_cast<uint8_t>(portIndex);
+        line->firstPin = perPin ? index : 0;
+        line->endPin = perPin ? index + 1 : 8;
+
+        NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(irq));
+        line->handler.emplace(irq, [this, line]()
+            {
+                ExtiInterrupt(*line);
+            });
+    }
+
+    void Gpio::ExtiInterrupt(const InterruptLine& line)
+    {
+        GPIOA_Type* gpio = portAndRcgc[line.portIndex].address;
+
+        for (std::size_t index = line.firstPin; index != line.endPin; ++index)
+        {
+            if (infra::IsBitSet(gpio->MIS, index))
+            {
+                infra::ReplaceBit(gpio->ICR, true, index);
+
+                PinInterrupt* pinInterrupt = FindPinInterrupt(PinNumber(line.portIndex, index));
+                if (pinInterrupt != nullptr && pinInterrupt->handler.IsSet())
+                    Notify(*pinInterrupt);
             }
         }
     }
 
+    void Gpio::Notify(PinInterrupt& pinInterrupt)
+    {
+        if (pinInterrupt.type == InterruptType::immediate)
+            pinInterrupt.handler();
+        else if (pinInterrupt.pendingEdges.fetch_add(1, std::memory_order_relaxed) == 0)
+            infra::EventDispatcher::Instance().Schedule([this, &pinInterrupt]()
+                {
+                    DispatchPending(pinInterrupt);
+                });
+    }
+
     // One queued event per pin no matter how fast edges arrive; it runs the handler once per edge seen so far
-    void Gpio::DispatchPending(std::size_t handlerIndex)
+    void Gpio::DispatchPending(PinInterrupt& pinInterrupt)
     {
-        for (auto edges = pendingEdges[handlerIndex].exchange(0, std::memory_order_relaxed); edges != 0 && handlers[handlerIndex].IsSet(); --edges)
-            handlers[handlerIndex]();
-    }
-
-    void Gpio::ExtiInterruptPort(std::size_t portIndex)
-    {
-        ExtiInterrupt(portAndRcgc[portIndex].address, portIndex, 0, 8);
-    }
-
-    void Gpio::ExtiInterruptSinglePin(std::size_t handlerIndex)
-    {
-        const std::size_t portIndex = handlerIndex / 8;
-        const std::size_t pin = handlerIndex % 8;
-        ExtiInterrupt(portAndRcgc[portIndex].address, portIndex, pin, pin + 1);
+        for (auto edges = pinInterrupt.pendingEdges.exchange(0, std::memory_order_relaxed); edges != 0 && pinInterrupt.handler.IsSet(); --edges)
+            pinInterrupt.handler();
     }
 
     void Gpio::ReservePin(Port port, uint8_t index)
