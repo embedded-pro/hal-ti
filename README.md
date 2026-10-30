@@ -52,6 +52,7 @@ Build options defined in the top-level `CMakeLists.txt`:
 
 - `HAL_TI_INCLUDE_BRINGUP` (default `ON`): include the default bringup code; turn off when providing custom initialization.
 - `HAL_TI_INCLUDE_LWIP` (default `OFF`, switched on by the `tm4c1294ncpdt` preset): when building hal-ti standalone, build the lwIP Ethernet instantiation (TM4C129 only).
+- `HAL_TI_GPIO_MAX_INTERRUPT_PINS` (default `8`): how many GPIO pins can have an interrupt enabled at the same time; each one costs 72 bytes of RAM. A value above the MCU's pin count fails to compile, and enabling one pin more than the value at run time hits `really_assert`.
 - `HAL_TI_BUILD_TESTS` (default `OFF`): build the host unit tests (standalone builds only).
 - `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS` (default `OFF`): build the examples (`HAL_TI_BUILD_EXAMPLES` also builds `validation/` and `demo/`).
 
