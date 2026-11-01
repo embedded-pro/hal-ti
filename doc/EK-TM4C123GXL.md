@@ -13,6 +13,15 @@
 7. Connect TMS to jtag pin 7 (SWDIO)
 8. Connect RESET to jtag pin 15 (nRST)
 
+## Internal flash
+
+`hal::tiva::FlashInternal` (`hal::Flash`, completions through the event dispatcher) and `hal::tiva::SynchronousFlashInternal` (`hal::SynchronousFlash`, for boot loaders) drive a region of on-chip flash. The region must start and end on a 1 KB sector boundary; sector indices and addresses are relative to it.
+
+1. Erase works per 1 KB sector; programming goes through the controller's 32-word write buffer, so any byte range can be written and bytes around it in a partly written word are left unchanged
+2. A program or erase stalls every flash access until it completes: the CPU and every interrupt whose code runs from flash wait for it
+3. The driver does not coordinate with `hal::tiva::Eeprom`; keep flash and EEPROM writes apart
+4. Write and erase errors (access violation, voltage, verify) fail a `really_assert`
+
 ## Extra changes
 
 1. Remove resistors R9 and R10.

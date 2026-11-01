@@ -39,6 +39,11 @@ target_sources(hal_tiva.tiva PRIVATE
     Eeprom.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:Ethernet.hpp>
+    FlashController.cpp
+    FlashController.hpp
+    FlashInternal.cpp
+    FlashInternal.hpp
+    FlashWriteWindow.hpp
     Gpio.cpp
     Gpio.hpp
     LowPowerMode.cpp
@@ -63,6 +68,7 @@ target_sources(hal_tiva.tiva PRIVATE
     WatchDog.cpp
     WatchDog.hpp
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/AnalogComparatorFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/FlashFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/GpioFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/PwmFamily.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/PwmFamily.hpp>
@@ -71,6 +77,7 @@ target_sources(hal_tiva.tiva PRIVATE
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:family/tm4c123/UniqueDeviceIdFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/AnalogComparatorFamily.cpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/AnalogComparatorFamily.hpp>
+    $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/FlashFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/GpioFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/PwmFamily.hpp>
     $<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C129>:family/tm4c129/QuadratureEncoderFamily.hpp>

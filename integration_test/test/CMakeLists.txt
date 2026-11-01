@@ -13,5 +13,6 @@ target_link_libraries(integration_test.test PUBLIC
 
 target_sources(integration_test.test PRIVATE
     CanBitTimingTest.cpp
+    FlashWriteWindowTest.cpp
     SpiClockDivisorTest.cpp
 )
