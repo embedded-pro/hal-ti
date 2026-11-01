@@ -16,6 +16,8 @@ target_sources(hal_tiva.synchronous_tiva PRIVATE
     SynchronousAdc.hpp
     SynchronousAnalogComparator.cpp
     SynchronousAnalogComparator.hpp
+    SynchronousFlashInternal.cpp
+    SynchronousFlashInternal.hpp
     SynchronousPwm.cpp
     SynchronousPwm.hpp
     SynchronousQuadratureEncoder.cpp
