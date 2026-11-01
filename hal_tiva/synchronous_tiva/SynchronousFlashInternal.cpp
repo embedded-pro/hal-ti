@@ -13,21 +13,21 @@ namespace hal::tiva
 
     void SynchronousFlashInternal::WriteBuffer(infra::ConstByteRange buffer, uint32_t address)
     {
-        really_assert(address + buffer.size() <= flashMemory.size());
+        really_assert(address <= flashMemory.size() && buffer.size() <= flashMemory.size() - address);
 
         ProgramFlash(buffer, AbsoluteAddress(address));
     }
 
     void SynchronousFlashInternal::ReadBuffer(infra::ByteRange buffer, uint32_t address)
     {
-        really_assert(address + buffer.size() <= flashMemory.size());
+        really_assert(address <= flashMemory.size() && buffer.size() <= flashMemory.size() - address);
 
         std::copy(flashMemory.begin() + address, flashMemory.begin() + address + buffer.size(), buffer.begin());
     }
 
     void SynchronousFlashInternal::EraseSectors(uint32_t beginIndex, uint32_t endIndex)
     {
-        really_assert(endIndex <= NumberOfSectors());
+        really_assert(beginIndex <= endIndex && endIndex <= NumberOfSectors());
 
         for (auto index = beginIndex; index != endIndex; ++index)
             EraseFlashSector(AbsoluteAddress(AddressOfSector(index)));

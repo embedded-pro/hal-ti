@@ -14,7 +14,7 @@ namespace hal::tiva
 
     void FlashInternal::WriteBuffer(infra::ConstByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
-        really_assert(address + buffer.size() <= flashMemory.size());
+        really_assert(address <= flashMemory.size() && buffer.size() <= flashMemory.size() - address);
 
         ProgramFlash(buffer, AbsoluteAddress(address));
         infra::EventDispatcher::Instance().Schedule(onDone);
@@ -22,7 +22,7 @@ namespace hal::tiva
 
     void FlashInternal::ReadBuffer(infra::ByteRange buffer, uint32_t address, infra::Function<void()> onDone)
     {
-        really_assert(address + buffer.size() <= flashMemory.size());
+        really_assert(address <= flashMemory.size() && buffer.size() <= flashMemory.size() - address);
 
         std::copy(flashMemory.begin() + address, flashMemory.begin() + address + buffer.size(), buffer.begin());
         infra::EventDispatcher::Instance().Schedule(onDone);
@@ -30,7 +30,7 @@ namespace hal::tiva
 
     void FlashInternal::EraseSectors(uint32_t beginIndex, uint32_t endIndex, infra::Function<void()> onDone)
     {
-        really_assert(endIndex <= NumberOfSectors());
+        really_assert(beginIndex <= endIndex && endIndex <= NumberOfSectors());
 
         for (auto index = beginIndex; index != endIndex; ++index)
             EraseFlashSector(AbsoluteAddress(AddressOfSector(index)));
