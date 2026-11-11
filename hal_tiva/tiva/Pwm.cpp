@@ -321,6 +321,7 @@ namespace hal::tiva
     {
         const auto period = ToPeriod(peripheralPwm[pwmIndex], baseFrequency);
         load = IsCenterAligned(config.control.mode) ? period / 2 : period - 1;
+        fullScale = IsCenterAligned(config.control.mode) ? load : load + 1;
         really_assert(load > 0 && load <= 0xffff);
 
         for (auto& gen : generators)
@@ -473,33 +474,48 @@ namespace hal::tiva
     }
 
     // A control loop calls this every PWM period, so a running generator writes only its comparators, and its actions only when they change
-    void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle)
+    [[gnu::always_inline]] inline void Pwm::SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle)
     {
         really_assert(dutyCycle.IsValid());
         generator.duty = dutyCycle;
 
-        auto width = static_cast<uint32_t>(IsCenterAligned(config.control.mode) ? dutyCycle.ToCounts(load) : dutyCycle.ToCounts(GetLoad()));
+        auto width = static_cast<uint32_t>(dutyCycle.ToCounts(fullScale));
 
         if (width > load)
             width = load;
 
         const auto output = OutputFor(width);
+        if (output != generator.output || !generator.running) [[unlikely]]
+        {
+            ReconfigureGenerator(generator, width, output);
+            return;
+        }
+
+        if (output == Output::compare)
+            WriteComparators(generator, width);
+    }
+
+    void Pwm::ReconfigureGenerator(Generator& generator, uint32_t width, Output output)
+    {
         if (output != generator.output)
             SetOutput(generator, output);
 
         if (output == Output::compare)
-        {
-            if (generator.a)
-                generator.address->CMPA = load - width;
-            if (generator.b)
-                generator.address->CMPB = load - width;
-        }
+            WriteComparators(generator, width);
 
         if (generator.running)
             return;
 
         EnableOutput(generator);
         EnableGenerator(generator);
+    }
+
+    [[gnu::always_inline]] inline void Pwm::WriteComparators(const Generator& generator, uint32_t width) const
+    {
+        if (generator.a)
+            generator.address->CMPA = load - width;
+        if (generator.b)
+            generator.address->CMPB = load - width;
     }
 
     Pwm::Output Pwm::OutputFor(uint32_t width) const
@@ -552,14 +568,6 @@ namespace hal::tiva
     {
         if (runningBefore != allGenerators)
             peripheralPwm[pwmIndex]->SYNC = allGenerators;
-    }
-
-    uint32_t Pwm::GetLoad() const
-    {
-        if (IsCenterAligned(config.control.mode))
-            return load * 2;
-        else
-            return load + 1;
     }
 
     void Pwm::EnableClock() const
