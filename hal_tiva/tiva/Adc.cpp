@@ -230,19 +230,19 @@ namespace
         adc.ISC = 1 << sequencer;
     }
 
-    [[gnu::always_inline]] inline std::size_t DrainFifo(ADC0_Type& adc, uint8_t sequencer, infra::BoundedVector<uint16_t>& samples)
+    template<std::size_t Size>
+    [[gnu::always_inline]] inline std::size_t DrainFifo(ADC0_Type& adc, uint8_t sequencer, std::array<uint16_t, Size>& samples)
     {
         volatile uint32_t* SSFSTAT = &adc.SSFSTAT0 + (sequencer * sequencerOffset);
         volatile uint32_t* SSFIFO = &adc.SSFIFO0 + (sequencer * sequencerOffset);
 
-        samples.clear();
         std::size_t drained = 0;
 
         while (!((*SSFSTAT) & ADC_SSFSTAT0_EMPTY))
         {
-            auto data = *SSFIFO;
-            if (!samples.full())
-                samples.push_back(static_cast<uint16_t>(data));
+            const auto data = *SSFIFO;
+            if (drained != Size)
+                samples[drained] = static_cast<uint16_t>(data);
             ++drained;
         }
 
@@ -408,9 +408,7 @@ namespace hal::tiva
                         return;
                     }
 
-                    if (discardLastSample)
-                        buffer.pop_back();
-                    callback(infra::MakeRange(buffer));
+                    callback(Samples(buffer.data(), buffer.data() + drained - (discardLastSample ? 1 : 0)));
                 }
             });
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "infra/util/BoundedVector.hpp"
+#include <array>
 #include <cstdint>
 #include DEVICE_HEADER
 #include "hal/interfaces/AdcMultiChannel.hpp"
@@ -111,13 +111,13 @@ namespace hal::tiva
         void DisableClock();
 
     private:
-        constexpr static uint32_t maxSamples = 8;
+        constexpr static std::size_t maxSamples = 8;
         constexpr static uint32_t numberOfSequencers = 4;
 
         uint8_t adcIndex;
         uint8_t adcSequencer;
         infra::HotSwapFunction<void(Samples)> callback;
-        infra::BoundedVector<uint16_t>::WithMaxSize<maxSamples> buffer;
+        std::array<uint16_t, maxSamples> buffer{};
         std::size_t numberOfChannels;
         bool monitorsWithComparators = false;
         bool discardLastSample = false;
