@@ -265,6 +265,7 @@ namespace hal::tiva
         Config config;
         infra::BoundedVector<Generator>::WithMaxSize<4> generators;
         uint32_t load = 0;
+        uint32_t fullScale = 0;
         infra::Function<void(NormalEvent)> onNormalInterrupt;
         infra::Function<void(FaultEvent)> onFault;
         std::optional<GeneratorInterruptSlot> generatorHandlers[4];
@@ -284,10 +285,11 @@ namespace hal::tiva
         void EnableOutput(const Generator& generator) const;
         void DisableOutput(const Generator& generator) const;
         void SetComparator(Generator& generator, const hal::DutyCycle& dutyCycle);
+        void ReconfigureGenerator(Generator& generator, uint32_t width, Output output);
+        void WriteComparators(const Generator& generator, uint32_t width) const;
         Output OutputFor(uint32_t width) const;
         void SetOutput(Generator& generator, Output output) const;
         void Sync() const;
-        uint32_t GetLoad() const;
         void EnableClock() const;
         void DisableClock() const;
         void ConfigureInvert() const;
