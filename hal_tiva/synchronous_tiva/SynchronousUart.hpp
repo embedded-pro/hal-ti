@@ -116,7 +116,7 @@ namespace hal::tiva
 
         SynchronousUartSendOnly(uint8_t aUartIndex, GpioPin& uartTx, const Config& config = Config());
         SynchronousUartSendOnly(uint8_t aUartIndex, GpioPin& uartTx, GpioPin& uartRts, HwFlowControl flowControl, const Config& config = Config());
-        virtual ~SynchronousUartSendOnly();
+        ~SynchronousUartSendOnly();
 
         void SendData(infra::ConstByteRange data) override;
         bool ReceiveData(infra::ByteRange data) override;
