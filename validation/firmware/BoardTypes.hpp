@@ -1,5 +1,4 @@
-#ifndef VALIDATION_BOARD_TYPES_HPP
-#define VALIDATION_BOARD_TYPES_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "services/hil/HilPinId.hpp"
@@ -42,5 +41,3 @@ namespace validation
         HilPinId tx;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_TIVA_FLASH_WRITE_WINDOW_HPP
-#define HAL_TIVA_FLASH_WRITE_WINDOW_HPP
+#pragma once
 
 #include "infra/util/ByteRange.hpp"
 #include <array>
@@ -39,5 +38,3 @@ namespace hal::tiva
         return window;
     }
 }
-
-#endif

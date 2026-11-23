@@ -1,5 +1,4 @@
-#ifndef HAL_TIVA_FLASH_INTERNAL_HPP
-#define HAL_TIVA_FLASH_INTERNAL_HPP
+#pragma once
 
 #include "hal/interfaces/FlashHomogeneous.hpp"
 #include "infra/util/ByteRange.hpp"
@@ -23,5 +22,3 @@ namespace hal::tiva
         infra::ConstByteRange flashMemory;
     };
 }
-
-#endif

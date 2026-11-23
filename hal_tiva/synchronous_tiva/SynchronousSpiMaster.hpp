@@ -1,5 +1,4 @@
-#ifndef SYNCHRONOUS_HAL_SYNCHRONOUS_SPI_MASTER_HPP
-#define SYNCHRONOUS_HAL_SYNCHRONOUS_SPI_MASTER_HPP
+#pragma once
 
 #include "hal/synchronous_interfaces/SynchronousSpi.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -46,5 +45,3 @@ namespace hal::tiva
     };
 
 }
-
-#endif

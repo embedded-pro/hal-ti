@@ -1,5 +1,4 @@
-#ifndef DEMO_EK_TM4C123XGL_BOOSTXL_K350QVG_S1_BOARD_PINS_HPP
-#define DEMO_EK_TM4C123XGL_BOOSTXL_K350QVG_S1_BOARD_PINS_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <cstdint>
@@ -20,5 +19,3 @@ namespace demo::pins
     inline constexpr Pin lcdDataCommand{ hal::tiva::Port::A, 5 };
     inline constexpr Pin lcdReset{ hal::tiva::Port::D, 7 };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_GPIO_FAMILY_TM4C129_HPP
-#define HAL_GPIO_FAMILY_TM4C129_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #define GPIOA_Type GPIOA_AHB_Type
@@ -73,5 +72,3 @@ namespace hal::tiva::family
                ((gpio == GPIOE) && (index == 7));
     }
 }
-
-#endif

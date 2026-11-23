@@ -1,5 +1,4 @@
-#ifndef HAL_SPI_MASTER_TIVA_HPP
-#define HAL_SPI_MASTER_TIVA_HPP
+#pragma once
 
 #include "hal/interfaces/Spi.hpp"
 #include "hal/cortex_m/InterruptCortex.hpp"
@@ -61,5 +60,3 @@ namespace hal::tiva
         bool continuedSession = false;
     };
 }
-
-#endif

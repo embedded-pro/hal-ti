@@ -1,5 +1,4 @@
-#ifndef HAL_DMA_TIVA_HPP
-#define HAL_DMA_TIVA_HPP
+#pragma once
 
 #include "infra/util/InterfaceConnector.hpp"
 #include <optional>
@@ -131,5 +130,3 @@ namespace hal::tiva
         bool useBurst;
     };
 }
-
-#endif

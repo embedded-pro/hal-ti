@@ -1,5 +1,4 @@
-#ifndef HAL_PINOUT_TABLE_DEFAULT_TM4C123_HPP
-#define HAL_PINOUT_TABLE_DEFAULT_TM4C123_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/MemoryRange.hpp"
@@ -17,5 +16,3 @@ namespace hal::tiva
     extern const infra::MemoryRange<const Gpio::PinoutTable> pinoutTablePwm;
     extern const infra::MemoryRange<const Gpio::PinoutTable> pinoutTableUsb;
 }
-
-#endif

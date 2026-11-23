@@ -1,5 +1,4 @@
-#ifndef HAL_TI_LAUNCH_PAD_EK_TM4C123G_HPP
-#define HAL_TI_LAUNCH_PAD_EK_TM4C123G_HPP
+#pragma once
 
 #include "hal_tiva/instantiations/TracerInfrastructure.hpp"
 #include "hal_tiva/tiva/ClockTm4c123.hpp"
@@ -34,5 +33,3 @@ namespace instantiations
         services::Tracer& tracer{ tracerInfrastructure.tracer };
     };
 }
-
-#endif

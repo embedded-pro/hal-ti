@@ -1,5 +1,4 @@
-#ifndef HAL_PWM_FAMILY_TM4C123_HPP
-#define HAL_PWM_FAMILY_TM4C123_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "infra/util/ReallyAssert.hpp"
@@ -65,5 +64,3 @@ namespace hal::tiva::family
             return 1U << ((result > 5U ? 5U : result) + 1);
     }
 }
-
-#endif

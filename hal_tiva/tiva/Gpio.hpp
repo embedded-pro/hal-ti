@@ -1,5 +1,4 @@
-#ifndef HAL_GPIO_STM_HPP
-#define HAL_GPIO_STM_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "GpioFamily.hpp"
@@ -283,5 +282,3 @@ namespace hal::tiva
         std::array<InterruptLine, maxInterruptPins> interruptLines;
     };
 }
-
-#endif

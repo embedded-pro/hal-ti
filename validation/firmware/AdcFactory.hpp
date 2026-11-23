@@ -1,5 +1,4 @@
-#ifndef VALIDATION_ADC_FACTORY_HPP
-#define VALIDATION_ADC_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousAdc.hpp"
 #include "hal_tiva/tiva/Adc.hpp"
@@ -64,5 +63,3 @@ namespace validation
         std::array<std::optional<Sequencer>, sequencers> slots;
     };
 }
-
-#endif

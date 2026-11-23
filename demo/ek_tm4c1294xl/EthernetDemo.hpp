@@ -1,5 +1,4 @@
-#ifndef DEMO_EK_TM4C1294XL_ETHERNET_DEMO_HPP
-#define DEMO_EK_TM4C1294XL_ETHERNET_DEMO_HPP
+#pragma once
 
 #include "hal/interfaces/Gpio.hpp"
 #include "infra/util/BoundedString.hpp"
@@ -43,5 +42,3 @@ namespace demo
         services::LlmnrResponder llmnrResponder;
     };
 }
-
-#endif

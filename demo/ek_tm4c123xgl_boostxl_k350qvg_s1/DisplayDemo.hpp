@@ -1,5 +1,4 @@
-#ifndef DEMO_EK_TM4C123XGL_BOOSTXL_K350QVG_S1_DISPLAY_DEMO_HPP
-#define DEMO_EK_TM4C123XGL_BOOSTXL_K350QVG_S1_DISPLAY_DEMO_HPP
+#pragma once
 
 #include "hal/interfaces/Display.hpp"
 #include "services/tracer/Tracer.hpp"
@@ -48,5 +47,3 @@ namespace demo
         bool restart = false;
     };
 }
-
-#endif

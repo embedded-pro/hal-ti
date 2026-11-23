@@ -1,5 +1,4 @@
-#ifndef HAL_QUADRATURE_ENCODER_TIVA_HPP
-#define HAL_QUADRATURE_ENCODER_TIVA_HPP
+#pragma once
 
 #include "hal/synchronous_interfaces/SynchronousQuadratureEncoder.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -79,5 +78,3 @@ namespace hal::tiva
         infra::MemoryRange<QEI0_Type* const> qeiArray;
     };
 }
-
-#endif

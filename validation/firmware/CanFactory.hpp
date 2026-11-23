@@ -1,5 +1,4 @@
-#ifndef VALIDATION_CAN_FACTORY_HPP
-#define VALIDATION_CAN_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Can.hpp"
 #include "services/hil/commands/HilCanCommands.hpp"
@@ -38,5 +37,3 @@ namespace validation
         infra::Function<void()> onClosed;
     };
 }
-
-#endif

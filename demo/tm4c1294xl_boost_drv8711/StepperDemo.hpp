@@ -1,5 +1,4 @@
-#ifndef DEMO_TM4C1294XL_BOOST_DRV8711_STEPPER_DEMO_HPP
-#define DEMO_TM4C1294XL_BOOST_DRV8711_STEPPER_DEMO_HPP
+#pragma once
 
 #include "drivers/motor_controller/StepDirStepperMotorDrv8711Decorator.hpp"
 #include "hal/interfaces/Gpio.hpp"
@@ -39,5 +38,3 @@ namespace demo
         bool statusPending = false;
     };
 }
-
-#endif

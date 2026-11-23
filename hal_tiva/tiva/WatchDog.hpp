@@ -1,5 +1,4 @@
-#ifndef HAL_WATCHDOG_TIVA_HPP
-#define HAL_WATCHDOG_TIVA_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "hal/cortex_m/InterruptCortex.hpp"
@@ -48,5 +47,3 @@ namespace hal::tiva
         infra::Function<void()> onEarlyWarning;
     };
 }
-
-#endif

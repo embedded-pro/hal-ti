@@ -1,5 +1,4 @@
-#ifndef HAL_UART_TIVA_HPP
-#define HAL_UART_TIVA_HPP
+#pragma once
 
 #include "hal_tiva/tiva/UartBase.hpp"
 
@@ -18,5 +17,3 @@ namespace hal::tiva
         void Invoke() override;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_SYNCHRONOUS_ADC_TIVA_HPP
-#define HAL_SYNCHRONOUS_ADC_TIVA_HPP
+#pragma once
 
 #include "hal/synchronous_interfaces/SynchronousAdc.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -67,5 +66,3 @@ namespace hal::tiva
         infra::BoundedVector<uint16_t>::WithMaxSize<maxSamples> buffer;
     };
 }
-
-#endif

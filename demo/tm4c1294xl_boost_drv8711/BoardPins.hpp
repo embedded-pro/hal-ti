@@ -1,5 +1,4 @@
-#ifndef DEMO_TM4C1294XL_BOOST_DRV8711_BOARD_PINS_HPP
-#define DEMO_TM4C1294XL_BOOST_DRV8711_BOARD_PINS_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include <cstdint>
@@ -28,5 +27,3 @@ namespace demo::pins
     inline constexpr Pin nStall{ hal::tiva::Port::M, 3 };
     inline constexpr Pin potentiometer{ hal::tiva::Port::E, 4 };
 }
-
-#endif

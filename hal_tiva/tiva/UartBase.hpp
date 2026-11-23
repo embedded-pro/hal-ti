@@ -1,5 +1,4 @@
-#ifndef HAL_UART_BASE_TIVA_HPP
-#define HAL_UART_BASE_TIVA_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "hal/interfaces/SerialCommunication.hpp"
@@ -135,5 +134,3 @@ namespace hal::tiva
         infra::MemoryRange<int32_t const> irqArray;
     };
 }
-
-#endif

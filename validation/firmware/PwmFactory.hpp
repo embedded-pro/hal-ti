@@ -1,5 +1,4 @@
-#ifndef VALIDATION_PWM_FACTORY_HPP
-#define VALIDATION_PWM_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Pwm.hpp"
@@ -129,5 +128,3 @@ namespace validation
         std::array<Command, 2> commands;
     };
 }
-
-#endif

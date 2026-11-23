@@ -1,5 +1,4 @@
-#ifndef HAL_PWM_TIVA_HPP
-#define HAL_PWM_TIVA_HPP
+#pragma once
 
 #include "hal/synchronous_interfaces/SynchronousPwm.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -188,5 +187,3 @@ namespace hal::tiva
         void ConfigureInvert() const;
     };
 }
-
-#endif
