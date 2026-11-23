@@ -1,88 +1,151 @@
-# hal-ti — Agent Rules (canonical)
+# hal-ti — Agent Rules
 
-Single source of truth for **Claude, Copilot, and sub-agents**. `CLAUDE.md` points here. Detailed C++ coding rules: `.github/instructions/hal-ti-cpp.instructions.md` (binding for all `*.hpp/*.cpp` changes). Full pattern reference with common pitfalls: `.github/copilot-instructions.md`. Copilot custom agents: `.github/agents/`. Build presets: `CMakePresets.json`.
+<!-- shared:begin 0.3.0 sha256:9aee198041110762 -->
+Canonical rules for Claude, Copilot and sub-agents. Sections marked *(shared)* come from embedded-pro/embedded-agent-kit:
+edit them there, not here. *(repo)* sections belong to this repository. *Exceptions* overrides a shared rule.
 
-hal-ti is a Hardware Abstraction Layer for TI ARM Cortex-M microcontrollers (TM4C123 and TM4C129 families), implementing [embedded-infra-lib](https://github.com/embedded-pro/embedded-infra-lib) (EMIL) HAL interfaces over TI Tiva C peripherals, for strict realtime/memory-constrained applications (BLDC/PMSM motor control and similar).
+## Behaviour *(shared)*
 
-## Architecture
+- **Be as terse as possible.** No preamble, summary or narration. Report file paths and pass/fail.
+- Everything you write — code, docs, agent files, PR text — uses the fewest words that stay unambiguous.
+- Prose (docs, comments, agent files, commit and PR text) follows ASD-STE100 Simplified Technical English:
+  one word, one meaning; active voice; one instruction per sentence; sentences ≤ 20 words (procedures) or ≤ 25 (descriptions).
+- Ambiguous request: ask. Clear request: act.
+- Do only what was asked. No unrelated refactors, no extra features.
+- Batch reads, don't re-read, prefer targeted edits.
+- Never change a shared section. Add a deviation to *Exceptions* only when the user approves it.
 
-- `hal::cortex::*` — Reset, SystemTick, SystemTickTimerService, InterruptTable/InterruptHandler, DataWatchpointAndTrace, EventDispatcher all come from EMIL's `hal/cortex_m/`, not from this repo — hal_tiva/ has no local copies
-- `hal_tiva/tiva/` — TM4C peripheral drivers (Gpio, Uart, Can, Adc, SpiMaster, Pwm, Dma, Eeprom, FlashInternal, Ethernet, AnalogComparator, WatchDog, LowPowerMode, Clock), namespace `hal::tiva`
-- `hal_tiva/synchronous_tiva/` — Blocking/polling driver variants (`SynchronousUart`, `SynchronousFlashInternal`, `QuadratureEncoder` in `SynchronousQuadratureEncoder.hpp`, …)
-- `hal_tiva/instantiations/` — Board support packages and event infrastructure (`LaunchPadBsp`, `EventInfrastructure`, `TracingReset`)
-- `hal_tiva/bringup/` — Startup glue: `HardwareInitialization()` (constructs the interrupt table + default GPIO pinout) and the weak `Default_Handler_Forwarded()`. Generic runtime (atomics shim, `abort`/`__assert_func`, libc syscall stubs) comes from EMIL's `hal.cortex_m.runtime`, not from this repo.
-- `tiva/CMSIS/Device/TI/` — CMSIS device headers, startup vector tables (`startup_TM4C123.c`, `startup_TM4C129.c`), linker scripts
-- `integration_test/` — Host-side integration tests (GoogleTest)
-- `examples/` — Reference applications (`blink`, `terminal_and_peripherals`, `terminal_uart_with_dma`, `freertos`)
-- `demo/` — Board-specific firmware, one folder per board or board + BoosterPack (`ek_tm4c123xgl`, `ek_tm4c123xgl_boostxl_k350qvg_s1`, `ek_tm4c1294xl`, `tm4c1294xl_boost_drv8711`); each builds only for its own MCU
-- `doc/` — Board-specific documentation
+## Workflow *(shared)*
 
-## Memory — no heap
+1. Multi-file or architectural change: update the design document first. Get approval before you write code.
+2. Read *Domain* and *Build*. Read each `.github/instructions/*.instructions.md` whose `applyTo` matches a file you change.
+3. Find the nearest existing pattern. Follow it.
+4. Per behaviour: write a failing test, write the minimum code that passes it, refactor with all tests green.
+5. Add each new file to its `CMakeLists.txt`.
+6. Update the documentation for each behavioural change.
+7. Run the *Build* commands until build and tests pass. Never disable, skip or weaken a test to get green.
+8. Non-trivial change: run the `reviewer` agent, or ask the user to run it. Fix each CRITICAL and WARNING finding.
+9. Report changed files, build pass/fail, test pass/fail.
 
-This is a driver library for constrained MCUs running realtime motor control. Forbidden everywhere: `new`/`delete`/`malloc`/`free`, `make_unique`/`make_shared`, `std::vector`/`string`/`deque`/`list`/`map`/`set`. No recursion in driver code — stack depth must be statically bounded.
+## Memory *(shared)*
 
-Use: `infra::BoundedVector<T>`, `infra::BoundedString`, `infra::WithStorage<Base, StorageType>`, `std::array<T,N>`, `std::optional<T>`.
+Scope: production code. Tests and host tools may use the heap.
 
-## ISR safety — critical
+- Forbidden: `new`/`delete`/`malloc`/`free`, `make_unique`/`make_shared`,
+  `std::vector`/`string`/`deque`/`list`/`map`/`set`, recursion.
+- Use: `infra::BoundedVector<T>::WithMaxSize<N>`, `infra::BoundedString::WithStorage<N>`,
+  `infra::BoundedDeque`, `infra::BoundedList`/`IntrusiveList`, `std::array`, `std::optional`, `std::variant`.
 
-- Nothing inside an ISR allocates, blocks, or locks a mutex
-- ISR-to-main data transfer: `infra::QueueForOneReaderOneIrqWriter<T>` only — `T` must satisfy `std::is_trivial` (plain POD struct with fixed-size array members; no `BoundedVector`, no user-declared constructors)
-- `infra::BoundedDeque` is **not** ISR-safe across the ISR/main boundary
-- Shared flags written in ISR and read in main must be `volatile` (or `std::atomic`)
-- Always `NVIC_ClearPendingIRQ` before registering the EMIL interrupt handler (registration is what enables the IRQ); clear interrupt status bits before returning from an ISR
+## Interfaces & errors *(shared)*
 
-## Peripheral driver conventions
+- No virtual destructors: each adds a deleting destructor and thunks to flash.
+  Interface = pure virtual methods + `protected: ~I() = default;` (non-virtual).
+- Public `virtual ~Base() = default;` only on a base destroyed through a base pointer:
+  `delete`/`std::unique_ptr<Base>`, `infra::PolymorphicVariant<Base, ...>`, `infra::OptionalForPolymorphicObjects<Base, ...>`.
+  Put it on that base, not on every interface.
+- Not needed for `std::variant`, `std::optional<Concrete>`, `infra::SharedPtr`: they destroy the concrete type.
+- No exceptions. `std::optional`, `bool` or status enum; `really_assert` for preconditions. Never swallow an error.
+- Constructor injection; no global state.
 
-Full detail lives in `.github/instructions/hal-ti-cpp.instructions.md` and `.github/copilot-instructions.md` — read them before touching driver code. Key points:
+## Optimisation *(shared)*
 
-- Constructor body: `EnableClock()` first (`SYSCTL->RCGCxxx |= bit`, then poll `SYSCTL->PRxxx` until ready — never a fixed NOP delay), then register configuration, then `NVIC_ClearPendingIRQ` and registering the EMIL interrupt handler **last**
-- Destructor body (reverse order): release the EMIL handler **first** (`handler.reset()` / `Unregister()`, which disables the IRQ), then disable the peripheral and `DisableClock()`
-- `PeripheralPin` members are constructed in the initializer list, before the constructor body runs
-- Interrupt handlers: a `std::optional` member of `hal::cortex::ImmediateInterruptHandler` (ISR context) or `hal::cortex::DispatchedInterruptHandler` (deferred to main), emplaced with IRQ, priority and callback; or derive from `hal::cortex::InterruptHandler` and use `Register()`/`Unregister()`. Registration enables the IRQ — never call `NVIC_EnableIRQ` directly
-- Interrupt dispatch: no vector-table entry or weak alias is needed for a new ISR. `Default_Handler` in both startup files calls `Default_Handler_Forwarded()` (`hal_tiva/bringup/Bringup.cpp`) → `hal::cortex::InterruptTable::Instance().Invoke(hal::cortex::ActiveInterrupt())`; the few named handlers (`Can0_Handler`, `Uart0_Handler`, …) call `Invoke(IRQn)` too
-- Interrupt table size: `HardwareInitialization()` builds `InterruptTable::WithStorage<155>` (indexed by IRQn + 16) — an IRQ outside it, or one that fires with no registered handler, hits `really_assert`
-- MCU family conditionals: use CMake generator expressions (`$<$<STREQUAL:${TARGET_MCU_FAMILY},TM4C123>:...>`), never `#ifdef TM4C123`/`#ifdef TM4C129` in C++
-  - Family-specific constants, types and register helpers go in `hal_tiva/tiva/family/<family>/<Driver>Family.hpp` (same API for both families, included as `#include "<Driver>Family.hpp"`)
-  - CMake adds only `family/<family>` (`tm4c123` or `tm4c129`, i.e. the lower-cased `TARGET_MCU_FAMILY`) to the include path; family-only sources live in the same directory and are listed with generator expressions
+- No `#pragma GCC optimize`, no `optimize` attribute: GCC won't inline across differing options.
+  The consumer sets flags per translation unit.
+- `OPTIMIZE_FOR_SPEED` only on hot functions defined in a header.
+- Hot paths: no heap, no virtual dispatch, no blocking.
 
-## Style
+## Style *(shared)*
 
-- Allman braces, 4-space indent, `.clang-format` authoritative
-- PascalCase types/methods, camelCase members/locals; `const`-correct on all observer/query methods; `constexpr` for compile-time constants
-- Fixed-size types (`uint8_t`, `uint32_t`, …) over `int`
-- **No comments** except non-obvious *why*. No `TODO`/`FIXME`/`HACK`, no commented-out code
-- No C-style casts — `static_cast<>`; `reinterpret_cast<>` only where raw register/void-pointer access requires it
+- `.clang-format` is authoritative. Allman, 4 spaces, `{}` init.
+- PascalCase types/methods; camelCase members and enum values; lowercase namespaces.
+  No `I` prefix; implementations end in `Impl`.
+- `#pragma once` only.
+- Fixed-width integers. `const`/`constexpr`-correct. Functions ≤ 30 lines (hard limit 50).
+- Comments: non-obvious *why* only, one line. No `TODO`/`FIXME`, commented-out code, or restating the code.
+  Fix or delete a comment the change makes stale.
 
-## Interfaces & errors
+## Testing *(shared)*
 
-- Interfaces = pure virtual; `virtual ~I() = default` — never `= 0` destructors
-- No exceptions. `std::optional<T>` or status enums for fallible operations
-- No global mutable state — driver state lives in class members
+- `TEST_F` for fixtures, `TYPED_TEST` for types, plain `TEST()` for stateless checks.
+- `StrictMock` only. `EXPECT_NEAR` with explicit tolerance. Fixture in an anonymous namespace, macros outside.
+- Heap allowed in tests.
 
-## Testing
+## Documentation *(shared)*
 
-`integration_test/` runs GoogleTest on the host build (`HAL_TI_BUILD_TESTS`, set by the host presets) — logic tests (CAN bit timing, SPI clock divisor), not hardware-in-the-loop. There is no on-target test suite; hardware validation is manual (LaunchPad boards, logic analyser/scope). Don't add new unit tests for driver register-sequence changes that can only be verified on real hardware.
+- Update docs before or with any behavioural change.
+- One fact, one place: link, never restate.
+- Visuals: Mermaid or ASCII.
+<!-- shared:end -->
 
-## Build
+## Domain *(repo)*
 
-hal-ti cannot be built standalone as a deployable target; it's consumed as a dependency by a larger project (e.g. a motor-control application), but the host preset builds and tests it directly:
+- HAL for TI Tiva C Cortex-M MCUs (TM4C123, TM4C129). Implements the embedded-infra-lib (EMIL) HAL interfaces
+  for real-time motor control. *Memory* applies to all driver code.
+- `hal_tiva/tiva/` — peripheral drivers, namespace `hal::tiva`. `hal_tiva/synchronous_tiva/` — blocking variants.
+  `hal_tiva/instantiations/` — board support (`LaunchPadBsp`, `EventInfrastructure`), namespace `instantiations`.
+- `hal_tiva/bringup/` — `HardwareInitialization()` and the weak `Default_Handler_Forwarded()`.
+- `tiva/CMSIS/Device/TI/` — device headers, startup vector tables, linker scripts.
+- `integration_test/` — host GoogleTest (logic only). `examples/` — reference apps. `demo/` — one folder per board;
+  each builds only for its own MCU. `doc/` — board documents.
+- EMIL supplies `hal::cortex::*` (InterruptTable, InterruptHandler, SystemTick, DWT, Reset, EventDispatcher) and the
+  runtime (`hal.cortex_m.runtime`). Do not add local copies.
+- EMIL comes through `FetchContent`, pinned by `GIT_TAG`; `update-emil-git-tag.yml` bumps it.
+- `hal_ti_target_bringup()` must list `$<TARGET_OBJECTS:hal.cortex_m.runtime>`: object files do not propagate
+  through `hal.cortex_m`. A miss fails only at the final ARM link.
+
+### Peripheral lifecycle
+
+- `PeripheralPin` members: construct them in the initializer list.
+- Constructor body, in this order:
+  1. `EnableClock()`: set `SYSCTL->RCGCxxx`, then poll `SYSCTL->PRxxx` until ready. Never a NOP delay.
+  2. Configure the registers.
+  3. `NVIC_ClearPendingIRQ(irq)`, then register the EMIL handler last.
+- Destructor, in this order:
+  1. Release the EMIL handler (`reset()`/`Unregister()`). This disables the IRQ.
+  2. Disable the peripheral, then `DisableClock()`. Reverse order faults a pending IRQ on unpowered registers.
+- Handler: a `std::optional<hal::cortex::ImmediateInterruptHandler>` (ISR context) or
+  `DispatchedInterruptHandler` (main) member, or derive from `hal::cortex::InterruptHandler`.
+  Registration enables the IRQ: never call `NVIC_EnableIRQ`.
+
+### Interrupts
+
+- `Default_Handler` (both startup files) calls `Default_Handler_Forwarded()`, which invokes the EMIL
+  `InterruptTable`. A new ISR needs no vector-table change. Keep a new named handler in both startup files.
+- The table is `InterruptTable::WithStorage<155>` (IRQn + 16) in `Bringup.cpp`. An IRQ outside it, or one with no
+  handler, hits `really_assert`.
+- In an ISR: no allocation, blocking or locks. Clear the status bits before return.
+- ISR-to-main data: `infra::QueueForOneReaderOneIrqWriter<T>` only; `T` must be `std::is_trivial` (POD, fixed
+  arrays). Its storage needs `N + 1` slots. `infra::BoundedDeque` is not ISR-safe.
+- Flags shared with an ISR: `volatile` or `std::atomic`.
+- `infra::Function` holds `2 * sizeof(void*)`: capture `[this]` only.
+- GPIO pin interrupts share a pool of `HAL_TI_GPIO_MAX_INTERRUPT_PINS` slots (default 8); one more hits
+  `really_assert`. `DisableInterrupt` frees a slot.
+
+### Registers and families
+
+- Registers through CMSIS struct pointers (`UART0->CTL`); `#include DEVICE_HEADER`.
+- Bit constants: `constexpr uint32_t` in an anonymous namespace. No magic numbers.
+- No `#ifdef TM4C123`/`TM4C129` in C++. Family code goes in `hal_tiva/tiva/family/<family>/<Driver>Family.hpp`
+  (same API per family); CMake adds only `family/<family>` to the include path and selects sources with generator
+  expressions.
+- CAN: the prescaler must divide the bit clocks exactly. `really_assert` each manual `BitTiming` field is non-zero.
+  After reading `CAN_STS`, write it back with `TXOK`/`RXOK` = 0 and `LEC` = 7.
+- New driver or board: update `doc/` with pinout, setup and limitations.
+
+## Build *(repo)*
 
 ```bash
-cmake --preset host
-cmake --build --preset host-Debug
+cmake --preset host && cmake --build --preset host-Debug
 ctest --preset host
+cmake --preset tm4c123gh6pm && cmake --build --preset tm4c123gh6pm-Debug
+cmake --preset tm4c1294ncpdt && cmake --build --preset tm4c1294ncpdt-Debug
 ```
 
-Target presets: `tm4c123gh6pm` / `tm4c1294ncpdt` (build: `<preset>-Debug`, `<preset>-RelWithDebInfo`). Options (top-level `CMakeLists.txt`): `HAL_TI_BUILD_TESTS`, `HAL_TI_INCLUDE_BRINGUP` (default ON), `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS`, `HAL_TI_INCLUDE_LWIP` (lwIP Ethernet instantiation, TM4C129 only), `HAL_TI_GPIO_MAX_INTERRUPT_PINS` (default 8; GPIO pins with an interrupt enabled at once).
+Options: `HAL_TI_BUILD_TESTS`, `HAL_TI_INCLUDE_BRINGUP`, `HAL_TI_BUILD_EXAMPLES`, `HAL_TI_BUILD_EXAMPLES_FREERTOS`,
+`HAL_TI_INCLUDE_LWIP` (TM4C129 only), `HAL_TI_GPIO_MAX_INTERRUPT_PINS`. Tests: `emil_build_for(... HOST ...)` +
+`emil_add_test`.
 
-## Dependency: EMIL (embedded-infra-lib)
+## Exceptions *(repo)*
 
-Pulled via `FetchContent` in the top-level `CMakeLists.txt`, pinned to a specific commit (`GIT_TAG`), auto-bumped by `.github/workflows/update-emil-git-tag.yml`. `hal::cortex::*` (InterruptTable, InterruptHandler, DataWatchpointAndTrace, FaultTracer, Reset, SystemTick, SystemTickTimerService) and the generic runtime (`hal.cortex_m.runtime`: atomics shim, syscall stubs, `abort`/`__assert_func`) come from EMIL, not from this repo — don't reintroduce local copies of these. Note EMIL has no `TimeKeeper` explicitly injecting a `SystemTickTimerService&`; `hal::TimeKeeperGeneric` (`hal/generic/`, built on the ambient `infra::Now()`) is the closest equivalent if a concrete `hal::TimeKeeper` is ever needed here.
-
-`hal_ti_target_bringup()` (in `hal_tiva/bringup/CMakeLists.txt`) must explicitly list `$<TARGET_OBJECTS:hal.cortex_m.runtime>` on any target it's applied to — `hal.cortex_m.runtime` is an EMIL `OBJECT` library, and its object files do **not** propagate through the intermediate `hal.cortex_m` `STATIC` library automatically; omitting it produces link errors for `_sbrk`/`_read`/`_write`/etc. only at the final executable-link step (the host preset can't catch this — `hal.cortex_m` doesn't build there, it needs ARM instructions the host assembler rejects).
-
-## Assistant behavior — be terse
-
-- Minimal prose. No preamble/postamble, no restating the plan, no summaries unless asked
-- Report results as file paths + build pass/fail
-- Don't re-read files already read; batch reads; prefer targeted edits
+- *Workflow* step 4: a register-sequence change that only hardware can verify needs no new unit test. There is no
+  on-target test suite; verify on a LaunchPad with a logic analyser.
