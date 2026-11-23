@@ -1,5 +1,4 @@
-#ifndef HAL_ETHERNET_TIVA_HPP
-#define HAL_ETHERNET_TIVA_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "hal/cortex_m/InterruptCortex.hpp"
@@ -152,5 +151,3 @@ namespace hal::tiva
         std::optional<SendDescriptors> sendDescriptors;
     };
 }
-
-#endif

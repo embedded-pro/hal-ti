@@ -1,5 +1,4 @@
-#ifndef HAL_TI_TRACING_RESET_HPP
-#define HAL_TI_TRACING_RESET_HPP
+#pragma once
 
 #include "hal/cortex_m/Reset.hpp"
 #include "services/tracer/TracingReset.hpp"
@@ -17,5 +16,3 @@ namespace instantiations
         services::TracingReset tracingReset;
     };
 }
-
-#endif

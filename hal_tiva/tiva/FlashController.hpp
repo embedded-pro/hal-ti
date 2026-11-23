@@ -1,5 +1,4 @@
-#ifndef HAL_TIVA_FLASH_CONTROLLER_HPP
-#define HAL_TIVA_FLASH_CONTROLLER_HPP
+#pragma once
 
 #include "infra/util/ByteRange.hpp"
 #include <cstdint>
@@ -11,5 +10,3 @@ namespace hal::tiva
     void EraseFlashSector(uint32_t address);
     void ProgramFlash(infra::ConstByteRange buffer, uint32_t address);
 }
-
-#endif

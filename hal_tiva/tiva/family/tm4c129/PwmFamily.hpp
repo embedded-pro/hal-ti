@@ -1,5 +1,4 @@
-#ifndef HAL_PWM_FAMILY_TM4C129_HPP
-#define HAL_PWM_FAMILY_TM4C129_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include <array>
@@ -59,5 +58,3 @@ namespace hal::tiva::family
             return 1U << ((result > 5U ? 5U : result) + 1);
     }
 }
-
-#endif

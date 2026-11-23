@@ -1,5 +1,4 @@
-#ifndef VALIDATION_WATCH_DOG_FACTORY_HPP
-#define VALIDATION_WATCH_DOG_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/tiva/WatchDog.hpp"
 #include "services/hil/HilPinPool.hpp"
@@ -46,5 +45,3 @@ namespace validation
         std::optional<WarningToggle> toggle;
     };
 }
-
-#endif

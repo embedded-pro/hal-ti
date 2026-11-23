@@ -1,5 +1,4 @@
-#ifndef HAL_QUADRATURE_ENCODER_FAMILY_TM4C123_HPP
-#define HAL_QUADRATURE_ENCODER_FAMILY_TM4C123_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include <array>
@@ -19,5 +18,3 @@ namespace hal::tiva::family
         QEI1_IRQn,
     } };
 }
-
-#endif

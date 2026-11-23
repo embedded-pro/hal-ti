@@ -1,5 +1,4 @@
-#ifndef HAL_GPIO_FAMILY_TM4C123_HPP
-#define HAL_GPIO_FAMILY_TM4C123_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include <array>
@@ -63,5 +62,3 @@ namespace hal::tiva::family
                ((gpio == GPIOD) && (index == 7));
     }
 }
-
-#endif

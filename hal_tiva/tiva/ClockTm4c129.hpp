@@ -1,5 +1,4 @@
-#ifndef HAL_TI_CLOCK_TM4C129_HPP
-#define HAL_TI_CLOCK_TM4C129_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include <cstdint>
@@ -36,5 +35,3 @@ namespace hal::tiva
 
     void ConfigureClock(uint32_t frequency, crystalFrequency hseValue, oscillatorSource oscSource = oscillatorSource::main, systemClockVco systemClockVco = systemClockVco::_240_MHz, bool usesPll = true);
 }
-
-#endif

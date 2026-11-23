@@ -1,5 +1,4 @@
-#ifndef HAL_ANALOG_COMPARATOR_FAMILY_TM4C129_HPP
-#define HAL_ANALOG_COMPARATOR_FAMILY_TM4C129_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "infra/util/ReallyAssert.hpp"
@@ -46,5 +45,3 @@ namespace hal::tiva::family
         }
     }
 }
-
-#endif

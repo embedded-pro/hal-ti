@@ -1,5 +1,4 @@
-#ifndef HAL_TIVA_CAN_BIT_TIMING_HPP
-#define HAL_TIVA_CAN_BIT_TIMING_HPP
+#pragma once
 
 #include "infra/util/ReallyAssert.hpp"
 #include <cstdint>
@@ -77,5 +76,3 @@ namespace hal::tiva
         return best;
     }
 }
-
-#endif

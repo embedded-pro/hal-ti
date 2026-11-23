@@ -1,5 +1,4 @@
-#ifndef SYNCHRONOUS_HAL_SYNCHRONOUS_UART_STM_HPP
-#define SYNCHRONOUS_HAL_SYNCHRONOUS_UART_STM_HPP
+#pragma once
 
 #include "hal/synchronous_interfaces/SynchronousSerialCommunication.hpp"
 #include "hal/synchronous_interfaces/TimeKeeper.hpp"
@@ -136,5 +135,3 @@ namespace hal::tiva
         infra::MemoryRange<UART0_Type* const> uartArray;
     };
 }
-
-#endif

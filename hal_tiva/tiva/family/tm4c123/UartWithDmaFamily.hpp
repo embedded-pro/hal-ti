@@ -1,5 +1,4 @@
-#ifndef HAL_UART_WITH_DMA_FAMILY_TM4C123_HPP
-#define HAL_UART_WITH_DMA_FAMILY_TM4C123_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include "hal_tiva/tiva/Dma.hpp"
@@ -31,5 +30,3 @@ namespace hal::tiva::family
         UDMA->CHIS = 1u << dma.ChannelNumber();
     }
 }
-
-#endif

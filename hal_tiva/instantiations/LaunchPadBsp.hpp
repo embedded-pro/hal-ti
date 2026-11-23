@@ -1,6 +1,3 @@
-#ifndef HAL_TI_LAUNCH_PAD_HPP
-#define HAL_TI_LAUNCH_PAD_HPP
+#pragma once
 
 #include "LaunchPadFamily.hpp"
-
-#endif

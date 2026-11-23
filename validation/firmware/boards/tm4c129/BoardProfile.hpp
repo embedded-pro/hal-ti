@@ -1,5 +1,4 @@
-#ifndef VALIDATION_BOARD_PROFILE_HPP
-#define VALIDATION_BOARD_PROFILE_HPP
+#pragma once
 
 #include "hal_tiva/tiva/ClockTm4c129.hpp"
 #include "hal_tiva/tiva/PinoutTableDefaultTm4c129.hpp"
@@ -70,5 +69,3 @@ namespace validation::board
         hal::tiva::ConfigureClock(120000000, hal::tiva::crystalFrequency::_25_MHz, hal::tiva::oscillatorSource::main, hal::tiva::systemClockVco::_240_MHz, true);
     }
 }
-
-#endif

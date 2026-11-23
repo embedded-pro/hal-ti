@@ -1,5 +1,4 @@
-#ifndef HAL_TI_ETHERNET_SMI_OBSERVER_HPP
-#define HAL_TI_ETHERNET_SMI_OBSERVER_HPP
+#pragma once
 
 #include "hal/interfaces/Ethernet.hpp"
 #include "lwip/lwip_cpp/LightweightIpOverEthernet.hpp"
@@ -21,5 +20,3 @@ namespace instantiations
         hal::EthernetMac& ethernetMac;
     };
 }
-
-#endif

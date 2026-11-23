@@ -1,5 +1,4 @@
-#ifndef HAL_TIVA_SPI_CLOCK_DIVISOR_HPP
-#define HAL_TIVA_SPI_CLOCK_DIVISOR_HPP
+#pragma once
 
 #include "infra/util/ReallyAssert.hpp"
 #include <cstdint>
@@ -40,5 +39,3 @@ namespace hal::tiva
         return best;
     }
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VALIDATION_TIVA_PIN_FACTORY_HPP
-#define VALIDATION_TIVA_PIN_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Gpio.hpp"
 #include "infra/util/EnumCast.hpp"
@@ -53,5 +52,3 @@ namespace validation
         std::array<std::optional<ManagedPin>, capacity> pins;
     };
 }
-
-#endif

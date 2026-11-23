@@ -1,5 +1,4 @@
-#ifndef HAL_TI_EVENT_INFRASTRUCTURE_HPP
-#define HAL_TI_EVENT_INFRASTRUCTURE_HPP
+#pragma once
 
 #include "hal/cortex_m/SystemTickTimerService.hpp"
 #include "infra/event/EventDispatcherWithWeakPtr.hpp"
@@ -18,5 +17,3 @@ namespace instantiations
         hal::cortex::SystemTickTimerService systemTick;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_LAUNCH_PAD_FAMILY_TM4C129_HPP
-#define HAL_LAUNCH_PAD_FAMILY_TM4C129_HPP
+#pragma once
 
 #include "hal_tiva/instantiations/LaunchPadBspEkTm4c1294.hpp"
 #include "hal_tiva/tiva/ClockTm4c129.hpp"
@@ -28,5 +27,3 @@ namespace instantiations
         LaunchPadUi ui;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_UART_WITH_DMA_FAMILY_TM4C129_HPP
-#define HAL_UART_WITH_DMA_FAMILY_TM4C129_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Dma.hpp"
 #include <cstdint>
@@ -29,5 +28,3 @@ namespace hal::tiva::family
     {
     }
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VALIDATION_EEPROM_FACTORY_HPP
-#define VALIDATION_EEPROM_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Eeprom.hpp"
 #include "services/hil/commands/HilEepromCommands.hpp"
@@ -17,5 +16,3 @@ namespace validation
         std::optional<hal::tiva::Eeprom> eeprom;
     };
 }
-
-#endif

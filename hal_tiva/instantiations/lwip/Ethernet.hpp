@@ -1,5 +1,4 @@
-#ifndef HAL_TI_ETHERNET_HPP
-#define HAL_TI_ETHERNET_HPP
+#pragma once
 
 #include "hal_tiva/instantiations/lwip/EthernetSmiObserver.hpp"
 #include "hal_tiva/tiva/Ethernet.hpp"
@@ -67,5 +66,3 @@ namespace instantiations
         , hostName(hostName)
     {}
 }
-
-#endif

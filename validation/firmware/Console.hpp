@@ -1,5 +1,4 @@
-#ifndef VALIDATION_CONSOLE_HPP
-#define VALIDATION_CONSOLE_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Dma.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -33,5 +32,3 @@ namespace validation
         services::HilTerminal::WithMaxQueueAndMaxHistory<queueSize, 1> terminal{ uart, tracer, response };
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VALIDATION_TIVA_BOARD_INFO_HPP
-#define VALIDATION_TIVA_BOARD_INFO_HPP
+#pragma once
 
 #include "services/hil/HilBoardInfo.hpp"
 
@@ -23,5 +22,3 @@ namespace validation
         const char* resetCause;
     };
 }
-
-#endif

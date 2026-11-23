@@ -1,5 +1,4 @@
-#ifndef HAL_UART_WITH_DMA_TIVA_HPP
-#define HAL_UART_WITH_DMA_TIVA_HPP
+#pragma once
 
 #include "hal_tiva/tiva/Dma.hpp"
 #include "hal_tiva/tiva/UartBase.hpp"
@@ -37,5 +36,3 @@ namespace hal::tiva
         infra::MemoryRange<uint8_t> rxBufferAlternate;
     };
 }
-
-#endif

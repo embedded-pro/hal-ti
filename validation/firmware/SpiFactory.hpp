@@ -1,5 +1,4 @@
-#ifndef VALIDATION_SPI_FACTORY_HPP
-#define VALIDATION_SPI_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousSpiMaster.hpp"
 #include "hal_tiva/tiva/SpiMaster.hpp"
@@ -41,5 +40,3 @@ namespace validation
         std::variant<std::monostate, hal::tiva::SpiMaster, hal::tiva::SynchronousSpiMaster> driver;
     };
 }
-
-#endif

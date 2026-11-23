@@ -1,5 +1,4 @@
-#ifndef VALIDATION_QEI_FACTORY_HPP
-#define VALIDATION_QEI_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousQuadratureEncoder.hpp"
 #include "services/hil/commands/HilQeiCommands.hpp"
@@ -36,5 +35,3 @@ namespace validation
         std::optional<hal::tiva::QuadratureEncoder> encoder;
     };
 }
-
-#endif

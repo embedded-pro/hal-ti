@@ -1,5 +1,4 @@
-#ifndef VALIDATION_COMPARATOR_FACTORY_HPP
-#define VALIDATION_COMPARATOR_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousAnalogComparator.hpp"
 #include "hal_tiva/tiva/AnalogComparator.hpp"
@@ -39,5 +38,3 @@ namespace validation
         std::variant<std::monostate, hal::tiva::AnalogComparator, hal::tiva::SynchronousAnalogComparator> driver;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_TI_CLOCK_TM4C123_HPP
-#define HAL_TI_CLOCK_TM4C123_HPP
+#pragma once
 
 #include DEVICE_HEADER
 #include <cstdint>
@@ -36,5 +35,3 @@ namespace hal::tiva
 
     void ConfigureClock(crystalFrequency hseValue, oscillatorSource oscSource = oscillatorSource::main, systemClockDivider systemClockDivisor = { 2, 5 }, bool usesPll = true);
 }
-
-#endif

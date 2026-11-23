@@ -1,5 +1,4 @@
-#ifndef HAL_LOW_POWER_MODE_TIVA_HPP
-#define HAL_LOW_POWER_MODE_TIVA_HPP
+#pragma once
 
 #include "hal/interfaces/LowPowerMode.hpp"
 
@@ -12,5 +11,3 @@ namespace hal::tiva
         void Enter(PowerMode mode) override;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HAL_UNIQUE_DEVICE_ID_FAMILY_TM4C129_HPP
-#define HAL_UNIQUE_DEVICE_ID_FAMILY_TM4C129_HPP
+#pragma once
 
 #include "infra/util/MemoryRange.hpp"
 #include <cstdint>
@@ -12,5 +11,3 @@ namespace hal::tiva::family
         return infra::ConstByteRange(base, base + 16);
     }
 }
-
-#endif

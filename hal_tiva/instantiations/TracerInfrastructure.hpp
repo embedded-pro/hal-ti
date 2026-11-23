@@ -1,5 +1,4 @@
-#ifndef HAL_TI_TRACER_INFRASTRUCTURE_HPP
-#define HAL_TI_TRACER_INFRASTRUCTURE_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
 #include "hal_tiva/tiva/Gpio.hpp"
@@ -32,5 +31,3 @@ namespace instantiations
         services::TracerWithDateTime tracer;
     };
 }
-
-#endif

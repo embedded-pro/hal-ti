@@ -1,5 +1,4 @@
-#ifndef VALIDATION_UART_FACTORY_HPP
-#define VALIDATION_UART_FACTORY_HPP
+#pragma once
 
 #include "hal_tiva/synchronous_tiva/SynchronousUart.hpp"
 #include "hal_tiva/tiva/Dma.hpp"
@@ -63,5 +62,3 @@ namespace validation
         std::variant<std::monostate, InterruptUart, UartWithDma, SynchronousUart> driver;
     };
 }
-
-#endif
