@@ -10,7 +10,7 @@ namespace instantiations
     {
     public:
         explicit EthernetSmiObserver(hal::EthernetSmi& ethernetSmi, hal::EthernetMac& ethernetMac, services::LightweightIpOverEthernetFactory& lightweightIpOverEthernetFactory);
-        virtual ~EthernetSmiObserver();
+        ~EthernetSmiObserver();
 
         void LinkUp(hal::LinkSpeed linkSpeed) override;
         void LinkDown() override;

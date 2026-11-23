@@ -13,7 +13,7 @@ namespace hal::tiva
     {
     public:
         explicit Dma(const infra::Function<void()>& onError);
-        virtual ~Dma();
+        ~Dma();
 
         bool IsEnabled() const;
 
